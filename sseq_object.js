@@ -279,6 +279,6 @@ class Differential {
     }
 
     toString(){
-        return `d_{${this.page}}(${this.source_name}) = ${this.target_name}`;
+        return '\\(' + `d_{${this.page}}(${this.source_name}) = ${this.target_name}` + '\\)';
     }
 }

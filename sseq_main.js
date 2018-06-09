@@ -5,6 +5,16 @@ let gridStrokeWidth = "0.5";
 let boxSize = 50;
 let marginSize = boxSize/2;
 
+var transform;
+var xshift,yshift;
+var scale, xscale, yscale;
+var xmin, xmax, ymin, ymax;
+var xTickStep, yTickStep, oldxTickStep = 1, oldyTickStep = 1;
+let ZOOM_BASE = 1.1;
+let TICK_STEP_LOG_BASE = 10;
+
+let sseq = new Sseq();
+
 let svg = d3.select("#main")
 	.append("svg")
 	.attr("width","100%")
@@ -46,23 +56,18 @@ supermargin.append("rect")
     .attr("y", height - marginSize)
     .attr("height",marginSize)
     .attr("width",marginSize)
-    .attr("fill", "#FFF");    
+    .attr("fill", "#FFF");
     
-let tooltip_div = body.append("div")	
+let tooltip_div = body.append("div")
+    .attr("id", "tooltip_div")	
     .attr("class", "tooltip")				
     .style("opacity", 0);
 
-var transform;
-var xshift,yshift;
-var scale, xscale, yscale;
-var xmin, xmax, ymin, ymax;
-var xTickStep;
-var yTickStep;
 
-let sseq = new Sseq();
+
 
 svg.call(d3.zoom()
-        .scaleExtent([1 / 2, 4])
+        .scaleExtent([1 / 4, 4])
         .on("zoom", zoomed)).on("dblclick.zoom", null);
 
 
@@ -88,7 +93,6 @@ function zoomed() {
     
     let bottomLeft = transform.invert([0,2*yshift]);
     let topRight = transform.invert([width,height+2*yshift]);
-   // sseq.addClass(Math.round(bottomLeft[0]/boxSize),Math.round(bottomLeft[1]/boxSize))
     xmin = Math.floor(bottomLeft[0]/boxSize) - 1;
     xmax = Math.ceil(topRight[0]/boxSize) - 1;
     ymin = Math.floor( (bottomLeft[1] - height/scale + height )/(boxSize));
@@ -111,31 +115,51 @@ function updateGrid(){
         .attr("x1", function (d){return d*boxSize})
         .attr("x2", function (d){return d*boxSize;})
         .attr("y1", - boxSize)
-        .attr("y2", 2*height + boxSize)
         .style("stroke", gridColor)
         .attr("stroke-width", gridStrokeWidth);
     hgrid.exit().remove();
+    
+    grid.selectAll(".horizontalgrid")
+        .attr("y2", 2*height/scale + boxSize);
         
     let vgrid = grid.selectAll(".verticalgrid").data(vboxes);
-    
     vgrid.enter()
         .append("line")
         .attr("class", "verticalgrid")
         .attr("x1", - boxSize)
-        .attr("x2", 2*width + boxSize)
         .attr("y1", function (d){return d*boxSize})
         .attr("y2", function (d){return d*boxSize})
         .style("stroke", gridColor)
         .attr("stroke-width", gridStrokeWidth);
     vgrid.exit().remove();
+    grid.selectAll(".verticalgrid")
+        .attr("x2", 2*width/scale + boxSize)
 }
 
 function updateAxes(){
-//    xTickStep = 3*1/scale;
-//    xTickStep = 3*1/scale;
+    let zoom = Math.log(scale)/Math.log(ZOOM_BASE);
+    let n=0;
+    xTickStep = 1;
+    for(let i = -zoom; i > 0; i -= TICK_STEP_LOG_BASE){
+        if(n % 2 == 0){
+            xTickStep *= 5;
+        } else {
+            xTickStep *= 2;
+        }
+        n++;
+    }
+    yTickStep = xTickStep;
+    if(xTickStep != oldxTickStep){
+        margin.selectAll(".xaxistick").remove();
+    }
+    if(yTickStep != oldyTickStep){
+        margin.selectAll(".yaxistick").remove();
+    }
+    oldxTickStep = xTickStep;
+    oldyTickStep = yTickStep;
     
-    let xaxisticks = Array.from({length: xmax - xmin}, (x,i) => i + xmin);
-    let yaxisticks = Array.from({length: ymax - ymin}, (x,i) => i + ymin);   
+    let xaxisticks = Array.from({length: Math.floor((xmax - xmin + 2*xTickStep)/xTickStep)}, (x,i) => i*xTickStep + Math.floor(xmin/xTickStep)*xTickStep);
+    let yaxisticks = Array.from({length: Math.floor((ymax - ymin + 2*yTickStep)/yTickStep)}, (x,i) => i*yTickStep + Math.floor(ymin/yTickStep)*yTickStep);   
     
     margin.selectAll(".xaxistick")
         .data(xaxisticks)
@@ -161,7 +185,7 @@ function updateAxes(){
     margin.selectAll(".yaxistick").exit().remove();
     margin.selectAll(".yaxistick")
         .text( d => d.toString())
-        .attr("y", d => (boxMultipleHeight - (d+1)*boxSize)*scale + yshift);         
+        .attr("y", d => (boxMultipleHeight + heightOffset/scale - (d+1)*boxSize)*scale + yshift);         
 }
 
 function updateForeground(){
@@ -182,7 +206,7 @@ function updateClasses(){
         
     classG.selectAll(".class")
         .attr("transform", transform)
-        .attr("r", 5)
+        .attr("r", scale < 1/2 ? 5/(2*scale) : 5 )
         .attr("fill", d => d.color )
         .attr("cx", d => {d.cx = d.x * boxSize + boxSize/2; return d.cx;})         
         .attr("cy", d => {d.cy = boxMultipleHeight - (d.y  + 1) * boxSize + d.getYOffset(); return d.cy;});
@@ -238,7 +262,8 @@ function handleMouseover(d) {
         .style("opacity", .9);		
     tooltip_div.html("(" + d.x + ", " + d.y + ") <br>" + d.extra_info )	
         .style("left", (d3.event.pageX) + "px")		
-        .style("top", (d3.event.pageY - 28) + "px");	
+        .style("top", (d3.event.pageY - 28) + "px");
+    MathJax.Hub.Queue(["Typeset",MathJax.Hub,"tooltip_div"]);
 }
 
 
