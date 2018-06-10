@@ -5,7 +5,7 @@ MathJax.Hub.Config({
     extensions: ["toMathML.js"],
 	TeX: {},
     "HTML-CSS": {
-      scale: 80
+      scale: 100
     }
 });
 MathJax.Hub.Configured();
