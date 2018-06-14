@@ -1,4 +1,7 @@
 "use strict";
+const d3 = require("d3");
+const StringifyingMap = require("./StringifyingMap.js");
+
 let infinity = 10000;
 
 Map.prototype.getOrElse = function(key, value) {
@@ -33,7 +36,6 @@ function monomialString(vars, exponents){
 
 class Sseq {
     constructor(){
-        this.classes = [];
         this.total_classes = 0;
         this.classes_by_degree = new StringifyingMap();
         this.num_classes_by_degree = new StringifyingMap();
@@ -41,10 +43,18 @@ class Sseq {
         this.classes = [];
         this.structlines = [];
         this.differentials = [];
+        this.display_classes = [];        
+        this.display_structlines = [];
+        this.display_differentials = [];
         this.xshift = 0;
         this.yshift = 0;        
         this.offset_size = 10;
         this.page_list = [0,infinity];
+        this.default_node = new SseqNode();
+        this.default_node.strokeColor = "#000";
+        this.default_node.fillColor = "#000";
+        this.default_node.shape = d3.symbolCircle;
+        this.default_node.size = 100;
     }
     
     set_shift(x, y){
@@ -73,22 +83,48 @@ class Sseq {
         return c;
     }
     
-    getClasses(page, xmin, xmax, ymin, ymax){
-        return this.classes.filter(c => c.drawOnPageQ(page,xmin,xmax,ymin,ymax));
+    calculateDrawnElements(page, xmin, xmax, ymin, ymax){
+        this.display_classes = this.classes.filter(c => {c.in_range = c.inRangeQ(xmin,xmax,ymin,ymax); return c.in_range && c.drawOnPageQ(page);});
+        this.display_structlines = this.structlines.filter(sl => 
+             sl.source.drawOnPageQ(page) && sl.target.drawOnPageQ(page) 
+             &&  ( sl.source.in_range || sl.target.in_range )
+        );
+        this.display_differentials = this.differentials.filter(sl => 
+             ( page == 0 || sl.page == page )
+             && sl.source.drawOnPageQ(page) && sl.target.drawOnPageQ(page) 
+             && ( sl.source.in_range || sl.target.in_range )
+        );
+        for(let i = 0; i < this.display_structlines.length; i++){
+            let sl = this.display_structlines[i];
+            if(!sl.source.in_range){
+                this.display_classes.push(sl.source);
+            }
+            if(!sl.target.in_range){
+                this.display_classes.push(sl.target);
+            }            
+        }
+        for(let i = 0; i < this.display_differentials.length; i++){
+            let sl = this.display_differentials[i];
+            if(!sl.source.in_range){
+                this.display_classes.push(sl.source);
+            }
+            if(!sl.target.in_range){
+                this.display_classes.push(sl.target);
+            }            
+        }        
     }
     
-    getStructlines(page,xmin,xmax,ymin,ymax){
-        return this.structlines.filter(sl => 
-             sl.source.drawOnPageQ(page,xmin,xmax,ymin,ymax)
-          && sl.target.drawOnPageQ(page,xmin,xmax,ymin,ymax)
-        )
+    
+    getClasses(){
+        return this.display_classes;
     }
     
-    getDifferentials(page,xmin,xmax,ymin,ymax){
-        return this.differentials.filter(d => 
-             d.source.drawOnPageQ(page,xmin,xmax,ymin,ymax)
-          && d.target.drawOnPageQ(page,xmin,xmax,ymin,ymax)
-        )
+    getStructlines(){
+        return this.display_structlines;
+    }
+    
+    getDifferentials(){
+        return this.display_differentials;
     }
     
     addStructline(source, target){
@@ -101,6 +137,7 @@ class Sseq {
         let struct = new SseqStructline(source,target);
         this.structlines.push(struct);
         source.addStructline(struct);
+        target.addStructline(struct);
         return struct;
     }
     
@@ -158,11 +195,8 @@ class Sseq {
 
 
 class SseqNode {
-    constructor(){
-        this.strokeColor = "#000";
-        this.fillColor = "#000";
-        this.shape = d3.symbolCircle;
-        this.size = 100;
+    copy(){
+        return Object.assign(new SseqNode(), this);
     }
 }
 
@@ -180,22 +214,26 @@ class SseqClass {
             this.idx = arguments[3];
         }
 
+        this.edges = [];
         this.structlines = [];
         this.outgoing_differentials = [];
         this.incoming_differentials = [];
         this.name = "";
         this.extra_info = "";
         this.page_list = [infinity];
-        this.node_list = [new SseqNode()] //[this.sseq.default_node.copy()];
-        this.visible = true;        
+        this.node_list = [sseq.default_node.copy()];
+        this.visible = true;     
+        this.last_page = 0;   
+        this.last_page_idx = 0;   
     }
     
     getDegree(){
         return [this.x, this.y];
     }    
     
-    addStructline(){
-        return;
+    addStructline(sl){
+        this.structlines.push(sl);
+        this.edges.push(sl);
     }
     
     getStructlines(){
@@ -216,6 +254,60 @@ class SseqClass {
         return this;
     }
     
+    getPageIndex(page){
+        if( page === undefined ) {
+            return this.page_list.length - 1;
+        } else if( page === this.last_page ) {
+            return this.last_page_idx;
+        }
+        var page_idx;
+        for(let i = 0; i < this.page_list.length; i++){
+            if(this.page_list[i] >= page){
+                page_idx = i;
+                break;
+            }
+        }
+        if(page_idx === undefined){
+            page_idx = this.page_list.length - 1;
+        }
+        this.last_page = page;        
+        this.last_page_idx = page_idx;
+        return page_idx;
+    }
+    
+    getNode(page){
+        const idx = this.getPageIndex(page);
+        return this.node_list[idx];
+    }
+
+    setNode(node, page){
+        if(typeof(node) === "string"){
+            node = node_dict[node];
+        }
+        if(node === undefined){
+            node = {};
+        }
+        const idx = this.getPageIndex(page);
+        this.node_list[idx] = Object.assign(this.sseq.default_node.copy(), node);
+        return this;
+    }
+    
+    
+    appendPage(page){
+        this.page_list.push(page);
+        this.node_list.push(this.sseq.default_node.copy());
+        return this;
+    }
+
+    replace(node){
+        this.appendPage(infinity);
+        if(typeof(node) === "string"){
+            node = node_dict[node];
+        }
+        this.setNode(node);
+        return this;
+    }
+    
     addExtraInfo(str){
         this.extra_info += str + "\n";
     }
@@ -224,13 +316,13 @@ class SseqClass {
     getXOffset(){
         let total_classes = this.sseq.num_classes_by_degree.get(this.pair);
         let idx = this.idx;
-        return (idx - (total_classes - 1)/2)*sseq.offset_size;
+        return (idx - (total_classes - 1)/2)*this.sseq.offset_size;
     }
 
     getYOffset(){
         let total_classes = this.sseq.num_classes_by_degree.get(this.pair);
         let idx = this.idx;
-        return -(idx - (total_classes - 1)/2)*sseq.offset_size;
+        return -(idx - (total_classes - 1)/2)*this.sseq.offset_size;
     }        
     
     toString(){
@@ -243,6 +335,7 @@ class SseqClass {
         }
         this.setPage(differential.page);
         this.outgoing_differentials.push(differential);
+        this.edges.push(differential);
     }
 
     addIncomingDifferential(differential){
@@ -251,36 +344,42 @@ class SseqClass {
         }
         this.setPage(differential.page);
         this.incoming_differentials.push(differential);
+        this.edges.push(differential);
     }
 
-    drawOnPageQ(page,xmin,xmax,ymin,ymax){
-        return this.page_list[this.page_list.length -1] >= page && this.visible
-                && xmin <= this.x && this.x <= xmax
-                && ymin <= this.y && this.y <= ymax;
+    drawOnPageQ(page){
+        return this.page_list[this.page_list.length -1] >= page && this.visible;
     }
     
-    getSize(){
-        console.log(this.node_list[0].size);
-        return this.node_list[0].size;
+    inRangeQ(xmin,xmax,ymin,ymax){
+        return xmin <= this.x && this.x <= xmax
+            && ymin <= this.y && this.y <= ymax;
     }
     
-    getSymbol(){
-        //console.log(this.node_list[0].symbol);
-        return this.node_list[0].shape;
+    getSize(page){
+        let idx = this.getPageIndex(page);
+        return this.node_list[idx].size;
     }
     
-    getStrokeColor(){
-        console.log(this.node_list[0].strokeColor);
-        return this.node_list[0].strokeColor;
+    getSymbol(page){
+        let idx = this.getPageIndex(page);
+        return this.node_list[idx].shape;
     }
     
-    getFillColor(){
-        return this.node_list[0].fillColor;
+    getStrokeColor(page){
+        let idx = this.getPageIndex(page);
+        return this.node_list[idx].strokeColor;
+    }
+    
+    getFillColor(page){
+        let idx = this.getPageIndex(page);
+        return this.node_list[idx].fillColor;
     }    
 }
 
 class SseqStructline {
     constructor(source, target){
+        this.edge_type = "structline";
         this.source = source;
         this.target = target;
         this.page = infinity;
@@ -293,6 +392,7 @@ class SseqStructline {
 
 class Differential {
     constructor(source, target, page){
+        this.edge_type = "differential";
         this.source = source;
         this.target = target;
         this.page = page;
@@ -435,7 +535,6 @@ class monomial_basis {
             let c1 = key_value[1];  
             let c2 = this.get(vectorSum(k, target_vect));
             if(cond(k)){
-                console.log(k[1]);
                 if(c2){
                     let d = this.sseq.addDifferential(c1, c2, page);
                     if(callback !== undefined){
@@ -471,3 +570,7 @@ monomial_basis.prototype[Symbol.iterator] = function*(){
         yield k;
     }
 }
+
+module.exports = Sseq;
+window.SseqNode = SseqNode;
+

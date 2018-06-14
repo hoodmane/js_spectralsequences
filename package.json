@@ -1,0 +1,19 @@
+{
+  "name": "spectral-sequences",
+  "version": "0.0.1",
+  "description": "Interactive spectral sequence viewer and editor.",
+  "author": "Hood Chatham <hood@mit.edu> (http://hoodchatham.com)",
+  "devDependencies": {
+    "browserify": "^16.2.2",
+    "budo": "^11.2.2",
+    "uglifyify": "^5.0.0"
+  },
+  "dependencies": {
+    "d3": "^5.4.0",
+    "mousetrap": "^1.6.2"
+  },
+  "scripts": {
+    "start": "budo src/main.js:bundle.js --live -- --debug --standalone sseq_display",
+    "build": "browserify -g uglifyify src/main.js > bundle.js"
+  }
+}

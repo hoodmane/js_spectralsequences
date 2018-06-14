@@ -53,3 +53,4 @@ var StringifyingMap = (function () {
 }());
 
 
+module.exports = StringifyingMap;

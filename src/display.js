@@ -1,68 +1,72 @@
 "use strict";
+let d3 = require("d3");
+let Mousetrap = require("mousetrap");
+window.Sseq = require("./objects.js");
+window.d3 = d3;
 
+
+
+// Global constants for grid and setup
 let gridColor = "#555"; //"#333"; //
-let gridStrokeWidth = "0.5";
+let gridStrokeWidth = 0.5;
 let strokeWidth = 1;
 let boxSize = 50;
 let marginSize = boxSize/2;
 
-var transform;
-var xshift,yshift;
-var scale, xscale, yscale;
-var xmin, xmax, ymin, ymax;
-var xTickStep, yTickStep, oldxTickStep = 1, oldyTickStep = 1;
 let ZOOM_BASE = 1.1;
-let TICK_STEP_LOG_BASE = 20;
+let TICK_STEP_LOG_BASE = 15;
 
-let sseq = new Sseq();
+// Global variables for the coordinate transformation and graphic state
+var transform;
+var xshift,yshift; // These are read out of transform
+var scale, xscale, yscale;
+var xmin, xmax, ymin, ymax; // calculated from transform
+var xTickStep, yTickStep, oldxTickStep = 1, oldyTickStep = 1;
+var xGridStep, yGridStep; // Not used yet.
 
-let svg = d3.select("#main")
-	.append("svg")
-	.attr("width","100%")
-	.attr("height","96%");
 
-//svg.append("defs").selectAll("marker")
-//        .data(["triangle"])
-//        .enter().append("marker")
-//        .attr("id", function(d) { return d; })
-//        .attr("viewBox", "0 0 10 10")
-//        .attr("refX", 1)
-//        .attr("refY", 5)
-//        .attr("markerWidth", 6)
-//        .attr("markerHeight", 6)
-//        .attr("markerUnits","strokeWidth")
-//        .attr("orient", "auto")
-//        .append("polygon")
-//        .attr("points", "0 0, 10 3.5, 0 7")
-//        .attr("fill","red");
+// Find out the height of the display. 
+let boundingRectangle = document.getElementById("main").getBoundingClientRect();
+let width = boundingRectangle.width;
+let height = boundingRectangle.height - marginSize; // need to make room for bottom margin
+// We want to align things at the bottom, so we need to translate by a half-multiple of the boxSize
+let boxMultipleHeight = Math.floor(height/boxSize)*boxSize + boxSize/2; 
+let heightOffset = height - boxMultipleHeight;
 
+// Drawing elements
+let body = d3.select("body");
+let svg = d3.select("#main-svg");
 
 let canvas = svg.append("g").attr("id","canvas");
 
-
-let body = d3.select("body");
-let grid = canvas.append("g").attr("id","grid");
+// Layers from back to front. It's easy to add more later.
+let grid = canvas.append("g").attr("id","grid"); 
+let background = canvas.append("g").attr("id","background"); // unused.
 let foreground = canvas.append("g").attr("id","foreground");
 let edgeG = foreground.append("g").attr("id","edgeG");
 let classG = foreground.append("g").attr("id","classG");
-let margin = svg.append("g").attr("id","margin");
-let supermargin = svg.append("g");
+// Used for blank white margin squares and axes labels.
+let margin = svg.append("g").attr("id","margin");  
+// This just contains a white square in the bottom right corner to prevent axes labels
+// from showing up down there. Also useful for debugging because nothing on this layer gets covered up.
+let supermargin = svg.append("g").attr("id", "supermargin"); 
 
-//
-//supermargin.append("polyline")
-//     .attr("transform","translate(100,100)")
-//     .attr("points","10,90 50,80 90,20")
-//     .attr("fill", "none")
-//     .attr("stroke","black")
-//     .attr("stroke-width","2")
-//     .attr("marker-end","url(#triangle)");
 
-let boundingRectangle = document.getElementById("main").getBoundingClientRect();
-let width = boundingRectangle.width;
-let height = boundingRectangle.height - 30;
-let boxMultipleHeight = Math.floor(height/boxSize)*boxSize + boxSize/2;
-let heightOffset = height - boxMultipleHeight
+// Move the origin of the canvas to (0,0). y-axis still negative...
+canvas.attr("transform", `translate(${marginSize},${heightOffset})`); 
 
+
+let sseq = new Sseq();
+window.sseq = sseq;
+exports.setSseq = function(ss){
+    sseq = ss;
+    window.sseq = sseq;
+}
+
+exports.sseq = sseq;
+//console.log(sseq);
+
+// The sseq object contains the list of valid pages. Always includes at least 0 and infinity.
 let page_idx = 0;
 let page = 0;
 var pageNumText = supermargin.append("text")
@@ -71,8 +75,33 @@ var pageNumText = supermargin.append("text")
     .attr("id", "pagenum")
     .text("page: " + page);
 
-canvas.attr("transform", `translate(${marginSize},${heightOffset})`);
 
+// Handle left / right mouse buttons to change page.
+Mousetrap.bind('left', function(e,n){ 
+    if(page_idx > 0){
+        page_idx --; 
+        page = sseq.page_list[page_idx];
+        pageNumText.text(page);
+        updateForeground();
+    }
+})
+
+Mousetrap.bind('right', function(e,n){ 
+    if(page_idx < sseq.page_list.length - 1){
+        page_idx++; 
+        page = sseq.page_list[page_idx];        
+        if(page_idx == sseq.page_list.length - 1){
+            pageNumText.text("∞");
+        } else {
+            pageNumText.text(page);
+        }
+        updateForeground();
+    }
+})
+
+
+// Add some white boxes on top layers to prevent lower layers from peaking out in the margins.
+// Maybe we should add some space at top for a title?
 margin.append("rect")
     .attr("width",marginSize)
     .attr("height",height)
@@ -95,26 +124,15 @@ let tooltip_div = body.append("div")
     .attr("class", "tooltip")				
     .style("opacity", 0);
 
-
-
-
+// Set up zoom. Currently the scor
 svg.call(d3.zoom()
-        .scaleExtent([1 / 8, 4])
+        .scaleExtent([1 / 16, 4])
         .on("zoom", zoomed)).on("dblclick.zoom", null);
-
-
-//svg.on("click", function() {
-//      var coords = d3.mouse(this);
-//      let pt = transform.invert(coords)
-//      let x = Math.ceil(pt[0]/boxSize - 1/2/scale) - 1;
-//      let y = Math.floor((boxMultipleHeight - pt[1] + heightOffset/scale)/boxSize + 1/2) - 1;
-//      sseq.addClass(x,y).setName(sseq.total_classes);
-//      updateForeground();
-//})
 
 
 zoomed();
 
+// This is the handler for zoom / pan events. It 
 function zoomed() {
     transform = d3.zoomTransform(svg.node());
     xshift = transform.x;
@@ -123,10 +141,12 @@ function zoomed() {
     xscale = scale;
     yscale = scale;// * 0.5;
     
+    // I'm not really sure why we need the 2*yshift here...
     let bottomLeft = transform.invert([0,2*yshift]);
     let topRight = transform.invert([width,height+2*yshift]);
     xmin = Math.floor(bottomLeft[0]/boxSize) - 1;
     xmax = Math.ceil(topRight[0]/boxSize) - 1;
+    // - height/yscale + height so we are scaling around bottom of diagram rather than top?
     ymin = Math.floor( (bottomLeft[1] - height/yscale + height )/(boxSize));
     ymax = Math.ceil(  (topRight[1]   - height/yscale + height )/(boxSize)) + 1;
 
@@ -134,7 +154,10 @@ function zoomed() {
     updateForeground();
     updateAxes();
 }
+exports.zoomed = zoomed;
 
+
+// This draws the grid
 function updateGrid(){
     grid.attr("transform", `translate(${(xshift)%(boxSize*xscale)},${yshift%(boxSize*yscale)})scale(${scale})`);
     let hboxes = d3.range(0,width/(boxSize*xscale)+1);
@@ -167,7 +190,10 @@ function updateGrid(){
     grid.selectAll(".verticalgrid")
         .attr("x2", 2*width/xscale + boxSize);
 }
+exports.updateGrid = updateGrid;
 
+
+// Draw the tick numbers along the axes. So far no actual axes are drawn.
 function updateAxes(){
     let zoom = Math.log(scale)/Math.log(ZOOM_BASE);
     let n=0;
@@ -219,18 +245,21 @@ function updateAxes(){
         .text( d => d.toString())
         .attr("y", d => (boxMultipleHeight + heightOffset/yscale - (d+1)*boxSize)*yscale + yshift);         
 }
+exports.updateAxes = updateAxes;
 
 function updateForeground(){
     classG.attr("transform", transform);
     edgeG.attr("transform", transform);
+    sseq.calculateDrawnElements(page, xmin, xmax, ymin, ymax);
     updateClasses();
     updateStructlines();
     updateDifferentials();
 }
+exports.updateForeground = updateForeground;
 
 function updateClasses(){
     let classSelection = classG.selectAll(".class")  // For new circle, go through the update process
-        .data(sseq.getClasses(page,xmin,xmax,ymin,ymax));
+        .data(sseq.getClasses());
     classSelection
         .enter()
         .append("path")
@@ -242,16 +271,17 @@ function updateClasses(){
     classSelection.exit().remove(); 
         
     classG.selectAll(".class")
-        .attr("d", d => (d3.symbol().type(d.getSymbol()).size(d.getSize()/scale)()))
-        .attr("stroke", d => d.getStrokeColor())
-        .attr("fill", d => d.getFillColor())
-        .attr("stroke-width",1/scale)
+        .attr("d", d => (d3.symbol().type(d.getSymbol(page)).size(d.getSize(page)/scale)()))
+        .attr("stroke", d => d.getStrokeColor(page))
+        .attr("fill", d => d.getFillColor(page))
+        .attr("stroke-width", 1/scale)
         .attr("transform", d => {
-            d.cx = d.x * boxSize + boxSize/2; 
+            d.cx = d.x * boxSize + boxSize/2 + d.getXOffset(); 
             d.cy = boxMultipleHeight - (d.y  + 1) * boxSize + d.getYOffset();
             return `translate(${d.cx},${d.cy})`;
         }) 
 }
+exports.updateClasses = updateClasses;
 
 function updateStructlines(){
     let slSelection = edgeG.selectAll(".structline")
@@ -268,6 +298,7 @@ function updateStructlines(){
         .attr("y2", sl => sl.target.cy)
         .attr("stroke-width", strokeWidth/scale);
 }
+exports.updateStructlines = updateStructlines;
 
 function updateDifferentials(){
     let dSelection = edgeG.selectAll(".differential")
@@ -283,8 +314,9 @@ function updateDifferentials(){
         .attr("x2", sl => sl.target.cx)
         .attr("y2", sl => sl.target.cy)
         .attr("stroke-width", strokeWidth/scale)
-        .attr("marker-end","url(#triangle)");
+        .attr("marker-end", "url(#triangle)");
 }
+exports.updateDifferentials = updateDifferentials;
 
 
 var slSource;
@@ -325,22 +357,21 @@ function handleMouseout(d) {
         .style("opacity", 0);	
 }
 
-Mousetrap.bind('left', function(e,n){ 
-    if(page_idx > 0){
-        page_idx --; 
-        page = sseq.page_list[page_idx];
-        pageNumText.text(page);
-        updateForeground();
-    }
-})
-
-Mousetrap.bind('right', function(e,n){ 
-    if(page_idx < sseq.page_list.length - 1){
-        page_idx++; 
-        page = sseq.page_list[page_idx];        
-        pageNumText.text(page);
-        updateForeground();
-    }
-})
 
 
+
+//
+//svg.on("click", function() {
+//      var coords = d3.mouse(this);
+//      let pt = transform.invert(coords)
+//      let x = Math.ceil(pt[0]/boxSize - 1/2/scale) - 1;
+//      let y = Math.floor((boxMultipleHeight - pt[1] + heightOffset/scale)/boxSize + 1/2) - 1;      
+//      sseq.addClass(x,y).setName(sseq.total_classes);
+//      updateForeground();
+//})
+
+
+
+
+
+window.sseq_display = exports;
