@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "Interactive spectral sequence viewer and editor.",
   "author": "Hood Chatham <hood@mit.edu> (http://hoodchatham.com)",
+  "repository" : "github:hoodmane/js_spectralsequences",
   "devDependencies": {
     "browserify": "^16.2.2",
     "budo": "^11.2.2",
