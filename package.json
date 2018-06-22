@@ -1,9 +1,11 @@
 {
   "name": "spectral-sequences",
-  "version": "0.0.1",
-  "description": "Interactive spectral sequence viewer and editor.",
   "author": "Hood Chatham <hood@mit.edu> (http://hoodchatham.com)",
-  "repository" : "github:hoodmane/js_spectralsequences",
+  "description": "Interactive spectral sequence viewer and editor.",
+  "version": "0.0.1",
+  "license": "UNLICENSED",
+  "repository": "github:hoodmane/js_spectralsequences",
+  "private": true,
   "devDependencies": {
     "browserify": "^16.2.2",
     "budo": "^11.2.2",
@@ -11,7 +13,9 @@
   },
   "dependencies": {
     "d3": "^5.4.0",
-    "mousetrap": "^1.6.2"
+    "konva": "^2.1.3",
+    "mousetrap": "^1.6.2",
+    "transformation-matrix-js": "^2.7.5"
   },
   "scripts": {
     "start": "budo src/main.js:bundle.js --live -- --debug --standalone sseq_display",

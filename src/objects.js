@@ -34,6 +34,21 @@ function monomialString(vars, exponents){
 }
 
 
+window.circle_draw_func = function(context) {
+      context.beginPath();
+      context.arc(0, 0, this.getSize(), 0, 2 * Math.PI, false);
+      context.closePath();
+      context.fillStrokeShape(this);
+}
+
+window.square_draw_func = function(context) {
+    let size = this.getSize();
+    context.beginPath();
+    context.rect(-size, -size, 2*size, 2*size);    
+    context.closePath();
+    context.fillStrokeShape(this);    
+}
+
 class Sseq {
     constructor(){
         this.total_classes = 0;
@@ -51,10 +66,10 @@ class Sseq {
         this.offset_size = 10;
         this.page_list = [0,infinity];
         this.default_node = new SseqNode();
-        this.default_node.strokeColor = "#000";
-        this.default_node.fillColor = "#000";
-        this.default_node.shape = d3.symbolCircle;
-        this.default_node.size = 100;
+        //this.default_node.stroke = "#000";
+        this.default_node.fill = "#000";
+        this.default_node.sceneFunc = circle_draw_func;
+        this.default_node.size = 6;
     }
     
     set_shift(x, y){

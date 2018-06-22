@@ -1,9 +1,17 @@
-"use strict";
+"use strict";                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
 let d3 = require("d3");
 let Mousetrap = require("mousetrap");
+let Konva = require("konva");
+let Matrix = require("transformation-matrix-js").Matrix;
 window.Sseq = require("./objects.js");
 window.d3 = d3;
 
+Konva.Factory.addGetterSetter(Konva.Shape, 'size');
+
+
+const boundingRectangle = document.getElementById("main").getBoundingClientRect();
+const canvasWidth = boundingRectangle.width;
+const canvasHeight = boundingRectangle.height;
 
 
 // Global constants for grid and setup
@@ -18,71 +26,37 @@ let TICK_STEP_LOG_BASE = 15;
 
 // Global variables for the coordinate transformation and graphic state
 var transform;
-var xshift,yshift; // These are read out of transform
-var scale, xscale, yscale;
+var xshift = 0, yshift = 0; // These are read out of transform
+var scale_ratio = 1;
+var scale = 1, xscale = 1, yscale = scale_ratio;
 var xmin, xmax, ymin, ymax; // calculated from transform
 var xTickStep, yTickStep, oldxTickStep = 1, oldyTickStep = 1;
 var xGridStep, yGridStep; // Not used yet.
 
+let draw_transform = new Matrix();
 
-// Find out the height of the display. 
-let boundingRectangle = document.getElementById("main").getBoundingClientRect();
-let width = boundingRectangle.width;
-let height = boundingRectangle.height - marginSize; // need to make room for bottom margin
-// We want to align things at the bottom, so we need to translate by a half-multiple of the boxSize
-let boxMultipleHeight = Math.floor(height/boxSize)*boxSize + boxSize/2; 
-let heightOffset = height - boxMultipleHeight;
-
-// Drawing elements
-let body = d3.select("body");
-let svg = d3.select("#main-svg");
-
-let canvas = svg.append("g").attr("id","canvas");
-
-// Layers from back to front. It's easy to add more later.
-let grid = canvas.append("g").attr("id","grid"); 
-let background = canvas.append("g").attr("id","background"); // unused.
-let foreground = canvas.append("g").attr("id","foreground");
-let edgeG = foreground.append("g").attr("id","edgeG");
-let classG = foreground.append("g").attr("id","classG");
-// Used for blank white margin squares and axes labels.
-let margin = svg.append("g").attr("id","margin");  
-// This just contains a white square in the bottom right corner to prevent axes labels
-// from showing up down there. Also useful for debugging because nothing on this layer gets covered up.
-let supermargin = svg.append("g").attr("id", "supermargin"); 
-
-
-// Move the origin of the canvas to (0,0). y-axis still negative...
-canvas.attr("transform", `translate(${marginSize},${heightOffset})`); 
-
+var yScaleStartOffset;
 
 let sseq = new Sseq();
 window.sseq = sseq;
 exports.setSseq = function(ss){
     sseq = ss;
     window.sseq = sseq;
+    addClasses();
+        
 }
-
-exports.sseq = sseq;
-//console.log(sseq);
 
 // The sseq object contains the list of valid pages. Always includes at least 0 and infinity.
 let page_idx = 0;
 let page = 0;
-var pageNumText = supermargin.append("text")
-    .attr("x", 200)
-    .attr("y", 20)
-    .attr("id", "pagenum")
-    .text("page: " + page);
-
 
 // Handle left / right mouse buttons to change page.
 Mousetrap.bind('left', function(e,n){ 
     if(page_idx > 0){
         page_idx --; 
         page = sseq.page_list[page_idx];
-        pageNumText.text(page);
-        updateForeground();
+        //pageNumText.text(page);
+        draw();
     }
 })
 
@@ -91,114 +65,199 @@ Mousetrap.bind('right', function(e,n){
         page_idx++; 
         page = sseq.page_list[page_idx];        
         if(page_idx == sseq.page_list.length - 1){
-            pageNumText.text("∞");
+            //pageNumText.text("∞");
         } else {
-            pageNumText.text(page);
+            //pageNumText.text(page);
         }
-        updateForeground();
+        draw();
     }
 })
 
+exports.sseq = sseq;
+exports.draw = draw;
 
-// Add some white boxes on top layers to prevent lower layers from peaking out in the margins.
-// Maybe we should add some space at top for a title?
-margin.append("rect")
-    .attr("width",marginSize)
-    .attr("height",height)
-    .attr("fill", "#FFF");
+// Drawing elements
+let body = d3.select("body");
 
-margin.append("rect")
-    .attr("y", height - marginSize)
-    .attr("height",marginSize + 20)
-    .attr("width",width)
-    .attr("fill", "#FFF");
+let stage = new Konva.Stage({
+  container: 'main',
+  width: canvasWidth,
+  height: canvasHeight
+});
 
-supermargin.append("rect")
-    .attr("y", height - marginSize)
-    .attr("height",marginSize  + 20)
-    .attr("width",marginSize)
-    .attr("fill", "#FFF");
-    
+let width  = stage.width();
+let height = stage.height();
+
+window.stage = stage;
+
+// Layers from back to front. 
+let gridLayer = new Konva.Layer();
+let edgeLayer = new Konva.Layer();
+let classLayer = new Konva.Layer();
+// Used for blank white margin squares and axes labels.
+let margin = new Konva.Layer();
+// This just contains a white square in the bottom right corner to prevent axes labels
+// from showing up down there. Also useful for debugging because nothing on this layer gets covered up.
+let supermargin = new Konva.Layer();
+
+stage.add(gridLayer);
+stage.add(edgeLayer);
+stage.add(classLayer);
+stage.add(margin);
+stage.add(supermargin);
+
+
 let tooltip_div = body.append("div")
     .attr("id", "tooltip_div")	
     .attr("class", "tooltip")				
-    .style("opacity", 0);
+.style("opacity", 0);
 
-// Set up zoom. Currently the scor
-svg.call(d3.zoom()
-        .scaleExtent([1 / 16, 4])
-        .on("zoom", zoomed)).on("dblclick.zoom", null);
+Array.prototype.forEach.call(document.getElementsByTagName("canvas"), 
+    (c, idx) => c.setAttribute("id", ["gridLayer", "edgeLayer", "classLayer", "marginLayer", "supermarginLayer"][idx]));
+//
+//function resizeCanvasToDisplaySize(canvas) {
+//   // look up the size the canvas is being displayed
+//   const width = canvas.clientWidth;
+//   const height = canvas.clientHeight;
+//
+//   // If its resolution does not match change it
+//   if (canvas.width !== width || canvas.height !== height) {
+//     canvas.width = width;
+//     canvas.height = height;
+//     return true;
+//   }
+//
+//   return false;
+//}
+//
+//resizeCanvasToDisplaySize(gridLayer);
+//resizeCanvasToDisplaySize(classLayer);
 
 
-zoomed();
+d3.select("#supermarginLayer").call(d3.zoom().scaleExtent([1/16, 4]).on("zoom", drawAll)).on("dblclick.zoom", null);
 
-// This is the handler for zoom / pan events. It 
-function zoomed() {
-    transform = d3.zoomTransform(svg.node());
+let gridLayerContext   = d3.select("#gridLayer").node().getContext("2d");
+let edgeLayerContext  = d3.select("#edgeLayer").node().getContext("2d");
+let classLayerContext  = d3.select("#classLayer").node().getContext("2d");
+let marginLayerContext = d3.select("#marginLayer").node().getContext("2d");
+let supermarginLayerContext = d3.select("#supermarginLayer").node().getContext("2d");
+
+
+var randomX = d3.randomNormal(width / 2, 80);
+var randomY = d3.randomNormal(height / 2, 80);
+var data = d3.range(2000).map(function() { return [randomX(), randomY()]; });
+
+const clipX = boxSize/2 + 30;
+const clipY = -boxSize;
+const clipWidth = width;
+const clipHeight = height - boxSize ;
+const xGridOffset = 10;
+const yGridOffset = 0;
+
+gridLayerContext.rect(clipX, clipY, clipWidth - clipX, clipHeight - clipY);
+gridLayerContext.clip();    
+gridLayerContext.strokeStyle = gridColor;
+
+window.ctx = gridLayerContext;
+
+edgeLayerContext.rect(clipX, clipY, clipWidth - clipX, clipHeight - clipY);
+edgeLayerContext.clip(); 
+
+classLayerContext.rect(clipX, clipY, clipWidth - clipX, clipHeight - clipY);
+classLayerContext.clip(); 
+
+supermarginLayerContext.fillStyle = "#FFF";
+supermarginLayerContext.rect(0, clipHeight, clipX, boxSize);
+supermarginLayerContext.fill();
+supermarginLayerContext.fillStyle = "#000";
+
+supermarginLayerContext.beginPath();
+supermarginLayerContext.moveTo(clipX, 0);
+supermarginLayerContext.lineTo(clipX, clipHeight);
+supermarginLayerContext.lineTo(width, clipHeight);
+supermarginLayerContext.stroke(); 
+
+window.context = classLayerContext;
+
+var scale_ratio = 2;
+function drawAll(){
+    transform = d3.zoomTransform(d3.select("#supermarginLayer").node());
     xshift = transform.x;
     yshift = transform.y;
     scale  = transform.k;   
     xscale = scale;
-    yscale = scale;// * 0.5;
-    
+    yscale = scale * scale_ratio;
+    yScaleStartOffset =  -  14*scale*(scale_ratio - 1)*boxSize - yscale*boxSize/2; 
+    // 1   --> 12
+    // 2   --> 14 
+    // 2.5 --> 13.3
+    // 3   --> 13.5
+    //
+
     // I'm not really sure why we need the 2*yshift here...
-    let bottomLeft = transform.invert([0,2*yshift]);
-    let topRight = transform.invert([width,height+2*yshift]);
-    xmin = Math.floor(bottomLeft[0]/boxSize) - 1;
-    xmax = Math.ceil(topRight[0]/boxSize) - 1;
+    let bottomLeft = transform.invert( [ 0,                + 2 * yshift ] );
+    let topRight   = transform.invert( [ width, clipHeight + 2 * yshift ] );
+    xmin = Math.floor( bottomLeft[0] / boxSize ) - 1;
+    xmax = Math.ceil(  topRight[0]   / boxSize ) - 1;
     // - height/yscale + height so we are scaling around bottom of diagram rather than top?
-    ymin = Math.floor( (bottomLeft[1] - height/yscale + height )/(boxSize));
-    ymax = Math.ceil(  (topRight[1]   - height/yscale + height )/(boxSize)) + 1;
+    ymin = Math.floor( (bottomLeft[1] - clipHeight/scale + clipHeight ) / ( scale_ratio * boxSize ) );
+    ymax = Math.ceil(  (topRight[1]   - clipHeight/scale + clipHeight ) / ( scale_ratio * boxSize ) ) + 1;
 
-    updateGrid();    
-    updateForeground();
-    updateAxes();
+    draw_transform.setTransform(1, 0, 0, 1, 0, 0)
+    draw_transform.translate(xshift, yshift);  
+    draw_transform.translate( 3/2*boxSize * xscale + 1/10 * boxSize * xscale, clipHeight * yscale + yScaleStartOffset);  
+    draw_transform.scale(xscale, xscale);
+
+    window.ymin = ymin;
+    window.ymax = ymax;
+    
+    drawGrid();
+    drawTicks();
+    draw();
 }
-exports.zoomed = zoomed;
+
+function drawGrid(){
+    let context = gridLayerContext;
+    context.save();
+    context.clearRect(0, 0, width, height);    
+    context.translate((xshift - clipX*xscale + xGridOffset*xscale) % (boxSize * xscale), (yshift + clipHeight*yscale + yGridOffset) % (boxSize * yscale));
+    //context.scale(xscale, yscale);
+
+    let num_cols = width/(boxSize*xscale)+1;
+    let col = -1;    
+    context.beginPath();    
+    while(++col < num_cols){
+        context.moveTo(col * boxSize * xscale, -3 * scale_ratio * boxSize);
+        context.lineTo(col * boxSize * xscale, clipHeight);
+    }
+    gridLayerContext.lineWidth = gridStrokeWidth;    
+    context.stroke();
+    
+    let num_rows = height/(boxSize * yscale)+1;
+    let row = -1;       
+    context.beginPath();         
+    while(++row < num_rows){ 
+        context.moveTo(-boxSize, row * boxSize * yscale);
+        context.lineTo(width + boxSize, row * boxSize * yscale);       
+    }
+    gridLayerContext.lineWidth = gridStrokeWidth/scale_ratio;           
+    context.stroke();
+    context.restore();  
+}
 
 
-// This draws the grid
-function updateGrid(){
-    grid.attr("transform", `translate(${(xshift)%(boxSize*xscale)},${yshift%(boxSize*yscale)})scale(${scale})`);
-    let hboxes = d3.range(0,width/(boxSize*xscale)+1);
-    let vboxes = d3.range(0,height/(boxSize*yscale)+1);
-    
-    let hgrid = grid.selectAll(".horizontalgrid").data(hboxes);
-    hgrid.enter()
-        .append("line")
-        .attr("class", "horizontalgrid")
-        .attr("x1", function (d){return d*boxSize})
-        .attr("x2", function (d){return d*boxSize;})
-        .attr("y1", - boxSize)
-        .style("stroke", gridColor)
-        .attr("stroke-width", gridStrokeWidth);
-    hgrid.exit().remove();
-    
-    grid.selectAll(".horizontalgrid")
-        .attr("y2", 2*height/yscale + boxSize);
+marginLayerContext.font = "15px Arial";
+marginLayerContext.textBaseline = "middle";
+function drawTicks(){
+    let context = marginLayerContext;   
+    context.save();
+    context.clearRect(0, 0, width, height);    
         
-    let vgrid = grid.selectAll(".verticalgrid").data(vboxes);
-    vgrid.enter()
-        .append("line")
-        .attr("class", "verticalgrid")
-        .attr("x1", - boxSize)
-        .attr("y1", function (d){return d*boxSize})
-        .attr("y2", function (d){return d*boxSize})
-        .style("stroke", gridColor)
-        .attr("stroke-width", gridStrokeWidth);
-    vgrid.exit().remove();
-    grid.selectAll(".verticalgrid")
-        .attr("x2", 2*width/xscale + boxSize);
-}
-exports.updateGrid = updateGrid;
-
-
-// Draw the tick numbers along the axes. So far no actual axes are drawn.
-function updateAxes(){
-    let zoom = Math.log(scale)/Math.log(ZOOM_BASE);
+    let xZoom = Math.log(scale) / Math.log(ZOOM_BASE);
+    let yZoom = xZoom + Math.log(scale_ratio) / Math.log(ZOOM_BASE);
     let n=0;
     xTickStep = 1;
-    for(let i = -zoom; i > 0; i -= TICK_STEP_LOG_BASE){
+    for(let i = -xZoom; i > 0; i -= TICK_STEP_LOG_BASE){
         if(n % 2 == 0){
             xTickStep *= 5;
         } else {
@@ -206,148 +265,208 @@ function updateAxes(){
         }
         n++;
     }
-    yTickStep = xTickStep;
-    if(xTickStep != oldxTickStep){
-        margin.selectAll(".xaxistick").remove();
+
+
+    n = 0;
+    yTickStep = 1;
+    for(let i = -yZoom; i > 0; i -= TICK_STEP_LOG_BASE){
+        if(n % 2 == 0){
+            yTickStep *= 5;
+        } else {
+            yTickStep *= 2;
+        }
+        n++;
     }
-    if(yTickStep != oldyTickStep){
-        margin.selectAll(".yaxistick").remove();
+     //    
+    context.textAlign = "center";
+    context.translate((xshift - clipX*xscale + boxSize * xscale * (5/2 + 1/5)), clipHeight + boxSize/2);
+    for(let i = Math.floor(xmin/xTickStep)*xTickStep; i < xmax; i += xTickStep){
+        context.fillText(i,xscale * boxSize* i,0);
     }
-    oldxTickStep = xTickStep;
-    oldyTickStep = yTickStep;
+    context.restore();
+    context.save();
+    context.textAlign = "right";
+    context.translate(boxSize, (yshift + yscale*clipHeight + 0* boxSize * yscale + yScaleStartOffset ));
+    for(let i = Math.floor(ymin/yTickStep)*yTickStep; i < ymax; i += yTickStep){
+        context.fillText(i,0, - yscale * boxSize * i );
+    }
+    context.restore();
     
-    let xaxisticks = Array.from({length: Math.floor((xmax - xmin + 2*xTickStep)/xTickStep)}, (x,i) => i*xTickStep + Math.floor(xmin/xTickStep)*xTickStep);
-    let yaxisticks = Array.from({length: Math.floor((ymax - ymin + 2*yTickStep)/yTickStep)}, (x,i) => i*yTickStep + Math.floor(ymin/yTickStep)*yTickStep);   
+}
+
+function getRndColor() {
+    var r = 255*Math.random()|0,
+        g = 255*Math.random()|0,
+        b = 255*Math.random()|0;
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+}
+
+
+
+
+let hitCtx = classLayer.getHitCanvas().context;
+function getPositionColorKey(x, y){
+    return "#" + Konva.Util._rgbToHex(...hitCtx.getImageData(x, y, 1, 1).data);
+}
+
+function findBoundaryTowards(shape, x, y){
+    const colorKey = shape.colorKey;
+    const start_distance = 8;
+    var x0 = shape.x();
+    var y0 = shape.y();    
+    var dx = x - x0;
+    var dy = y - y0;
+    var length = Math.sqrt( dx * dx + dy * dy);
+
+    if(length == 0){    
+        return {x: x0, y: y0};
+    }
     
-    margin.selectAll(".xaxistick")
-        .data(xaxisticks)
-        .enter()
-        .append("text")
-        .attr("class","xaxistick")
-        .attr("y", height - marginSize + 4)
-        .attr("text-anchor","middle")
-        .attr("dominant-baseline","hanging");  
-    margin.selectAll(".xaxistick").exit().remove();
-    margin.selectAll(".xaxistick")
-        .text( d => d.toString())
-        .attr("x", d => (d+1)*boxSize*xscale + xshift - marginSize*(xscale-1));     
-     
-    margin.selectAll(".yaxistick")
-          .data(yaxisticks)
-          .enter()
-          .append("text")
-          .attr("class","yaxistick")
-          .attr("x", marginSize-4)
-          .attr("text-anchor","end")
-          .attr("dominant-baseline","middle");
-    margin.selectAll(".yaxistick").exit().remove();
-    margin.selectAll(".yaxistick")
-        .text( d => d.toString())
-        .attr("y", d => (boxMultipleHeight + heightOffset/yscale - (d+1)*boxSize)*yscale + yshift);         
+    dx = dx/length * start_distance;
+    dy = dy/length * start_distance;
+    length = start_distance;
+    while(length > 0.5){
+        length /= 2;
+        dx /= 2;
+        dy /= 2;
+        if(getPositionColorKey(x0 + dx, y0 + dy) === colorKey) {  
+            x0 += dx;
+            y0 += dy;
+        }
+    }
+    return {x: x0, y: y0};
 }
-exports.updateAxes = updateAxes;
 
-function updateForeground(){
-    classG.attr("transform", transform);
-    edgeG.attr("transform", transform);
-    sseq.calculateDrawnElements(page, xmin, xmax, ymin, ymax);
-    updateClasses();
-    updateStructlines();
-    updateDifferentials();
-}
-exports.updateForeground = updateForeground;
-
-function updateClasses(){
-    let classSelection = classG.selectAll(".class")  // For new circle, go through the update process
-        .data(sseq.getClasses());
-    classSelection
-        .enter()
-        .append("path")
-        .attr("class","class")
-        .on("click", c => { d3.event.stopPropagation(); structlineDrawHandler(c);})
-        .on("mouseover", handleMouseover)					
-        .on("mouseout", handleMouseout);  
-        
-    classSelection.exit().remove(); 
-        
-    classG.selectAll(".class")
-        .attr("d", d => (d3.symbol().type(d.getSymbol(page)).size(d.getSize(page)/scale)()))
-        .attr("stroke", d => d.getStrokeColor(page))
-        .attr("fill", d => d.getFillColor(page))
-        .attr("stroke-width", 1/scale)
-        .attr("transform", d => {
-            d.cx = d.x * boxSize + boxSize/2 + d.getXOffset(); 
-            d.cy = boxMultipleHeight - (d.y  + 1) * boxSize + d.getYOffset();
-            return `translate(${d.cx},${d.cy})`;
-        }) 
-}
-exports.updateClasses = updateClasses;
-
-function updateStructlines(){
-    let slSelection = edgeG.selectAll(".structline")
-        .data(sseq.getStructlines(page,xmin,xmax,ymin,ymax));
-    slSelection.enter()
-        .append("line")
-        .attr("class", "structline");
-    slSelection.exit().remove();
-    edgeG.selectAll(".structline")
-        .attr("stroke" , sl => sl.color )
-        .attr("x1", sl => sl.source.cx)
-        .attr("y1", sl => sl.source.cy)
-        .attr("x2", sl => sl.target.cx)
-        .attr("y2", sl => sl.target.cy)
-        .attr("stroke-width", strokeWidth/scale);
-}
-exports.updateStructlines = updateStructlines;
-
-function updateDifferentials(){
-    let dSelection = edgeG.selectAll(".differential")
-        .data(sseq.getDifferentials(page,xmin,xmax,ymin,ymax));
-    dSelection.enter()
-        .append("line")
-        .attr("class", "differential");
-    dSelection.exit().remove();
-    foreground.selectAll(".differential")
-        .attr("stroke" , sl => sl.color )
-        .attr("x1", sl => sl.source.cx)
-        .attr("y1", sl => sl.source.cy)
-        .attr("x2", sl => sl.target.cx)
-        .attr("y2", sl => sl.target.cy)
-        .attr("stroke-width", strokeWidth/scale)
-        .attr("marker-end", "url(#triangle)");
-}
-exports.updateDifferentials = updateDifferentials;
-
-
-var slSource;
-function structlineDrawHandler(c){
-    if(slSource === undefined){
-        slSource = c;
-        return;
-    } else {
-        sseq.addDifferential(slSource,c,2).addInfoToSourceAndTarget();
-        updateDifferentials();
-        slSource = undefined;
-        return;
+function addClasses(){
+    let classes = sseq.classes;
+    for(let i = 0; i < classes.length; i++) {
+        let c = classes[i];
+        let pt = draw_transform.applyToPoint(c.x * boxSize + c.getXOffset(), - c.y * boxSize * scale_ratio);
+        let shape_type = Konva.Circle;
+        c.canvas_shape = new Konva.Shape();
+        c.canvas_shape.sseq_class = c;
+        c.canvas_shape.on('mouseover', handleMouseover);        
+        c.canvas_shape.on('mouseout', handleMouseout);        
+        classLayer.add(c.canvas_shape);
     }
 }
 
-function handleMouseover(d) {		
+function setUpEdge(edge){
+    let source_shape = edge.source.canvas_shape;
+    let target_shape = edge.target.canvas_shape;
+    
+    source_shape.show();
+    source_shape.draw();
+    target_shape.show();
+    target_shape.draw();
+
+    
+    let sourcePt = findBoundaryTowards(source_shape, target_shape.x(), target_shape.y());
+    let targetPt = findBoundaryTowards(target_shape, source_shape.x(), source_shape.y());
+    edge.sourceOffset = {x : (sourcePt.x - source_shape.x()) , y : (sourcePt.y - source_shape.y())};
+}
+
+
+function draw() {
+  window.layer = classLayer;
+  let context = classLayerContext;
+  context.clearRect(0, 0, width, height);  
+  context.save();   
+  sseq.calculateDrawnElements(page, xmin, xmax, ymin, ymax);
+
+  
+  let classes = sseq.getClasses();
+  let class_shapes = classLayer.getChildren();
+  for(let i = 0; i < class_shapes.length; i++){
+    let s = class_shapes[i];
+    s.hide();
+  }
+  
+  let default_size = 6;
+  var scale_size;
+  if(scale < 1/2){
+      scale_size = 1/2;
+  } else {
+      scale_size = scale;
+  }
+  
+  for(let i = 0; i < classes.length; i++) {
+    let c = classes[i];
+    let s = c.canvas_shape;
+    let node = c.getNode(page);
+    s.setPosition(draw_transform.applyToPoint(c.x * boxSize + c.getXOffset(), - c.y * boxSize * scale_ratio));
+    s.sceneFunc(node.sceneFunc);
+    //s.fill("#AAA");
+    s.setAttrs(c.getNode(page));
+//    s.setAttrs({size: 6, fill: "#AAA"});
+//    s.radius = 6;
+    //s.radius(default_size * scale_size);
+    s.show();
+  }
+  
+  classLayer.draw();
+
+  // draw_transform.applyToContext(context) does not work because context doesn't start out as the identity matrix
+  // (god only knows why not) and that would overwrite whatever is in the coordinate matrix to start with...
+  //context.transform(...draw_transform.toArray());
+   
+  context = edgeLayerContext; 
+  context.clearRect(0, 0, width, height); 
+   
+  let structlines = sseq.getStructlines();
+  for(let i = 0; i < structlines.length; i++){
+    let sl = structlines[i];
+    let source_shape = sl.source.canvas_shape;
+    let target_shape = sl.target.canvas_shape;    
+    context.beginPath();    
+    if(! sl.sourceOffset || (sl.sourceOffset.x == 0  && sl.sourceOffset.y == 0)){
+        sl.sourceOffset = {x:0, y:0};
+        sl.targetOffset = {x:0, y:0};
+        //setTimeout(setUpEdge(sl),0);
+    }    
+    context.lineWidth = 1;
+    context.strokeStyle = sl.color;
+    context.moveTo(source_shape.x() + sl.sourceOffset.x, source_shape.y() + sl.sourceOffset.y);
+    context.lineTo(target_shape.x() + sl.targetOffset.x, target_shape.y() + sl.targetOffset.y);
+    context.stroke();
+  }
+  
+  let differentials = sseq.getDifferentials();
+  for(let i = 0; i < differentials.length; i++){
+    let sl = differentials[i];
+    let source_shape = sl.source.canvas_shape;
+    let target_shape = sl.target.canvas_shape;
+//    console.log(!sl.sourceOffset);
+    if(! sl.sourceOffset || (sl.sourceOffset.x == 0  && sl.sourceOffset.y == 0)){
+        sl.sourceOffset = {x:0, y:0};
+        sl.targetOffset = {x:0, y:0};
+        //setTimeout(setUpEdge(sl),0);
+    }
+    context.beginPath();    
+    context.lineWidth = 1;
+    context.strokeStyle = sl.color;
+    context.moveTo(source_shape.x() + sl.sourceOffset.x, source_shape.y() + sl.sourceOffset.y);
+    context.lineTo(target_shape.x() + sl.targetOffset.x, target_shape.y() + sl.targetOffset.y);
+    context.stroke();
+  }  
+}
+
+
+drawAll();
+
+
+function handleMouseover(evt) {		
+    let c = this.sseq_class;
     tooltip_div.transition()		
         .duration(200)		
         .style("opacity", .9);		
-        
-    tooltip_div.html(`(${d.x}, ${d.y}) <hr>` + d.extra_info );     
+    tooltip_div.html(`(${c.x}, ${c.y}) <hr>` + c.extra_info );     
     MathJax.Hub.Queue(["Typeset",MathJax.Hub,"tooltip_div"]);
     let rect = tooltip_div.node().getBoundingClientRect();
     let width = rect.width;
     let height = rect.height;
-//    tooltip_div.style("left", ( Number(d3.select(this).attr("cx")) + 45) + "px")     
-//               .style("top",  ( Number(d3.select(this).attr("cy")) - height - 10) + "px");        
-    tooltip_div
-        .style("left", (d3.event.pageX + 10) + "px")		
-        .style("top", (d3.event.pageY - height - 10*scale) + "px");
-
+    tooltip_div.style("left", ( (this.x() + 25) + "px"))    
+               .style("top",  ( (this.y() - height) + "px"));        
 }
 
 
@@ -359,19 +478,3 @@ function handleMouseout(d) {
 
 
 
-
-//
-//svg.on("click", function() {
-//      var coords = d3.mouse(this);
-//      let pt = transform.invert(coords)
-//      let x = Math.ceil(pt[0]/boxSize - 1/2/scale) - 1;
-//      let y = Math.floor((boxMultipleHeight - pt[1] + heightOffset/scale)/boxSize + 1/2) - 1;      
-//      sseq.addClass(x,y).setName(sseq.total_classes);
-//      updateForeground();
-//})
-
-
-
-
-
-window.sseq_display = exports;

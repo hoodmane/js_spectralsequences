@@ -7,11 +7,12 @@ window.classes = sseq.addPolynomialClasses(
       [["a", 0, 1], ["b", 0, bmax], ["v", vmin, vmax]])
 
 Znode = new SseqNode();
-Znode.shape = d3.symbolSquare;
-Znode.size = 200;
+Znode.sceneFunc = square_draw_func;
+Znode.size = 8;
 
 pZnode = Znode.copy();
-pZnode.fillColor = "#FFF";
+pZnode.fill = "#FFF";
+pZnode.stroke = "#000";
 
 
 for(let v = vmin; v < vmax; v++){
@@ -38,4 +39,4 @@ for(let v = vmin; v < vmax; v++){
 
 disp.setSseq(sseq);
 
-disp.updateForeground();
+disp.draw();

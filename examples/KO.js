@@ -1,6 +1,4 @@
-//const disp = sseq_display;
-//window.disp = disp;
-//var sseq = new Sseq();
+let sseq = new Sseq();
 
 classes = sseq.addPolynomialClasses({ "v" : [4,0], "\\eta" : [1,1]}, [["\\eta", 0,50], ["v", -10,11]]);
 classes.addStructline(1,0);
