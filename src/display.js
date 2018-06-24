@@ -19,7 +19,6 @@ let gridColor = "#555"; //"#333"; //
 let gridStrokeWidth = 0.5;
 let strokeWidth = 1;
 let boxSize = 50;
-let marginSize = boxSize/2;
 
 let ZOOM_BASE = 1.1;
 let TICK_STEP_LOG_BASE = 15;
@@ -27,18 +26,12 @@ let TICK_STEP_LOG_BASE = 15;
 // Global variables for the coordinate transformation and graphic state
 var transform;
 var xshift = 0, yshift = 0; // These are read out of transform
-var scale_ratio = 1;
-var scale = 1, xscale = 1, yscale = scale_ratio;
+var scale;
 var xmin, xmax, ymin, ymax; // calculated from transform
-var xTickStep, yTickStep;
-var xGridStep, yGridStep;
-
-let draw_transform = new Matrix();
-
-var yScaleStartOffset;
+var xTicks,    yTicks,
+    xGridStep, yGridStep;
 
 let sseq = new Sseq();
-window.sseq = sseq;
 exports.setSseq = function(ss){
     sseq = ss;
     window.sseq = sseq;
@@ -136,7 +129,11 @@ Array.prototype.forEach.call(document.getElementsByTagName("canvas"),
 //resizeCanvasToDisplaySize(classLayer);
 
 
-d3.select("#supermarginLayer").call(d3.zoom().scaleExtent([1/16, 4]).on("zoom", drawAll)).on("dblclick.zoom", null);
+var zoom = d3.zoom().scaleExtent([1/16, 4]).on("zoom", drawAll);
+d3.select("#supermarginLayer").call(zoom).on("dblclick.zoom", null);
+let zoomDomElement = d3.select("#supermarginLayer");
+window.zoom = zoom;
+
 
 let gridLayerContext   = d3.select("#gridLayer").node().getContext("2d");
 let edgeLayerContext  = d3.select("#edgeLayer").node().getContext("2d");
@@ -149,10 +146,13 @@ var randomX = d3.randomNormal(width / 2, 80);
 var randomY = d3.randomNormal(height / 2, 80);
 var data = d3.range(2000).map(function() { return [randomX(), randomY()]; });
 
-const clipX = boxSize/2 + 30;
-const clipY = -boxSize;
+const xMarginSize = boxSize/2 + 30;
+const yMarginSize = boxSize;
+
+const clipX     = xMarginSize
+const clipY     = -boxSize
 const clipWidth = width;
-const clipHeight = height - boxSize ;
+const clipHeight = height - yMarginSize;
 const xGridOffset = 10;
 const yGridOffset = 0;
 
@@ -169,72 +169,62 @@ classLayerContext.rect(clipX, clipY, clipWidth - clipX, clipHeight - clipY);
 classLayerContext.clip(); 
 
 supermarginLayerContext.fillStyle = "#FFF";
-supermarginLayerContext.rect(0, clipHeight, clipX, boxSize);
+supermarginLayerContext.rect(0, clipHeight, xMarginSize, boxSize);
 supermarginLayerContext.fill();
 supermarginLayerContext.fillStyle = "#000";
 
 supermarginLayerContext.beginPath();
-supermarginLayerContext.moveTo(clipX, 0);
-supermarginLayerContext.lineTo(clipX, clipHeight);
+supermarginLayerContext.moveTo(xMarginSize, 0);
+supermarginLayerContext.lineTo(xMarginSize, clipHeight);
 supermarginLayerContext.lineTo(width, clipHeight);
 supermarginLayerContext.stroke(); 
 
 window.context = classLayerContext;
 
-var scale_ratio = 2;
+var xScaleInit = d3.scaleLinear().range([xMarginSize, width]),
+    yScaleInit = d3.scaleLinear().range([height - yMarginSize, 0]);
+    
+var xScale, yScale; 
+
+
+xScaleInit.domain([0 -1/2, 54 + 1/2]);
+yScaleInit.domain([0 -1/2, 30 + 1/2]);
+
+
 function drawAll(){
-    transform = d3.zoomTransform(d3.select("#supermarginLayer").node());
+    transform = d3.zoomTransform(zoomDomElement.node());
     xshift = transform.x;
     yshift = transform.y;
-    scale  = transform.k;   
-    xscale = scale;
-    yscale = scale * scale_ratio;
-    yScaleStartOffset =  -  14*scale*(scale_ratio - 1)*boxSize - yscale*boxSize/2; 
-    // 1   --> 12
-    // 2   --> 14 
-    // 2.5 --> 13.3
-    // 3   --> 13.5
-    //
+    scale  = transform.k;
+    
+    xScale = transform.rescaleX(xScaleInit);
+    if(xScale(0) > xMarginSize + 30){
+        zoom.translateBy(zoomDomElement, (xMarginSize + 30 - xScale(0) - 0.1)/scale,0);
+        return;
+    }
+    yScale = yScaleInit; 
+    //yScale = transform.rescaleY(yScaleInit); 
 
-    // I'm not really sure why we need the 2*yshift here...
-    let bottomLeft = transform.invert( [ 0,                + 2 * yshift ] );
-    let topRight   = transform.invert( [ width, clipHeight + 2 * yshift ] );
-    xmin = Math.floor( bottomLeft[0] / boxSize ) - 1;
-    xmax = Math.ceil(  topRight[0]   / boxSize ) - 1;
-    // - height/yscale + height so we are scaling around bottom of diagram rather than top?
-    ymin = Math.floor( (bottomLeft[1] - clipHeight/scale + clipHeight ) / ( scale_ratio * boxSize ) );
-    ymax = Math.ceil(  (topRight[1]   - clipHeight/scale + clipHeight ) / ( scale_ratio * boxSize ) ) + 1;
+    xmin = Math.ceil (xScale.invert(xMarginSize));
+    xmax = Math.floor(xScale.invert(width));
+    ymin = Math.ceil (yScale.invert(height - yMarginSize));
+    ymax = Math.floor(yScale.invert(0));
 
-    draw_transform.setTransform(1, 0, 0, 1, 0, 0)
-    draw_transform.translate(xshift, yshift);  
-    draw_transform.translate( 3/2*boxSize * xscale + 1/10 * boxSize * xscale, clipHeight * yscale + yScaleStartOffset);  
-    draw_transform.scale(xscale, xscale);
-
+    window.xmin = xmin;
+    window.xmax = xmax;
+    window.transform = transform;
+    window.xScale = xScale;
 
     let xZoom = Math.log(scale) / Math.log(ZOOM_BASE);
-    let yZoom = xZoom + Math.log(scale_ratio) / Math.log(ZOOM_BASE);
+    let yZoom = xZoom;
     let n=0;
-    xTickStep = 1;
-    for(let i = -xZoom; i > 0; i -= TICK_STEP_LOG_BASE){
-        if(n % 2 == 0){
-            xTickStep *= 5;
-        } else {
-            xTickStep *= 2;
-        }
-        n++;
-    }
 
+    xTicks = xScale.ticks(15);
+    yTicks = yScale.ticks();
+    
+    let xTickStep = xTicks[1] - xTicks[0];
+    let yTickStep = yTicks[1] - yTicks[0];
 
-    n = 0;
-    yTickStep = 1;
-    for(let i = -yZoom; i > 0; i -= TICK_STEP_LOG_BASE){
-        if(n % 2 == 0){
-            yTickStep *= 5;
-        } else {
-            yTickStep *= 2;
-        }
-        n++;
-    }
     xGridStep = (Math.floor(xTickStep / 5) == 0) ? 1 : Math.floor(xTickStep / 5) ;
     yGridStep = (Math.floor(yTickStep / 5) == 0) ? 1 : Math.floor(yTickStep / 5) ;            
 
@@ -251,25 +241,21 @@ function drawGrid(){
     let context = gridLayerContext;
     context.save();
     context.clearRect(0, 0, width, height);    
-    context.translate((xshift - clipX*xscale + xGridOffset*xscale) % (boxSize * xscale), (yshift + clipHeight*yscale + yGridOffset) % (boxSize * yscale));
-    //context.scale(xscale, yscale);
 
-    let num_cols = width/(boxSize*xscale)+1;
     context.beginPath();    
-    for(let col = 0; col < num_cols; col += xGridStep){
-        context.moveTo(col * boxSize * xscale, -3 * scale_ratio * boxSize);
-        context.lineTo(col * boxSize * xscale, clipHeight);
+    for(let col = Math.floor(xmin/xGridStep)*xGridStep; col <= xmax; col += xGridStep){
+        context.moveTo(xScale(col), 0);
+        context.lineTo(xScale(col), clipHeight);
     }
     gridLayerContext.lineWidth = gridStrokeWidth;    
     context.stroke();
     
-    let num_rows = height/(boxSize * yscale)+1;
     context.beginPath();         
-    for(let row = 0; row < num_rows; row += yGridStep){ 
-        context.moveTo(-boxSize, row * boxSize * yscale);
-        context.lineTo(width + boxSize, row * boxSize * yscale);       
+    for(let row = Math.floor(ymin/yGridStep)*yGridStep; row <= ymax; row += yGridStep){ 
+        context.moveTo(-boxSize, yScale(row));
+        context.lineTo(width + boxSize, yScale(row));       
     }
-    gridLayerContext.lineWidth = gridStrokeWidth/scale_ratio;           
+    gridLayerContext.lineWidth = gridStrokeWidth;           
     context.stroke();
     context.restore();  
 }
@@ -279,24 +265,16 @@ marginLayerContext.font = "15px Arial";
 marginLayerContext.textBaseline = "middle";
 function drawTicks(){
     let context = marginLayerContext;   
-    context.save();
-    context.clearRect(0, 0, width, height);    
-        
-     //    
+    context.clearRect(0, 0, width, height);     
     context.textAlign = "center";
-    context.translate((xshift - clipX*xscale + boxSize * xscale * (5/2 + 1/5)), clipHeight + boxSize/2);
-    for(let i = Math.floor(xmin/xTickStep)*xTickStep; i < xmax; i += xTickStep){
-        context.fillText(i,xscale * boxSize* i,0);
+    for(let i of xTicks){
+        context.fillText(i,xScale(i), clipHeight + 20);
     }
-    context.restore();
-    context.save();
-    context.textAlign = "right";
-    context.translate(boxSize, (yshift + yscale*clipHeight + 0* boxSize * yscale + yScaleStartOffset ));
-    for(let i = Math.floor(ymin/yTickStep)*yTickStep; i < ymax; i += yTickStep){
-        context.fillText(i,0, - yscale * boxSize * i );
-    }
-    context.restore();
     
+    context.textAlign = "right";
+    for(let i of yTicks){
+        context.fillText(i,xMarginSize - 10, yScale(i));
+    }
 }
 
 function getRndColor() {
@@ -349,7 +327,6 @@ function addClasses(){
         //if(c.x > 54 || c.x < 0){
 //            continue; 
 //        }
-        let pt = draw_transform.applyToPoint(c.x * boxSize + c.getXOffset(), - c.y * boxSize * scale_ratio);
         let shape_type = Konva.Circle;
         c.canvas_shape = new Konva.Shape();
         c.canvas_shape.sseq_class = c;
@@ -395,6 +372,8 @@ function draw() {
     var scale_size;
     if(scale < 1/2){
         scale_size = 1/2;
+    } else if(scale > 2) {
+        scale_size = 2;
     } else {
         scale_size = scale;
     }
@@ -406,7 +385,7 @@ function draw() {
             continue;
         }
         let node = c.getNode(page);
-        s.setPosition(draw_transform.applyToPoint(c.x * boxSize + c.getXOffset(), - c.y * boxSize * scale_ratio));
+        s.setPosition({x : xScale(c.x), y : yScale(c.y)});
         s.sceneFunc(node.sceneFunc);
         //s.fill("#AAA");
         s.setAttrs(c.getNode(page));
@@ -417,10 +396,6 @@ function draw() {
     }
     
     classLayer.draw();
-    
-    // draw_transform.applyToContext(context) does not work because context doesn't start out as the identity matrix
-    // (god only knows why not) and that would overwrite whatever is in the coordinate matrix to start with...
-    //context.transform(...draw_transform.toArray());
     
     context = edgeLayerContext; 
     context.clearRect(0, 0, width, height); 

@@ -1,6 +1,8 @@
+let sseq = new Sseq();
+
 let variables = ["a1", "a2", "b", "v"]
 let bmax = 150
-let vmin = -50
+let vmin = -100
 let vmax = 200
 
 function dot_mod_16(v){

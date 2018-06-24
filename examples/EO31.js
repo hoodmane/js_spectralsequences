@@ -1,3 +1,5 @@
+let sseq = new Sseq();
+
 const vmin = -12
 const vmax = 10
 const bmax = 40

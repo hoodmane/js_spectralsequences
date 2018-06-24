@@ -200,6 +200,12 @@ class Sseq {
             // This is the dot product here...
             let stem = dot_product(monomial_exponents, stem_list);
             let filtration = dot_product(monomial_exponents, filtration_list);
+            if(stem < -10 || stem > 1000){
+                continue;
+            }
+            if(filtration > 100){
+                continue;
+            }
             let name = monomialString(var_name_list,monomial_exponents);
             class_dict.add_class(monomial_exponents, name, this.addClass(stem,filtration).setName(name));
         }
