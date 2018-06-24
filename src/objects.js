@@ -203,7 +203,7 @@ class Sseq {
             let name = monomialString(var_name_list,monomial_exponents);
             class_dict.add_class(monomial_exponents, name, this.addClass(stem,filtration).setName(name));
         }
-        return class_dict    
+        return class_dict; 
    }
     
 }
@@ -296,9 +296,9 @@ class SseqClass {
     }
 
     setNode(node, page){
-        if(typeof(node) === "string"){
-            node = node_dict[node];
-        }
+//        if(typeof(node) === "string"){
+//            node = node_dict[node];
+//        }
         if(node === undefined){
             node = {};
         }
@@ -316,15 +316,15 @@ class SseqClass {
 
     replace(node){
         this.appendPage(infinity);
-        if(typeof(node) === "string"){
-            node = node_dict[node];
-        }
+//        if(typeof(node) === "string"){
+//            node = node_dict[node];
+//        }
         this.setNode(node);
         return this;
     }
     
     addExtraInfo(str){
-        this.extra_info += str + "\n";
+        this.extra_info += "<hr>" + str;
     }
     
     
@@ -346,7 +346,7 @@ class SseqClass {
 
     addOutgoingDifferential(differential){
         if(this.getPage() < differential.page){
-            this.handleDoubledDifferential("supporting another" + differential.supportedMessage());
+            //this.handleDoubledDifferential("supporting another" + differential.supportedMessage());
         }
         this.setPage(differential.page);
         this.outgoing_differentials.push(differential);
@@ -355,11 +355,21 @@ class SseqClass {
 
     addIncomingDifferential(differential){
         if(this.getPage() < differential.page){
-            this.handleDoubledDifferential("receiving another" + differential.hitMessage());
+            //this.handleDoubledDifferential("receiving another" + differential.hitMessage());
         }
         this.setPage(differential.page);
         this.incoming_differentials.push(differential);
         this.edges.push(differential);
+    }
+    
+    setStructlinePages(page){
+        for(let i = 0; i < this.structlines.length; i++){
+            let sl = this.structlines[i];
+            if(sl.page > page){
+                sl.page = page;
+            }
+        }
+        return this;
     }
 
     drawOnPageQ(page){
@@ -371,25 +381,6 @@ class SseqClass {
             && ymin <= this.y && this.y <= ymax;
     }
     
-    getSize(page){
-        let idx = this.getPageIndex(page);
-        return this.node_list[idx].size;
-    }
-    
-    getSymbol(page){
-        let idx = this.getPageIndex(page);
-        return this.node_list[idx].shape;
-    }
-    
-    getStrokeColor(page){
-        let idx = this.getPageIndex(page);
-        return this.node_list[idx].strokeColor;
-    }
-    
-    getFillColor(page){
-        let idx = this.getPageIndex(page);
-        return this.node_list[idx].fillColor;
-    }    
 }
 
 class SseqStructline {
@@ -459,6 +450,22 @@ class Differential {
     addInfoToSourceAndTarget(){
         this.source.addExtraInfo(this);
         this.target.addExtraInfo(this);
+        return this;
+    }
+    
+    setSourceStructlinePages(){
+        this.source.setStructlinePages(this.page);
+        return this;
+    }
+
+    setTargetStructlinePages(){
+        this.target.setStructlinePages(this.page);
+        return this;
+    }
+    
+    setStructlinePages(){
+        this.source.setStructlinePages(this.page);
+        this.target.setStructlinePages(this.page);
         return this;
     }
 

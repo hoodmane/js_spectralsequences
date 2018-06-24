@@ -22,7 +22,7 @@ for(let v = vmin; v < vmax; v++){
 classes.addStructline(1,0,0);
 classes.addStructline(0,1,0);
 
-classes.addDifferential(5, [1, 2,-1], k => k[2] % 3 !== 0 && k[0] === 0, (d, _) => d.addInfoToSourceAndTarget());
+classes.addDifferential(5, [1, 2,-1], k => k[2] % 3 !== 0 && k[0] === 0, (d, _) => d.addInfoToSourceAndTarget().setStructlinePages());
 classes.addDifferential(9, [-1,5,-2], k => (k[2] % 3 + 3)%3 === 2 && k[0] === 1, (d, _) => d.addInfoToSourceAndTarget());
 
 for(let b = 0; b <= 1; b++){

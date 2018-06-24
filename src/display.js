@@ -30,8 +30,8 @@ var xshift = 0, yshift = 0; // These are read out of transform
 var scale_ratio = 1;
 var scale = 1, xscale = 1, yscale = scale_ratio;
 var xmin, xmax, ymin, ymax; // calculated from transform
-var xTickStep, yTickStep, oldxTickStep = 1, oldyTickStep = 1;
-var xGridStep, yGridStep; // Not used yet.
+var xTickStep, yTickStep;
+var xGridStep, yGridStep;
 
 let draw_transform = new Matrix();
 
@@ -56,6 +56,7 @@ Mousetrap.bind('left', function(e,n){
         page_idx --; 
         page = sseq.page_list[page_idx];
         //pageNumText.text(page);
+        window.page = page;
         draw();
     }
 })
@@ -69,6 +70,7 @@ Mousetrap.bind('right', function(e,n){
         } else {
             //pageNumText.text(page);
         }
+        window.page = page;
         draw();
     }
 })
@@ -208,51 +210,7 @@ function drawAll(){
     draw_transform.translate( 3/2*boxSize * xscale + 1/10 * boxSize * xscale, clipHeight * yscale + yScaleStartOffset);  
     draw_transform.scale(xscale, xscale);
 
-    window.ymin = ymin;
-    window.ymax = ymax;
-    
-    drawGrid();
-    drawTicks();
-    draw();
-}
 
-function drawGrid(){
-    let context = gridLayerContext;
-    context.save();
-    context.clearRect(0, 0, width, height);    
-    context.translate((xshift - clipX*xscale + xGridOffset*xscale) % (boxSize * xscale), (yshift + clipHeight*yscale + yGridOffset) % (boxSize * yscale));
-    //context.scale(xscale, yscale);
-
-    let num_cols = width/(boxSize*xscale)+1;
-    let col = -1;    
-    context.beginPath();    
-    while(++col < num_cols){
-        context.moveTo(col * boxSize * xscale, -3 * scale_ratio * boxSize);
-        context.lineTo(col * boxSize * xscale, clipHeight);
-    }
-    gridLayerContext.lineWidth = gridStrokeWidth;    
-    context.stroke();
-    
-    let num_rows = height/(boxSize * yscale)+1;
-    let row = -1;       
-    context.beginPath();         
-    while(++row < num_rows){ 
-        context.moveTo(-boxSize, row * boxSize * yscale);
-        context.lineTo(width + boxSize, row * boxSize * yscale);       
-    }
-    gridLayerContext.lineWidth = gridStrokeWidth/scale_ratio;           
-    context.stroke();
-    context.restore();  
-}
-
-
-marginLayerContext.font = "15px Arial";
-marginLayerContext.textBaseline = "middle";
-function drawTicks(){
-    let context = marginLayerContext;   
-    context.save();
-    context.clearRect(0, 0, width, height);    
-        
     let xZoom = Math.log(scale) / Math.log(ZOOM_BASE);
     let yZoom = xZoom + Math.log(scale_ratio) / Math.log(ZOOM_BASE);
     let n=0;
@@ -277,6 +235,53 @@ function drawTicks(){
         }
         n++;
     }
+    xGridStep = (Math.floor(xTickStep / 5) == 0) ? 1 : Math.floor(xTickStep / 5) ;
+    yGridStep = (Math.floor(yTickStep / 5) == 0) ? 1 : Math.floor(yTickStep / 5) ;            
+
+
+    window.ymin = ymin;
+    window.ymax = ymax;
+    
+    drawGrid();
+    drawTicks();
+    draw();
+}
+
+function drawGrid(){
+    let context = gridLayerContext;
+    context.save();
+    context.clearRect(0, 0, width, height);    
+    context.translate((xshift - clipX*xscale + xGridOffset*xscale) % (boxSize * xscale), (yshift + clipHeight*yscale + yGridOffset) % (boxSize * yscale));
+    //context.scale(xscale, yscale);
+
+    let num_cols = width/(boxSize*xscale)+1;
+    context.beginPath();    
+    for(let col = 0; col < num_cols; col += xGridStep){
+        context.moveTo(col * boxSize * xscale, -3 * scale_ratio * boxSize);
+        context.lineTo(col * boxSize * xscale, clipHeight);
+    }
+    gridLayerContext.lineWidth = gridStrokeWidth;    
+    context.stroke();
+    
+    let num_rows = height/(boxSize * yscale)+1;
+    context.beginPath();         
+    for(let row = 0; row < num_rows; row += yGridStep){ 
+        context.moveTo(-boxSize, row * boxSize * yscale);
+        context.lineTo(width + boxSize, row * boxSize * yscale);       
+    }
+    gridLayerContext.lineWidth = gridStrokeWidth/scale_ratio;           
+    context.stroke();
+    context.restore();  
+}
+
+
+marginLayerContext.font = "15px Arial";
+marginLayerContext.textBaseline = "middle";
+function drawTicks(){
+    let context = marginLayerContext;   
+    context.save();
+    context.clearRect(0, 0, width, height);    
+        
      //    
     context.textAlign = "center";
     context.translate((xshift - clipX*xscale + boxSize * xscale * (5/2 + 1/5)), clipHeight + boxSize/2);
@@ -341,6 +346,9 @@ function addClasses(){
     let classes = sseq.classes;
     for(let i = 0; i < classes.length; i++) {
         let c = classes[i];
+        //if(c.x > 54 || c.x < 0){
+//            continue; 
+//        }
         let pt = draw_transform.applyToPoint(c.x * boxSize + c.getXOffset(), - c.y * boxSize * scale_ratio);
         let shape_type = Konva.Circle;
         c.canvas_shape = new Konva.Shape();
@@ -368,87 +376,96 @@ function setUpEdge(edge){
 
 
 function draw() {
-  window.layer = classLayer;
-  let context = classLayerContext;
-  context.clearRect(0, 0, width, height);  
-  context.save();   
-  sseq.calculateDrawnElements(page, xmin, xmax, ymin, ymax);
-
-  
-  let classes = sseq.getClasses();
-  let class_shapes = classLayer.getChildren();
-  for(let i = 0; i < class_shapes.length; i++){
-    let s = class_shapes[i];
-    s.hide();
-  }
-  
-  let default_size = 6;
-  var scale_size;
-  if(scale < 1/2){
-      scale_size = 1/2;
-  } else {
-      scale_size = scale;
-  }
-  
-  for(let i = 0; i < classes.length; i++) {
-    let c = classes[i];
-    let s = c.canvas_shape;
-    let node = c.getNode(page);
-    s.setPosition(draw_transform.applyToPoint(c.x * boxSize + c.getXOffset(), - c.y * boxSize * scale_ratio));
-    s.sceneFunc(node.sceneFunc);
-    //s.fill("#AAA");
-    s.setAttrs(c.getNode(page));
-//    s.setAttrs({size: 6, fill: "#AAA"});
-//    s.radius = 6;
-    //s.radius(default_size * scale_size);
-    s.show();
-  }
-  
-  classLayer.draw();
-
-  // draw_transform.applyToContext(context) does not work because context doesn't start out as the identity matrix
-  // (god only knows why not) and that would overwrite whatever is in the coordinate matrix to start with...
-  //context.transform(...draw_transform.toArray());
-   
-  context = edgeLayerContext; 
-  context.clearRect(0, 0, width, height); 
-   
-  let structlines = sseq.getStructlines();
-  for(let i = 0; i < structlines.length; i++){
-    let sl = structlines[i];
-    let source_shape = sl.source.canvas_shape;
-    let target_shape = sl.target.canvas_shape;    
-    context.beginPath();    
-    if(! sl.sourceOffset || (sl.sourceOffset.x == 0  && sl.sourceOffset.y == 0)){
-        sl.sourceOffset = {x:0, y:0};
-        sl.targetOffset = {x:0, y:0};
-        //setTimeout(setUpEdge(sl),0);
-    }    
-    context.lineWidth = 1;
-    context.strokeStyle = sl.color;
-    context.moveTo(source_shape.x() + sl.sourceOffset.x, source_shape.y() + sl.sourceOffset.y);
-    context.lineTo(target_shape.x() + sl.targetOffset.x, target_shape.y() + sl.targetOffset.y);
-    context.stroke();
-  }
-  
-  let differentials = sseq.getDifferentials();
-  for(let i = 0; i < differentials.length; i++){
-    let sl = differentials[i];
-    let source_shape = sl.source.canvas_shape;
-    let target_shape = sl.target.canvas_shape;
-//    console.log(!sl.sourceOffset);
-    if(! sl.sourceOffset || (sl.sourceOffset.x == 0  && sl.sourceOffset.y == 0)){
-        sl.sourceOffset = {x:0, y:0};
-        sl.targetOffset = {x:0, y:0};
-        //setTimeout(setUpEdge(sl),0);
+    window.layer = classLayer;
+    let context = classLayerContext;
+    context.clearRect(0, 0, width, height);  
+    context.save();   
+    sseq.calculateDrawnElements(page, xmin, xmax, ymin, ymax);
+    
+    
+    let classes = sseq.getClasses();
+    let class_shapes = classLayer.getChildren();
+//    for(let i = 0; i < class_shapes.length; i++){
+//        let s = class_shapes[i];
+//        s.hide();
+//    }
+    classLayer.removeChildren();
+    
+    let default_size = 6;
+    var scale_size;
+    if(scale < 1/2){
+        scale_size = 1/2;
+    } else {
+        scale_size = scale;
     }
-    context.beginPath();    
-    context.lineWidth = 1;
-    context.strokeStyle = sl.color;
-    context.moveTo(source_shape.x() + sl.sourceOffset.x, source_shape.y() + sl.sourceOffset.y);
-    context.lineTo(target_shape.x() + sl.targetOffset.x, target_shape.y() + sl.targetOffset.y);
-    context.stroke();
-  }  
+    
+    for(let i = 0; i < classes.length; i++) {
+        let c = classes[i];
+        let s = c.canvas_shape;
+        if(! s){
+            continue;
+        }
+        let node = c.getNode(page);
+        s.setPosition(draw_transform.applyToPoint(c.x * boxSize + c.getXOffset(), - c.y * boxSize * scale_ratio));
+        s.sceneFunc(node.sceneFunc);
+        //s.fill("#AAA");
+        s.setAttrs(c.getNode(page));
+        //    s.setAttrs({size: 6, fill: "#AAA"});
+        //    s.radius = 6;
+        s.size(default_size * scale_size);
+        classLayer.add(s);
+    }
+    
+    classLayer.draw();
+    
+    // draw_transform.applyToContext(context) does not work because context doesn't start out as the identity matrix
+    // (god only knows why not) and that would overwrite whatever is in the coordinate matrix to start with...
+    //context.transform(...draw_transform.toArray());
+    
+    context = edgeLayerContext; 
+    context.clearRect(0, 0, width, height); 
+    
+    let structlines = sseq.getStructlines();
+    for(let i = 0; i < structlines.length; i++){
+        let sl = structlines[i];
+        if(sl.page < page){
+            continue;
+        }
+        let source_shape = sl.source.canvas_shape;
+        let target_shape = sl.target.canvas_shape;    
+        context.beginPath();    
+        if(! sl.sourceOffset || (sl.sourceOffset.x == 0  && sl.sourceOffset.y == 0)){
+            sl.sourceOffset = {x:0, y:0};
+            sl.targetOffset = {x:0, y:0};
+            //setTimeout(setUpEdge(sl),0);
+        }    
+        context.lineWidth = 1;
+        context.strokeStyle = sl.color;
+        context.moveTo(source_shape.x() + sl.sourceOffset.x, source_shape.y() + sl.sourceOffset.y);
+        context.lineTo(target_shape.x() + sl.targetOffset.x, target_shape.y() + sl.targetOffset.y);
+        context.closePath();        
+        context.stroke();
+    }
+    
+    let differentials = sseq.getDifferentials();
+    for(let i = 0; i < differentials.length; i++){
+        let sl = differentials[i];
+        let source_shape = sl.source.canvas_shape;
+        let target_shape = sl.target.canvas_shape;
+        //    console.log(!sl.sourceOffset);
+        if(! sl.sourceOffset || (sl.sourceOffset.x == 0  && sl.sourceOffset.y == 0)){
+            sl.sourceOffset = {x:0, y:0};
+            sl.targetOffset = {x:0, y:0};
+            //setTimeout(setUpEdge(sl),0);
+        }
+        context.beginPath();    
+        context.lineWidth = 1;
+        context.strokeStyle = sl.color;
+        context.moveTo(source_shape.x() + sl.sourceOffset.x, source_shape.y() + sl.sourceOffset.y);
+        context.lineTo(target_shape.x() + sl.targetOffset.x, target_shape.y() + sl.targetOffset.y);
+        context.closePath();
+        context.stroke();
+    }  
 }
 
 
@@ -457,18 +474,25 @@ drawAll();
 
 function handleMouseover(evt) {		
     let c = this.sseq_class;
-    tooltip_div.transition()		
-        .duration(200)		
-        .style("opacity", .9);		
-    tooltip_div.html(`(${c.x}, ${c.y}) <hr>` + c.extra_info );     
+    if(c.tooltip_html){
+        tooltip_div.html(c.tooltip_html);
+        setUpTooltipDiv();
+    }	
+    tooltip_div.html(`\\(${c.name}\\) -- (${c.x}, ${c.y})` + c.extra_info );     
     MathJax.Hub.Queue(["Typeset",MathJax.Hub,"tooltip_div"]);
+    MathJax.Hub.Queue(() => setUpTooltipDiv(this));
+}
+
+function setUpTooltipDiv(shape){
     let rect = tooltip_div.node().getBoundingClientRect();
     let width = rect.width;
     let height = rect.height;
-    tooltip_div.style("left", ( (this.x() + 25) + "px"))    
-               .style("top",  ( (this.y() - height) + "px"));        
+    tooltip_div.style("left", ( (shape.x() + 25) + "px"))    
+               .style("top",  ( (shape.y() - height) + "px")); 
+    tooltip_div.transition()		
+            .duration(200)		
+            .style("opacity", .9);                   
 }
-
 
 function handleMouseout(d) {		
     tooltip_div.transition()		
