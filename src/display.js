@@ -6,6 +6,10 @@ let Matrix = require("transformation-matrix-js").Matrix;
 window.Sseq = require("./objects.js");
 window.d3 = d3;
 
+// prevent scrollbars
+document.documentElement.style.overflow = 'hidden';  // firefox, chrome
+document.body.scroll = "no"; // ie only
+
 Konva.Factory.addGetterSetter(Konva.Shape, 'size');
 
 
@@ -50,7 +54,7 @@ Mousetrap.bind('left', function(e,n){
         page = sseq.page_list[page_idx];
         //pageNumText.text(page);
         window.page = page;
-        draw();
+        drawAll();
     }
 })
 
@@ -64,7 +68,7 @@ Mousetrap.bind('right', function(e,n){
             //pageNumText.text(page);
         }
         window.page = page;
-        draw();
+        drawAll();
     }
 })
 
@@ -100,12 +104,6 @@ stage.add(edgeLayer);
 stage.add(classLayer);
 stage.add(margin);
 stage.add(supermargin);
-
-
-let tooltip_div = body.append("div")
-    .attr("id", "tooltip_div")	
-    .attr("class", "tooltip")				
-.style("opacity", 0);
 
 Array.prototype.forEach.call(document.getElementsByTagName("canvas"), 
     (c, idx) => c.setAttribute("id", ["gridLayer", "edgeLayer", "classLayer", "marginLayer", "supermarginLayer"][idx]));
@@ -196,12 +194,30 @@ function drawAll(){
     xshift = transform.x;
     yshift = transform.y;
     scale  = transform.k;
-    
     xScale = transform.rescaleX(xScaleInit);
-    if(xScale(0) > xMarginSize + 30){
-        zoom.translateBy(zoomDomElement, (xMarginSize + 30 - xScale(0) - 0.1)/scale,0);
-        return;
+
+    let xMinOffset = scale > 1 ? 10*scale : 10;
+    let xMaxOffset = xMinOffset;
+    
+    // We have to call zoom.translateBy when the user hits the boundary of the pan region
+    // to adjust the zoom transform. However, this causes the zoom handler (this function) to be called a second time,
+    // which is less intuitive program flow than just continuing on in the current function.
+    // In order to prevent this, temporarily unset the zoom handler.
+    zoom.on("zoom", null); 
+    if(xScale(0) > xMarginSize + xMinOffset){
+        zoom.translateBy(zoomDomElement, (xMarginSize + xMinOffset - xScale(0) - 0.1)/scale,0);
+    } else if(xScale(1000) < width - xMaxOffset){
+        zoom.translateBy(zoomDomElement, (width - xMaxOffset - xScale(1000) + 0.1)/scale,0);
     }
+    zoom.on("zoom", drawAll);
+    
+    transform = d3.zoomTransform(zoomDomElement.node());
+    xshift = transform.x;
+    yshift = transform.y;
+    scale  = transform.k;
+    xScale = transform.rescaleX(xScaleInit);    
+    
+    
     yScale = yScaleInit; 
     //yScale = transform.rescaleY(yScaleInit); 
 
@@ -235,6 +251,20 @@ function drawAll(){
     drawGrid();
     drawTicks();
     draw();
+    
+    
+    if(d3.event){
+        // The Konvas stage tracks the pointer position using _setPointerPosition.
+        // d3 zoom doesn't allow the events it handles to bubble, so Konvas fails to track pointer position.
+        // We have to manually tell Konvas to update the pointer position using the event.
+        stage._setPointerPosition(d3.event.sourceEvent);
+    }
+    
+    // If there is a tooltip being displayed and the zoom event has modified the canvas so that the cursor is no
+    // longer over the 
+    if( stage.getPointerPosition() === undefined || stage.getIntersection(stage.getPointerPosition()) === null ){
+        handleMouseout();
+    }
 }
 
 function drawGrid(){
@@ -361,11 +391,6 @@ function draw() {
     
     
     let classes = sseq.getClasses();
-    let class_shapes = classLayer.getChildren();
-//    for(let i = 0; i < class_shapes.length; i++){
-//        let s = class_shapes[i];
-//        s.hide();
-//    }
     classLayer.removeChildren();
     
     let default_size = 6;
@@ -385,12 +410,9 @@ function draw() {
             continue;
         }
         let node = c.getNode(page);
-        s.setPosition({x : xScale(c.x), y : yScale(c.y)});
+        s.setPosition({x : xScale(c.x) + c.getXOffset(), y : yScale(c.y) + c.getYOffset()});
         s.sceneFunc(node.sceneFunc);
-        //s.fill("#AAA");
         s.setAttrs(c.getNode(page));
-        //    s.setAttrs({size: 6, fill: "#AAA"});
-        //    s.radius = 6;
         s.size(default_size * scale_size);
         classLayer.add(s);
     }
@@ -427,7 +449,6 @@ function draw() {
         let sl = differentials[i];
         let source_shape = sl.source.canvas_shape;
         let target_shape = sl.target.canvas_shape;
-        //    console.log(!sl.sourceOffset);
         if(! sl.sourceOffset || (sl.sourceOffset.x == 0  && sl.sourceOffset.y == 0)){
             sl.sourceOffset = {x:0, y:0};
             sl.targetOffset = {x:0, y:0};
@@ -444,32 +465,53 @@ function draw() {
 }
 
 
-drawAll();
+let tooltip_div = body.append("div")
+    .attr("id", "tooltip_div")	
+    .attr("class", "tooltip")				
+.style("opacity", 0);
+
+let tooltip_div_dummy = body.append("div")
+    .attr("id", "tooltip_div_dummy")	
+    .attr("class", "tooltip")				
+.style("opacity", 0);
 
 
-function handleMouseover(evt) {		
+function handleMouseover() {		
     let c = this.sseq_class;
     if(c.tooltip_html){
-        tooltip_div.html(c.tooltip_html);
-        setUpTooltipDiv();
-    }	
-    tooltip_div.html(`\\(${c.name}\\) -- (${c.x}, ${c.y})` + c.extra_info );     
-    MathJax.Hub.Queue(["Typeset",MathJax.Hub,"tooltip_div"]);
-    MathJax.Hub.Queue(() => setUpTooltipDiv(this));
+        tooltip_div_dummy.html(c.tooltip_html);
+        setUpTooltipDiv(this);
+    } else {
+        tooltip_div_dummy.html(`\\(${c.name}\\) -- (${c.x}, ${c.y})` + c.extra_info );     
+        MathJax.Hub.Queue(["Typeset",MathJax.Hub,"tooltip_div_dummy"]);
+        MathJax.Hub.Queue(() => setUpTooltipDiv(this));
+    }
 }
 
 function setUpTooltipDiv(shape){
     let rect = tooltip_div.node().getBoundingClientRect();
-    let width = rect.width;
-    let height = rect.height;
-    tooltip_div.style("left", ( (shape.x() + 25) + "px"))    
-               .style("top",  ( (shape.y() - height) + "px")); 
+    let tooltip_width = rect.width;
+    let tooltip_height = rect.height;
+    shape.sseq_class.tooltip_html = tooltip_div_dummy.html();
+    tooltip_div.html(tooltip_div_dummy.html());
+    tooltip_div.style("left", (shape.x() + 25) + "px" )  
+               .style("top",  (shape.y() - tooltip_height) + "px")
+               .style("right", null).style("bottom", null); 
+    let bounding_rect = tooltip_div.node().getBoundingClientRect();
+    if(bounding_rect.right > width){
+        tooltip_div.style("left", null)
+            .style("right", (width - shape.x() + 10 ) + "px")
+    }
+    if(bounding_rect.top < 0){
+        tooltip_div.style("top", ( shape.y() + 10 ) + "px")
+    }    
+    
     tooltip_div.transition()		
             .duration(200)		
             .style("opacity", .9);                   
 }
 
-function handleMouseout(d) {		
+function handleMouseout() {		
     tooltip_div.transition()		
         .duration(500)		
         .style("opacity", 0);	
@@ -477,3 +519,5 @@ function handleMouseout(d) {
 
 
 
+
+drawAll();

@@ -200,7 +200,7 @@ class Sseq {
             // This is the dot product here...
             let stem = dot_product(monomial_exponents, stem_list);
             let filtration = dot_product(monomial_exponents, filtration_list);
-            if(stem < -10 || stem > 1000){
+            if(stem < 0 -10 || stem > 1000 + 10){
                 continue;
             }
             if(filtration > 100){

@@ -3,7 +3,7 @@ let sseq = new Sseq();
 let variables = ["a1", "a2", "b", "v"]
 let bmax = 150
 let vmin = -100
-let vmax = 200
+let vmax = 240
 
 function dot_mod_16(v){
     // sum(p*q for p,q in zip(v, (0,1,12,15))) % 16;
