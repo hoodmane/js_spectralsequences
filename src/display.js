@@ -1,9 +1,8 @@
-"use strict";                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
+"use strict";
 let d3 = require("d3");
 let Mousetrap = require("mousetrap");
 let Konva = require("konva");
-let Matrix = require("transformation-matrix-js").Matrix;
-window.Sseq = require("./objects.js");
+window.Sseq = require("./objects.js").Sseq;
 window.d3 = d3;
 
 // prevent scrollbars
@@ -19,29 +18,32 @@ const canvasHeight = boundingRectangle.height;
 
 
 // Global constants for grid and setup
-let gridColor = "#555"; //"#333"; //
+let gridColor = "#555"; 
 let gridStrokeWidth = 0.5;
-let strokeWidth = 1;
 let boxSize = 50;
 
 let ZOOM_BASE = 1.1;
-let TICK_STEP_LOG_BASE = 15;
 
 // Global variables for the coordinate transformation and graphic state
-var transform;
-var xshift = 0, yshift = 0; // These are read out of transform
-var scale;
-var xmin, xmax, ymin, ymax; // calculated from transform
-var xTicks,    yTicks,
+let transform, zoom_max_transform, pre_zoom_max_transform;
+let old_scales_maxed = false;
+let scale;
+let xmin, xmax, ymin, ymax;
+let xTicks, yTicks,
     xGridStep, yGridStep;
 
+let domainOffset = 1/2;
+
 let sseq = new Sseq();
-exports.setSseq = function(ss){
+
+exports.setSseq = function(ss) {
     sseq = ss;
+    xScaleInit.domain([sseq.initialxRange[0] - domainOffset, sseq.initialxRange[1] + domainOffset]);
+    yScaleInit.domain([sseq.initialyRange[0] - domainOffset, sseq.initialyRange[1] + domainOffset]);
     window.sseq = sseq;
     addClasses();
-        
-}
+    drawAll();
+};
 
 // The sseq object contains the list of valid pages. Always includes at least 0 and infinity.
 let page_idx = 0;
@@ -56,13 +58,13 @@ Mousetrap.bind('left', function(e,n){
         window.page = page;
         drawAll();
     }
-})
+});
 
 Mousetrap.bind('right', function(e,n){ 
     if(page_idx < sseq.page_list.length - 1){
         page_idx++; 
         page = sseq.page_list[page_idx];        
-        if(page_idx == sseq.page_list.length - 1){
+        if(page_idx === sseq.page_list.length - 1){
             //pageNumText.text("∞");
         } else {
             //pageNumText.text(page);
@@ -70,7 +72,7 @@ Mousetrap.bind('right', function(e,n){
         window.page = page;
         drawAll();
     }
-})
+});
 
 exports.sseq = sseq;
 exports.draw = draw;
@@ -107,7 +109,8 @@ stage.add(supermargin);
 
 Array.prototype.forEach.call(document.getElementsByTagName("canvas"), 
     (c, idx) => c.setAttribute("id", ["gridLayer", "edgeLayer", "classLayer", "marginLayer", "supermarginLayer"][idx]));
-//
+
+
 //function resizeCanvasToDisplaySize(canvas) {
 //   // look up the size the canvas is being displayed
 //   const width = canvas.clientWidth;
@@ -127,38 +130,29 @@ Array.prototype.forEach.call(document.getElementsByTagName("canvas"),
 //resizeCanvasToDisplaySize(classLayer);
 
 
-var zoom = d3.zoom().scaleExtent([1/16, 4]).on("zoom", drawAll);
+const zoom = d3.zoom().scaleExtent([0, 4]).on("zoom", drawAll);
 d3.select("#supermarginLayer").call(zoom).on("dblclick.zoom", null);
 let zoomDomElement = d3.select("#supermarginLayer");
 window.zoom = zoom;
 
 
 let gridLayerContext   = d3.select("#gridLayer").node().getContext("2d");
-let edgeLayerContext  = d3.select("#edgeLayer").node().getContext("2d");
+let edgeLayerContext   = d3.select("#edgeLayer").node().getContext("2d");
 let classLayerContext  = d3.select("#classLayer").node().getContext("2d");
 let marginLayerContext = d3.select("#marginLayer").node().getContext("2d");
 let supermarginLayerContext = d3.select("#supermarginLayer").node().getContext("2d");
 
-
-var randomX = d3.randomNormal(width / 2, 80);
-var randomY = d3.randomNormal(height / 2, 80);
-var data = d3.range(2000).map(function() { return [randomX(), randomY()]; });
-
 const xMarginSize = boxSize/2 + 30;
 const yMarginSize = boxSize;
 
-const clipX     = xMarginSize
-const clipY     = -boxSize
+const clipX     = xMarginSize;
+const clipY     = -boxSize;
 const clipWidth = width;
 const clipHeight = height - yMarginSize;
-const xGridOffset = 10;
-const yGridOffset = 0;
 
 gridLayerContext.rect(clipX, clipY, clipWidth - clipX, clipHeight - clipY);
 gridLayerContext.clip();    
 gridLayerContext.strokeStyle = gridColor;
-
-window.ctx = gridLayerContext;
 
 edgeLayerContext.rect(clipX, clipY, clipWidth - clipX, clipHeight - clipY);
 edgeLayerContext.clip(); 
@@ -167,7 +161,7 @@ classLayerContext.rect(clipX, clipY, clipWidth - clipX, clipHeight - clipY);
 classLayerContext.clip(); 
 
 supermarginLayerContext.fillStyle = "#FFF";
-supermarginLayerContext.rect(0, clipHeight, xMarginSize, boxSize);
+supermarginLayerContext.rect(0, clipHeight, xMarginSize - 5, boxSize);
 supermarginLayerContext.fill();
 supermarginLayerContext.fillStyle = "#000";
 
@@ -179,52 +173,96 @@ supermarginLayerContext.stroke();
 
 window.context = classLayerContext;
 
-var xScaleInit = d3.scaleLinear().range([xMarginSize, width]),
-    yScaleInit = d3.scaleLinear().range([height - yMarginSize, 0]);
-    
-var xScale, yScale; 
-
-
-xScaleInit.domain([0 -1/2, 54 + 1/2]);
-yScaleInit.domain([0 -1/2, 30 + 1/2]);
-
+let xScaleInit = d3.scaleLinear().range([xMarginSize, width]);
+let yScaleInit = d3.scaleLinear().range([height - yMarginSize, 0]);
+let xScale, yScale;
 
 function drawAll(){
     transform = d3.zoomTransform(zoomDomElement.node());
-    xshift = transform.x;
-    yshift = transform.y;
     scale  = transform.k;
     xScale = transform.rescaleX(xScaleInit);
-
-    let xMinOffset = scale > 1 ? 10*scale : 10;
-    let xMaxOffset = xMinOffset;
+    if(!sseq.fixY){
+        yScale = transform.rescaleY(yScaleInit);
+    } else {
+        yScale = yScaleInit;
+    }
     
     // We have to call zoom.translateBy when the user hits the boundary of the pan region
     // to adjust the zoom transform. However, this causes the zoom handler (this function) to be called a second time,
     // which is less intuitive program flow than just continuing on in the current function.
     // In order to prevent this, temporarily unset the zoom handler.
     zoom.on("zoom", null); 
-    if(xScale(0) > xMarginSize + xMinOffset){
-        zoom.translateBy(zoomDomElement, (xMarginSize + xMinOffset - xScale(0) - 0.1)/scale,0);
-    } else if(xScale(1000) < width - xMaxOffset){
-        zoom.translateBy(zoomDomElement, (width - xMaxOffset - xScale(1000) + 0.1)/scale,0);
+    if(!old_scales_maxed){
+        if( sseq.xRange ) {
+            let xMinOffset = scale > 1 ? 10 * scale : 10;
+            let xMaxOffset = xMinOffset;
+            if(xScale(sseq.xRange[0]) > xMarginSize + xMinOffset){
+                zoom.translateBy(zoomDomElement, (xMarginSize + xMinOffset - xScale(sseq.xRange[0]) - 0.1) / scale, 0);
+            } else if(xScale(sseq.xRange[1]) < width - xMaxOffset){
+                zoom.translateBy(zoomDomElement, (width - xMaxOffset - xScale(sseq.xRange[1]) + 0.1) / scale, 0);
+            }
+        }
+        
+        if( !sseq.fixY ) {
+            if( sseq.yRange ) {
+                let yMinOffset = scale > 1 ? 10 * scale : 10;
+                let yMaxOffset = yMinOffset;
+                if(yScale(sseq.yRange[0]) < clipHeight - yMinOffset){
+                    zoom.translateBy(zoomDomElement, 0, (clipHeight - yMinOffset - yScale(sseq.yRange[0]) - 0.1) / scale);
+                } else if(yScale(sseq.yRange[1]) > yMaxOffset){
+                    zoom.translateBy(zoomDomElement, 0, (yMaxOffset - yScale(sseq.yRange[1]) + 0.1) / scale);
+                }    
+            }
+        }
     }
-    zoom.on("zoom", drawAll);
-    
+
     transform = d3.zoomTransform(zoomDomElement.node());
-    xshift = transform.x;
-    yshift = transform.y;
-    scale  = transform.k;
     xScale = transform.rescaleX(xScaleInit);    
     
-    
-    yScale = yScaleInit; 
-    //yScale = transform.rescaleY(yScaleInit); 
+    if(!sseq.fixY){
+        yScale = transform.rescaleY(yScaleInit);
+    }
 
     xmin = Math.ceil (xScale.invert(xMarginSize));
     xmax = Math.floor(xScale.invert(width));
     ymin = Math.ceil (yScale.invert(height - yMarginSize));
     ymax = Math.floor(yScale.invert(0));
+
+    let xScaleMaxed = false, yScaleMaxed = false;
+
+    if(sseq.xRange && (xmax - xmin) > sseq.xRange[1] - sseq.xRange[0]){ 
+        xScaleMaxed = true;
+        xScale.domain([sseq.xRange[0] - domainOffset, sseq.xRange[1] + domainOffset]);
+    }
+    
+    if(sseq.yRange && (ymax - ymin) > sseq.yRange[1] - sseq.yRange[0]){
+        yScaleMaxed = true;
+        yScale.domain([sseq.yRange[0] - domainOffset, sseq.yRange[1] + domainOffset]);
+    }
+
+    if(xScaleMaxed && yScaleMaxed){
+        if(!old_scales_maxed){
+            old_scales_maxed = true;
+            zoom_max_transform = transform;
+        } else {
+            zoom.transform(zoomDomElement, zoom_max_transform);
+        }
+    } else {
+        if(old_scales_maxed){
+            //zoom.transform(zoomDomElement, pre_zoom_max_transform);
+            old_scales_maxed = false;
+        } else {
+            pre_zoom_max_transform = transform;
+        }
+    }
+    
+    transform = d3.zoomTransform(zoomDomElement.node());
+    scale  = transform.k;
+    xmin = Math.ceil (xScale.invert(xMarginSize));
+    xmax = Math.floor(xScale.invert(width));
+    ymin = Math.ceil (yScale.invert(height - yMarginSize));
+    ymax = Math.floor(yScale.invert(0));    
+    zoom.on("zoom", drawAll);
 
     window.xmin = xmin;
     window.xmax = xmax;
@@ -233,7 +271,6 @@ function drawAll(){
 
     let xZoom = Math.log(scale) / Math.log(ZOOM_BASE);
     let yZoom = xZoom;
-    let n=0;
 
     xTicks = xScale.ticks(15);
     yTicks = yScale.ticks();
@@ -241,8 +278,8 @@ function drawAll(){
     let xTickStep = xTicks[1] - xTicks[0];
     let yTickStep = yTicks[1] - yTicks[0];
 
-    xGridStep = (Math.floor(xTickStep / 5) == 0) ? 1 : Math.floor(xTickStep / 5) ;
-    yGridStep = (Math.floor(yTickStep / 5) == 0) ? 1 : Math.floor(yTickStep / 5) ;            
+    xGridStep = (Math.floor(xTickStep / 5) === 0) ? 1 : Math.floor(xTickStep / 5) ;
+    yGridStep = (Math.floor(yTickStep / 5) === 0) ? 1 : Math.floor(yTickStep / 5) ;
 
 
     window.ymin = ymin;
@@ -307,16 +344,6 @@ function drawTicks(){
     }
 }
 
-function getRndColor() {
-    var r = 255*Math.random()|0,
-        g = 255*Math.random()|0,
-        b = 255*Math.random()|0;
-    return 'rgb(' + r + ',' + g + ',' + b + ')';
-}
-
-
-
-
 let hitCtx = classLayer.getHitCanvas().context;
 function getPositionColorKey(x, y){
     return "#" + Konva.Util._rgbToHex(...hitCtx.getImageData(x, y, 1, 1).data);
@@ -325,13 +352,13 @@ function getPositionColorKey(x, y){
 function findBoundaryTowards(shape, x, y){
     const colorKey = shape.colorKey;
     const start_distance = 8;
-    var x0 = shape.x();
-    var y0 = shape.y();    
-    var dx = x - x0;
-    var dy = y - y0;
-    var length = Math.sqrt( dx * dx + dy * dy);
+    let x0 = shape.x();
+    let y0 = shape.y();
+    let dx = x - x0;
+    let dy = y - y0;
+    let length = Math.sqrt(dx * dx + dy * dy);
 
-    if(length == 0){    
+    if(length === 0){
         return {x: x0, y: y0};
     }
     
@@ -357,7 +384,6 @@ function addClasses(){
         //if(c.x > 54 || c.x < 0){
 //            continue; 
 //        }
-        let shape_type = Konva.Circle;
         c.canvas_shape = new Konva.Shape();
         c.canvas_shape.sseq_class = c;
         c.canvas_shape.on('mouseover', handleMouseover);        
@@ -379,6 +405,7 @@ function setUpEdge(edge){
     let sourcePt = findBoundaryTowards(source_shape, target_shape.x(), target_shape.y());
     let targetPt = findBoundaryTowards(target_shape, source_shape.x(), source_shape.y());
     edge.sourceOffset = {x : (sourcePt.x - source_shape.x()) , y : (sourcePt.y - source_shape.y())};
+    edge.targetOffset = {x : (targetPt.x - source_shape.x()) , y : (targetPt.y - source_shape.y())};
 }
 
 
@@ -394,7 +421,7 @@ function draw() {
     classLayer.removeChildren();
     
     let default_size = 6;
-    var scale_size;
+    let scale_size;
     if(scale < 1/2){
         scale_size = 1/2;
     } else if(scale > 2) {
@@ -422,46 +449,25 @@ function draw() {
     context = edgeLayerContext; 
     context.clearRect(0, 0, width, height); 
     
-    let structlines = sseq.getStructlines();
-    for(let i = 0; i < structlines.length; i++){
-        let sl = structlines[i];
-        if(sl.page < page){
-            continue;
-        }
-        let source_shape = sl.source.canvas_shape;
-        let target_shape = sl.target.canvas_shape;    
+    let edges = sseq.getEdges();
+    for(let i = 0; i < edges.length; i++){
+        let e = edges[i];
+        let source_shape = e.source.canvas_shape;
+        let target_shape = e.target.canvas_shape;    
         context.beginPath();    
-        if(! sl.sourceOffset || (sl.sourceOffset.x == 0  && sl.sourceOffset.y == 0)){
-            sl.sourceOffset = {x:0, y:0};
-            sl.targetOffset = {x:0, y:0};
-            //setTimeout(setUpEdge(sl),0);
+        if(! e.sourceOffset || (e.sourceOffset.x === 0  && e.sourceOffset.y === 0)){
+            e.sourceOffset = {x:0, y:0};
+            e.targetOffset = {x:0, y:0};
+            //setTimeout(setUpEdge(e),0);
         }    
         context.lineWidth = 1;
-        context.strokeStyle = sl.color;
-        context.moveTo(source_shape.x() + sl.sourceOffset.x, source_shape.y() + sl.sourceOffset.y);
-        context.lineTo(target_shape.x() + sl.targetOffset.x, target_shape.y() + sl.targetOffset.y);
+        context.strokeStyle = e.color;
+        context.moveTo(source_shape.x() + e.sourceOffset.x, source_shape.y() + e.sourceOffset.y);
+        context.lineTo(target_shape.x() + e.targetOffset.x, target_shape.y() + e.targetOffset.y);
         context.closePath();        
         context.stroke();
     }
-    
-    let differentials = sseq.getDifferentials();
-    for(let i = 0; i < differentials.length; i++){
-        let sl = differentials[i];
-        let source_shape = sl.source.canvas_shape;
-        let target_shape = sl.target.canvas_shape;
-        if(! sl.sourceOffset || (sl.sourceOffset.x == 0  && sl.sourceOffset.y == 0)){
-            sl.sourceOffset = {x:0, y:0};
-            sl.targetOffset = {x:0, y:0};
-            //setTimeout(setUpEdge(sl),0);
-        }
-        context.beginPath();    
-        context.lineWidth = 1;
-        context.strokeStyle = sl.color;
-        context.moveTo(source_shape.x() + sl.sourceOffset.x, source_shape.y() + sl.sourceOffset.y);
-        context.lineTo(target_shape.x() + sl.targetOffset.x, target_shape.y() + sl.targetOffset.y);
-        context.closePath();
-        context.stroke();
-    }  
+
 }
 
 
@@ -516,8 +522,3 @@ function handleMouseout() {
         .duration(500)		
         .style("opacity", 0);	
 }
-
-
-
-
-drawAll();

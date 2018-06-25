@@ -1,12 +1,20 @@
 let sseq = new Sseq();
 
-const vmin = -12
-const vmax = 10
-const bmax = 40
+sseq.xRange = [-72 * 3, 72*3 - 1];
+sseq.yRange = [0, 20];
+sseq.max_differential_length = 9;
 
-window.classes = sseq.addPolynomialClasses(
+sseq.initialxRange = [0, 72];
+sseq.initialyRange = [0, 40];
+
+const vmin = -12;
+const vmax = 10;
+const bmax = 40;
+
+classes = sseq.addPolynomialClasses(
     {   "a" : [3,1], "b" : [10,2],   "v" : [24,0] },
       [["a", 0, 1], ["b", 0, bmax], ["v", vmin, vmax]])
+
 
 Znode = new SseqNode();
 Znode.sceneFunc = square_draw_func;
@@ -17,8 +25,10 @@ pZnode.fill = "#FFF";
 pZnode.stroke = "#000";
 
 
-for(let v = vmin; v < vmax; v++){
-    classes.get([0,0,v]).setNode(Znode);
+for(let v = vmin + 1; v < vmax; v++){
+    if(classes.has([0,0,v])){
+        classes.get([0,0,v]).setNode(Znode);
+    }
 }
 
 classes.addStructline(1,0,0);
@@ -35,7 +45,19 @@ for(let b = 0; b <= 1; b++){
 
 for(let v = vmin; v < vmax; v++){
     if(v % 3 !== 0){
-        classes.get([0,0,v]).replace(pZnode);
+        if(classes.has([0,0,v])){
+            classes.get([0,0,v]).replace(pZnode);
+        }
+    }
+}
+
+for(let v = vmin; v < vmax; v++){
+    if(v % 3 === 0){
+        if(classes.has([1,1,v+1])){
+            for(let b = 0; b < 2; b++){
+                sseq.addExtension(classes.get([1,b,v + 1]),classes.get([0,3 + b,v]));
+            }
+        }
     }
 }
 
