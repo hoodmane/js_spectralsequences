@@ -7,6 +7,13 @@ Map.prototype.getOrElse = function(key, value) {
   return this.has(key) ? this.get(key) : value;
 };
 
+function merge(root){
+    for ( var i = 1; i < arguments.length; i++ )
+        for ( var key in arguments[i] )
+            root[key] = arguments[i][key];
+    return root;
+}
+
 function addToDictionaryOfLists(dictionary, key,value){
     if(!dictionary.has(key)){
         dictionary.set(key, []);
@@ -195,7 +202,7 @@ class Sseq {
         }
     }
     
-   addPolynomialClasses(var_degree_dict,var_spec_list){
+   addPolynomialClasses(var_degree_dict,var_spec_list, cond){
         let var_name_list = [];
         let stem_list = [];
         let filtration_list = [];
@@ -221,6 +228,9 @@ class Sseq {
                 if(stem < this.xRange[0] -10 || stem > this.xRange[1] + 10){
                     continue;
                 }
+            }
+            if(cond && cond()){
+
             }
             if(this.yRange && this.max_differential_length){
                 if(filtration > this.yRange[1] + this.max_differential_length || filtration < this.yRange[0]){
