@@ -1,16 +1,17 @@
 let sseq = new Sseq();
 
+sseq.initialxRange = [0, 8];
+sseq.initialyRange = [0, 8];
+
 classes = sseq.addPolynomialClasses({ "v" : [4,0], "\\eta" : [1,1]}, [["\\eta", 0,50], ["v", -10,11]]);
 classes.addStructline(1,0);
 classes.addDifferential(3, [3,-1], k => k[1] % 2 != 0, (d, _) => d.addInfoToSourceAndTarget());
 
 let Znode = new SseqNode();
-Znode.shape = d3.symbolSquare;
-Znode.size = 200;
-Znode.fillColor = "#000";
+Znode.shape = Shapes.square;
 
 let Z2node = Znode.copy();
-Z2node.fillColor = "#FFF";
+Z2node.fill = false;
 
 for(let v=-10; v<=11; v++){
     classes.get([0,v]).setNode(Znode);
@@ -19,7 +20,5 @@ for(let v=-10; v<=11; v++){
 
 window.classes = classes;
 
-disp.setSseq(sseq);
-
-disp.updateForeground();
+let disp = new Display(sseq);
 

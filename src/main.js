@@ -3,11 +3,17 @@
 // because of this, require just "returns" an empty object, so there's no use in saving the output.
 require("./mathjax.min.js");
 
+window.infinity = 10000;
+
 window.mod = function(n,d){
     return (n % d + d)%d;
 }
 
+window.Shapes = require("./Shape.js");
+
 window.Display = require("./display.js").Display;
-window.Sseq = require("./objects.js").Sseq;
+
+
+window.Sseq = require("./Sseq.js").Sseq;
 window.d3 = require("d3");
-require("../examples/EO32.js");
+require("../examples/KO.js");

@@ -2,9 +2,7 @@ TODO:
   Display:
     xscale, yscale
     grid step
-    Node mathjax
-    use d3 canvas
 
   Logic:
     degree
-    message center (limit copies of the same message to a fixed number, then print mathematica style "further messages suppressed
+    message center (limit copies of the same message to a fixed number, then print mathematica style "further messages suppressed")

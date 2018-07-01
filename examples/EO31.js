@@ -17,12 +17,12 @@ classes = sseq.addPolynomialClasses(
 
 
 Znode = new SseqNode();
-Znode.sceneFunc = square_draw_func;
+console.log(Znode.fill);
+Znode.shape = Shapes.square;
 Znode.size = 8;
 
 pZnode = Znode.copy();
-pZnode.fill = "#FFF";
-pZnode.stroke = "#000";
+pZnode.fill = false;
 
 
 for(let v = vmin + 1; v < vmax; v++){
@@ -61,6 +61,5 @@ for(let v = vmin; v < vmax; v++){
     }
 }
 
-disp.setSseq(sseq);
-
-disp.draw();
+let disp = new Display(sseq);
+window.disp = disp;

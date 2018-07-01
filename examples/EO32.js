@@ -7,9 +7,6 @@ sseq.max_differential_length = 33;
 sseq.initialxRange = [0, 54];
 sseq.initialyRange = [0, 30];
 
-//sseq.fixY = true;
-
-let variables = ["a1", "a2", "b", "v"];
 let bmax = 150;
 let vmin = -100;
 let vmax = 240;
@@ -27,7 +24,7 @@ function dot_mod_16(v){
 }
 
 Zq = new SseqNode();
-Zq.sceneFunc = square_draw_func;
+Zq.shape = Shapes.square;
 Zq.size = 8;
 Zq.fill = 'black';
 
@@ -38,7 +35,7 @@ qZq.stroke = 'black';
 sseq.default_node = Zq;
 
 Zmq = new SseqNode();
-Zmq.sceneFunc = circle_draw_func;
+Zmq.shape = Shapes.circle;
 
 //sseq.setDefaultStyle('Zq');
 
@@ -106,6 +103,7 @@ for(let v of d3.range(-36,121,6)){
 
 
 let disp = new Display(sseq);
+window.disp = disp;
 //display.draw();
 
 

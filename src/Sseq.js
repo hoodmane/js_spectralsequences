@@ -1,7 +1,15 @@
 "use strict";
-const StringifyingMap = require("./StringifyingMap.js");
+let Shapes = require("./Shape.js");
+let SseqClassjs = require("./SseqClass.js");
+let SseqClass = SseqClassjs.SseqClass;
+let Node = SseqClassjs.Node;
+let Edges = require("./Edges.js");
+let Edge = Edges.Edge;
+let Structline = Edges.Structline;
+let Extension = Edges.Extension;
+let Differential = Edges.Differential;
 
-let infinity = 10000;
+const StringifyingMap = require("./StringifyingMap.js");
 
 Map.prototype.getOrElse = function(key, value) {
   return this.has(key) ? this.get(key) : value;
@@ -40,21 +48,6 @@ function monomialString(vars, exponents){
 }
 
 
-window.circle_draw_func = function(context) {
-      context.beginPath();
-      context.arc(0, 0, this.getSize(), 0, 2 * Math.PI, false);
-      context.closePath();
-      context.fillStrokeShape(this);
-};
-
-window.square_draw_func = function(context) {
-    let size = this.getSize();
-    context.beginPath();
-    context.rect(-size, -size, 2*size, 2*size);    
-    context.closePath();
-    context.fillStrokeShape(this);    
-};
-
 class Sseq {
     /**
      * Make a spectral sequence object.
@@ -77,13 +70,16 @@ class Sseq {
         this.yshift = 0;        
         this.offset_size = 10;
         this.page_list = [0,infinity];
-        this.default_node = new SseqNode();
+        this.default_node = new Node();
         //this.default_node.stroke = "#000";
         this.default_node.fill = "#000";
-        this.default_node.sceneFunc = circle_draw_func;
+        this.default_node.shape = Shapes.circle;
         this.default_node.size = 6;
+        this.projection = function(ssclass){
+            return [ssclass.degree.x, ssclass.degree.y];
+        }
     }
-    
+
     set_shift(x, y){
         this.xshift = x;
         this.yshift = y;
@@ -95,24 +91,46 @@ class Sseq {
         this.yshift += y;
         return this;
     }
-    
+
+    /**
+     * Add a class in position (x,y) and return the class. Uses sseq.default_node for display.
+     *
+     * @param x The x position
+     * @param y
+     * @returns {SseqClass} The new class
+     */
     addClass(x, y){
-        x = x + this.xshift;
-        y = y + this.yshift;
-        let p = [x,y];
-        let idx  = this.num_classes_by_degree.getOrElse(p, 0);
-        this.num_classes_by_degree.set(p, idx + 1);
-        let c = new SseqClass(this, p, idx);
+        let degree;
+        if(y === undefined){
+            degree = x;
+        } else {
+            x = x + this.xshift;
+            y = y + this.yshift;
+            degree = {x: x, y: y};
+        }
+        let c = new SseqClass(this, degree);
+        let idx  = this.num_classes_by_degree.getOrElse(c.projection, 0);
+        this.num_classes_by_degree.set(c.projection, idx + 1);
+        c.idx = idx;
         this.classes.push(c);
-        addToDictionaryOfLists(this.classes_by_degree, p, c);
-        addToDictionaryOfLists(this.classes_by_stem, x , c);
+        addToDictionaryOfLists(this.classes_by_degree, degree, c);
+        addToDictionaryOfLists(this.classes_by_stem, c.x , c);
         this.total_classes ++;
         return c;
     }
-    
+
+
+    /**
+     * This is an internal method used by display to calculate the set of features to be displayed on the current page.
+     * @param page
+     * @param xmin
+     * @param xmax
+     * @param ymin
+     * @param ymax
+     * @package
+     */
     calculateDrawnElements(page, xmin, xmax, ymin, ymax){
         this.display_classes = this.classes.filter(c => {c.in_range = c.inRangeQ(xmin, xmax, ymin, ymax); return c.in_range && c.drawOnPageQ(page);});
-
         this.display_edges = this.edges.filter(e => 
              e.drawOnPageQ(page)
           && e.source.drawOnPageQ(page) && e.target.drawOnPageQ(page) 
@@ -129,25 +147,30 @@ class Sseq {
             }            
         }      
     }
-    
-    
-    getClasses(){
+
+
+    /**
+     * Gets recalculated by calculateDrawnElements.
+     * @returns {Array|SseqClass} The list of classes currently being displayed.
+     */
+    getClassesToDisplay(){
         return this.display_classes;
     }
-    
-    getEdges(){
+
+
+    /**
+     * Gets recalculated by calculateDrawnElements.
+     * @returns {Array|Edge} The list of edges currently being displayed.
+     */
+    getEdgesToDisplay(){
         return this.display_edges;
-    }
-    
-    getDifferentials(){
-        return this.display_differentials;
     }
 
     /**
-     *
+     * Adds a structline from source to target.
      * @param source
      * @param target
-     * @returns {*} the structline object
+     * @returns {Structline} the structline object
      */
     addStructline(source, target){
 //        if(source == undefined){
@@ -157,7 +180,7 @@ class Sseq {
 //            target = this.last_classes[0]
 //        }
         if(!source || !target){
-            return;
+            return null;
         }
         let struct = new Structline(source,target);
         this.structlines.push(struct);
@@ -166,14 +189,21 @@ class Sseq {
         target.addStructline(struct);
         return struct;
     }
-    
+
+    /**
+     * Adds a differential.
+     * @param source
+     * @param target
+     * @param page
+     * @returns {Differential}
+     */
    addDifferential(source, target, page){
         if(page <= 0){
             console.log("No page <= 0 differentials allowed.");
-            return
+            return null;
         }
         if(!source || !target){
-            return;
+            return null;
         }        
         let differential = new Differential(source, target, page);
         this.differentials.push(differential);
@@ -181,7 +211,13 @@ class Sseq {
         this.addPageToPageList(page);
         return differential;
     }
-    
+
+    /**
+     * Adds an extension.
+     * @param source
+     * @param target
+     * @returns {Extension}
+     */
    addExtension(source, target){
         if(!source || !target){
             return;
@@ -189,8 +225,14 @@ class Sseq {
         let ext = new Extension(source, target);
         this.edges.push(ext);
         return ext;
-    }    
-    
+    }
+
+    /**
+     * For display purposes, a Sseq object maintains a list of pages on which something changes in the spectral sequence.
+     * Currently this list always contains 0, infinity, and the set of pages on which differentials live.
+     * @param page
+     * @returns {Sseq} chainable
+     */
    addPageToPageList(page){
         for(let i = 0; i < this.page_list.length; i++){
             if(this.page_list[i] > page){
@@ -200,8 +242,16 @@ class Sseq {
                 return this;
             }
         }
-    }
-    
+   }
+
+    /**
+     *
+     * @param var_degree_dict -- Object with bidegrees of the generators, of the form `"var_name" : [stem, filtration]`
+     * @param var_spec_list -- List of range specifications. Each range specification is a list of the form
+     *  `["var_name", min, max, step]` where `min` defaults to 0 and `step` defaults to 1.
+     * @param cond
+     * @returns {monomial_basis} A monomial_basis object containing the set of classes so generated.
+     */
    addPolynomialClasses(var_degree_dict,var_spec_list, cond){
         let var_name_list = [];
         let stem_list = [];
@@ -243,290 +293,6 @@ class Sseq {
         return class_dict; 
    }
     
-}
-
-
-class SseqNode {
-    copy(){
-        return Object.assign(new SseqNode(), this);
-    }
-}
-
-class SseqClass {
-    /**
-     *
-     */
-    constructor(sseq){
-        this.sseq = sseq;
-        if(Array.isArray(arguments[1])){
-            this.pair = arguments[1];
-            this.x    = this.pair[0];
-            this.y    = this.pair[1];
-            this.idx  = arguments[2];
-        } else {
-            this.x   = arguments[1];
-            this.y   = arguments[2];
-            this.idx = arguments[3];
-        }
-
-        this.edges = [];
-        this.structlines = [];
-        this.outgoing_differentials = [];
-        this.incoming_differentials = [];
-        this.name = "";
-        this.extra_info = "";
-        this.page_list = [infinity];
-        this.node_list = [sseq.default_node.copy()];
-        this.visible = true;     
-        this.last_page = 0;   
-        this.last_page_idx = 0;   
-    }
-    
-    getDegree(){
-        return [this.x, this.y];
-    }    
-    
-    addStructline(sl){
-        this.structlines.push(sl);
-        this.edges.push(sl);
-    }
-    
-    getStructlines(){
-        return this.structlines;
-    }    
-    
-    getPage(){
-        return this.page_list[this.page_list.length - 1];
-    }
-
-    setPage(page){
-        this.page_list[this.page_list.length - 1] = page;
-        return this;
-    }    
-    
-    setName(name){
-        this.name = name;
-        return this;
-    }
-    
-    getPageIndex(page){
-        if( page === undefined ) {
-            return this.page_list.length - 1;
-        } else if( page === this.last_page ) {
-            return this.last_page_idx;
-        }
-        let page_idx;
-        for(let i = 0; i < this.page_list.length; i++){
-            if(this.page_list[i] >= page){
-                page_idx = i;
-                break;
-            }
-        }
-        if(page_idx === undefined){
-            page_idx = this.page_list.length - 1;
-        }
-        this.last_page = page;        
-        this.last_page_idx = page_idx;
-        return page_idx;
-    }
-    
-    getNode(page){
-        const idx = this.getPageIndex(page);
-        return this.node_list[idx];
-    }
-
-    setNode(node, page){
-//        if(typeof(node) === "string"){
-//            node = node_dict[node];
-//        }
-        if(node === undefined){
-            node = {};
-        }
-        const idx = this.getPageIndex(page);
-        this.node_list[idx] = Object.assign(this.sseq.default_node.copy(), node);
-        return this;
-    }
-    
-    
-    appendPage(page){
-        this.page_list.push(page);
-        this.node_list.push(this.sseq.default_node.copy());
-        return this;
-    }
-
-    replace(node){
-        this.appendPage(infinity);
-//        if(typeof(node) === "string"){
-//            node = node_dict[node];
-//        }
-        this.setNode(node);
-        return this;
-    }
-    
-    addExtraInfo(str){
-        this.extra_info += "<hr>" + str;
-    }
-    
-    
-    getXOffset(){
-        let total_classes = this.sseq.num_classes_by_degree.get(this.pair);
-        let idx = this.idx;
-        return (idx - (total_classes - 1)/2)*this.sseq.offset_size;
-    }
-
-    getYOffset(){
-        let total_classes = this.sseq.num_classes_by_degree.get(this.pair);
-        let idx = this.idx;
-        return -(idx - (total_classes - 1)/2)*this.sseq.offset_size;
-    }        
-    
-    toString(){
-        return this.name;
-    }
-
-    addOutgoingDifferential(differential){
-        if(this.getPage() < differential.page){
-            //this.handleDoubledDifferential("supporting another" + differential.supportedMessage());
-        }
-        this.setPage(differential.page);
-        this.outgoing_differentials.push(differential);
-        this.edges.push(differential);
-    }
-
-    addIncomingDifferential(differential){
-        if(this.getPage() < differential.page){
-            //this.handleDoubledDifferential("receiving another" + differential.hitMessage());
-        }
-        this.setPage(differential.page);
-        this.incoming_differentials.push(differential);
-        this.edges.push(differential);
-    }
-    
-    setStructlinePages(page){
-        for(let i = 0; i < this.structlines.length; i++){
-            let sl = this.structlines[i];
-            if(sl.page > page){
-                sl.page = page;
-            }
-        }
-        return this;
-    }
-
-    drawOnPageQ(page){
-        return this.page_list[this.page_list.length -1] >= page && this.visible;
-    }
-    
-    inRangeQ(xmin,xmax,ymin,ymax){
-        return xmin <= this.x && this.x <= xmax
-            && ymin <= this.y && this.y <= ymax;
-    }
-    
-}
-
-
-
-class Edge {
-    constructor(source, target){
-        this.source = source;
-        this.target = target;
-        this.page = infinity;
-        this.page_min = 0;
-        this.color = "#000";
-    }   
-    
-    drawOnPageQ(page){
-        return page <= this.page;
-    }
-}
-
-class Structline extends Edge {}
-
-class Extension extends Edge {
-    drawOnPageQ(page){
-        return page === infinity;
-    }
-}
-
-
-
-class Differential extends Edge {
-    constructor(source, target, page){
-        super(source, target);
-        this.page = page;
-        this.color = "#00F";
-        source.addOutgoingDifferential(this);
-        target.addIncomingDifferential(this);
-        this.source_name = this.source.toString();
-        this.target_name = this.target.toString();
-    }
-
-    drawOnPageQ(page){
-        return page === 0 || this.page === page;
-    }
-
-    setKernel(nodeStyle){
-        this.source.replace(nodeStyle);
-        return this;
-    }
-
-    setCokernel(nodeStyle){
-        this.target.replace(nodeStyle);
-        return this;
-    }
-
-    replaceSource(nodeStyle){
-        this.setKernel(nodeStyle);
-        return this;
-    }
-
-    replaceTarget(nodeStyle){
-        this.setCokernel(nodeStyle);
-        return this;
-    }
-        
-    setSourceName(){
-        this.source_name = name;
-        return this;
-    }
-    
-    setTargetName(){
-        this.target_name = name;
-        return this;
-    }
-
-//    hitMessage(){
-//        return "hit on page %d by class %r" % (this.page, this.source);
-//    }
-//
-//    supportedMessage(){
-//        return "supported a differential on page %d hitting class %r" % (this.page, this.target);
-//    }
-
-    addInfoToSourceAndTarget(){
-        this.source.addExtraInfo(this);
-        this.target.addExtraInfo(this);
-        return this;
-    }
-    
-    setSourceStructlinePages(){
-        this.source.setStructlinePages(this.page);
-        return this;
-    }
-
-    setTargetStructlinePages(){
-        this.target.setStructlinePages(this.page);
-        return this;
-    }
-    
-    setStructlinePages(){
-        this.source.setStructlinePages(this.page);
-        this.target.setStructlinePages(this.page);
-        return this;
-    }
-
-    toString(){
-        return `\\(d_{${this.page}}(${this.source_name}) = ${this.target_name}\\)`;
-    }
 }
 
 
@@ -650,5 +416,5 @@ monomial_basis.prototype[Symbol.iterator] = function*(){
 };
 
 exports.Sseq = Sseq;
-window.SseqNode = SseqNode;
+window.SseqNode = Node;
 

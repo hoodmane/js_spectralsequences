@@ -5,9 +5,32 @@ let Mousetrap = require("mousetrap");
 let Konva = require("konva");
 // prevent scrollbars
 document.documentElement.style.overflow = 'hidden';  // firefox, chrome
+// noinspection JSValidateTypes
 document.body.scroll = "no"; // ie only
 
 Konva.Factory.addGetterSetter(Konva.Shape, 'size');
+Konva.Shape.prototype.setNode = function(node){
+    // if(node.drawStyle = ){
+    //
+    // }
+    this.node = node;
+    this.setAttrs(node);
+    this.sceneFunc(node.shape.draw);
+    if(node.shape.hitRegion){
+        this.hitFunc(node.shape.hitRegion);
+    }
+    this.setFillEnabled(node.fill);
+    this.setStrokeEnabled(node.stroke);
+    if((node.fill !== true && node.fill) || node.color){
+        this.fill((node.fill !== true && node.fill) || node.color);
+    }
+    if((node.stroke !== true && node.stroke) || node.color){
+        this.stroke((node.stroke !== true && node.stroke) || node.color);
+    }
+
+}
+
+
 
 const boundingRectangle = document.getElementById("main").getBoundingClientRect();
 const canvasWidth = boundingRectangle.width;
@@ -32,6 +55,7 @@ class Display {
         this.page = 0;
 
         // Handle left / right mouse buttons to change page.
+        // noinspection JSUnusedLocalSymbols
         Mousetrap.bind('left', (e, n) => {
             if (this.page_idx > 0) {
                 this.page_idx--;
@@ -42,6 +66,7 @@ class Display {
             }
         });
 
+        // noinspection JSUnusedLocalSymbols
         Mousetrap.bind('right', (e, n) => {
             if (this.page_idx < this.sseq.page_list.length - 1) {
                 this.page_idx++;
@@ -86,10 +111,10 @@ class Display {
         this.gridLayer = new Konva.Layer();
         this.edgeLayer = new Konva.Layer();
         this.classLayer = new Konva.Layer();
-        // Used for blank white margin squares and axes labels.
+        // For axes labels.
         this.margin = new Konva.Layer();
         // This just contains a white square in the bottom right corner to prevent axes labels
-        // from showing up down there. Also useful for debugging because nothing on this layer gets covered up.
+        // from showing up down there. The zoom event handler is attached to the supermargin.
         this.supermargin = new Konva.Layer();
 
         stage.add(this.gridLayer);
@@ -156,7 +181,7 @@ class Display {
         this.draw = this.draw.bind(this);
 
 
-        this.zoom = d3.zoom().scaleExtent([0, 4])
+        this.zoom = d3.zoom().scaleExtent([0, 4]);
         this.zoom.on("zoom", () => this.drawAll());
         this.zoomDomElement.call(this.zoom).on("dblclick.zoom", null);
 
@@ -371,9 +396,6 @@ class Display {
         let classes = this.sseq.classes;
         for (let i = 0; i < classes.length; i++) {
             let c = classes[i];
-            //if(c.x > 54 || c.x < 0){
-            //            continue;
-            //        }
             c.canvas_shape = new Konva.Shape();
             c.canvas_shape.sseq_class = c;
             let self = this;
@@ -408,7 +430,7 @@ class Display {
         this.sseq.calculateDrawnElements(this.page, this.xmin, this.xmax, this.ymin, this.ymax);
 
 
-        let classes = this.sseq.getClasses();
+        let classes = this.sseq.getClassesToDisplay();
         this.classLayer.removeChildren();
 
         let default_size = 6;
@@ -427,10 +449,8 @@ class Display {
             if (!s) {
                 continue;
             }
-            let node = c.getNode(this.page);
             s.setPosition({x: this.xScale(c.x) + c.getXOffset(), y: this.yScale(c.y) + c.getYOffset()});
-            s.sceneFunc(node.sceneFunc);
-            s.setAttrs(c.getNode(this.page));
+            s.setNode(c.getNode(this.page));
             s.size(default_size * scale_size);
             this.classLayer.add(s);
         }
@@ -440,7 +460,7 @@ class Display {
         context = this.edgeLayerContext;
         context.clearRect(0, 0, this.width, this.height);
 
-        let edges = this.sseq.getEdges();
+        let edges = this.sseq.getEdgesToDisplay();
         for (let i = 0; i < edges.length; i++) {
             let e = edges[i];
             let source_shape = e.source.canvas_shape;
