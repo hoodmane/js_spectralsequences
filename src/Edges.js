@@ -1,4 +1,9 @@
 class Edge {
+    /**
+     * Add edge to source and target.
+     * @param {SseqClass} source
+     * @param {SseqClass} target
+     */
     constructor(source, target){
         this.source = source;
         this.target = target;
@@ -7,68 +12,133 @@ class Edge {
         this.color = "#000";
     }
 
-    drawOnPageQ(page){
-        return page <= this.page;
+    /**
+     * Determine whether the edge is drawn on the given page. Overridden in subclasses.
+     * @param page
+     * @returns {boolean}
+     * @package
+     */
+    _drawOnPageQ(page){
+        return page <= this.page && this.page_min <= page;
     }
 }
 exports.Edge = Edge;
 
 
-class Structline extends Edge {}
+/**
+ * The structline class is just a renamed version of Edge. So far no methods here...
+ */
+class Structline extends Edge {
+    constructor(source, target){
+        super(source, target);
+        source._addStructline(this);
+        target._addStructline(this);
+    }
+
+}
 exports.Structline = Structline;
 
+/**
+ * Only difference between a vanilla edge and an Extension is that Extensions are only drawn on the Einfty page.
+ */
 class Extension extends Edge {
-    drawOnPageQ(page){
+    _drawOnPageQ(page){
         return page === infinity;
     }
 }
 exports.Extension = Extension;
 
 
+/**
+ * Differentials are a bit more complicated.
+ */
 class Differential extends Edge {
     constructor(source, target, page){
         super(source, target);
         this.page = page;
         this.color = "#00F";
-        source.addOutgoingDifferential(this);
-        target.addIncomingDifferential(this);
+        source._addOutgoingDifferential(this);
+        target._addIncomingDifferential(this);
         this.source_name = this.source.toString();
         this.target_name = this.target.toString();
     }
 
-    drawOnPageQ(page){
+    /**
+     * Draw the differential on "page 0" or on the page corresponding to the differential.
+     * @param page
+     * @returns {boolean}
+     * @package
+     */
+    _drawOnPageQ(page){
         return page === 0 || this.page === page;
     }
 
-    setKernel(nodeStyle){
-        this.source.replace(nodeStyle);
+    /**
+     * By default, source of differential disappears after the page the differential occurs on. Instead, from now on
+     * display the source using `node`.
+     * @param {Node} node Specifies any changes in the display of source that occur after this page.
+     * @returns {Differential} Chainable
+     */
+    setKernel(node){
+        this.source.replace(node);
         return this;
     }
 
-    setCokernel(nodeStyle){
-        this.target.replace(nodeStyle);
+    /**
+     * Synonym for setKernel.
+     * @param {Node} node
+     * @returns {Differential} Chainable
+     */
+    replaceSource(node){
+        this.setKernel(node);
         return this;
     }
 
-    replaceSource(nodeStyle){
-        this.setKernel(nodeStyle);
+    /**
+     * By default, target of differential disappears after the page the differential occurs on. Instead, from now on
+     * display the target using `node`.
+     * @param {Node} node Specifies any changes in the display of target that occur after this page.
+     * @returns {Differential} Chainable
+     */
+    setCokernel(node){
+        this.target.replace(node);
         return this;
     }
 
-    replaceTarget(nodeStyle){
-        this.setCokernel(nodeStyle);
+    /**
+     * Synonym for setCokernel.
+     * @param {Node} node
+     * @returns {Differential} Chainable
+     */
+    replaceTarget(node){
+        this.setCokernel(node);
         return this;
     }
 
-    setSourceName(){
+
+    /**
+     * Sets the name of the target for use in determining the name of the differential. By default the target_name
+     * is the name of the target class, but particularly if there is a cokernel it should potentially be something else
+     * for instance, if the differential is multiplication by p, the target class might be named `x` but the target
+     * should be `px`.
+     * @param name
+     * @returns {Differential} chainable
+     */
+    setTargetName(name){
+        this.target_name = name;
+        return this;
+    }
+
+    /**
+     * I don't know if this is useful, just included for symmetry with setTargetName.
+     * @param name
+     * @returns {Differential} chainable
+     */
+    setSourceName(name){
         this.source_name = name;
         return this;
     }
 
-    setTargetName(){
-        this.target_name = name;
-        return this;
-    }
 
 //    hitMessage(){
 //        return "hit on page %d by class %r" % (this.page, this.source);
@@ -78,22 +148,43 @@ class Differential extends Edge {
 //        return "supported a differential on page %d hitting class %r" % (this.page, this.target);
 //    }
 
+
+    /**
+     * Adds the name of this differntial to the extra_info for the source and target class (so that it gets displayed
+     * in a tooltip). Maybe we should do this by default?
+     * @returns {Differential} chainable
+     */
     addInfoToSourceAndTarget(){
         this.source.addExtraInfo(this);
         this.target.addExtraInfo(this);
         return this;
     }
 
+    /**
+     * By default, if we use "replace" on the source class (or replaceSource, setKernel), any structlines will continue to be drawn.
+     * If that's inappropriate, call this to kill the structlines connecting to the source after this page.
+     * @returns {Differential} chainable
+     */
     setSourceStructlinePages(){
         this.source.setStructlinePages(this.page);
         return this;
     }
 
+
+    /**
+     * By default, if we use "replace" on the target class (or replaceTarget, setCokernel), any structlines will continue to be drawn.
+     * If that's inappropriate, call this to kill the structlines connecting to the target after this page.
+     * @returns {Differential} chainable
+     */
     setTargetStructlinePages(){
         this.target.setStructlinePages(this.page);
         return this;
     }
 
+    /**
+     * Does both setSourceStructlinePages and setTargetStructlinePages
+     * @returns {Differential} chainable
+     */
     setStructlinePages(){
         this.source.setStructlinePages(this.page);
         this.target.setStructlinePages(this.page);

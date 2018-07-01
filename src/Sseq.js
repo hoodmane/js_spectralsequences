@@ -11,17 +11,23 @@ let Differential = Edges.Differential;
 
 const StringifyingMap = require("./StringifyingMap.js");
 
+/**
+ * Map method get with default.
+ * @param key
+ * @param value
+ * @returns {*}
+ */
 Map.prototype.getOrElse = function(key, value) {
   return this.has(key) ? this.get(key) : value;
 };
 
-function merge(root){
-    for ( var i = 1; i < arguments.length; i++ )
-        for ( var key in arguments[i] )
-            root[key] = arguments[i][key];
-    return root;
-}
-
+/**
+ * Adds an entry to a map keys ==> lists.
+ * If the current key isn't present in the map, add an empty list first.
+ * @param dictionary The dictionary of lists to add the entry to
+ * @param key
+ * @param value
+ */
 function addToDictionaryOfLists(dictionary, key,value){
     if(!dictionary.has(key)){
         dictionary.set(key, []);
@@ -29,6 +35,12 @@ function addToDictionaryOfLists(dictionary, key,value){
     dictionary.get(key).push(value);
 }
 
+/**
+ * Make a string from a list of variable names and a list of exponents.
+ * @param {Array|string} vars The list of variable names
+ * @param {Array|int} exponents
+ * @returns {string} The name of the monomial
+ */
 function monomialString(vars, exponents){
     let out = [];
     for(let i = 0; i < vars.length; i++){
@@ -71,8 +83,8 @@ class Sseq {
         this.offset_size = 10;
         this.page_list = [0,infinity];
         this.default_node = new Node();
-        //this.default_node.stroke = "#000";
-        this.default_node.fill = "#000";
+        this.default_node.fill = true;
+        this.default_node.stroke = true;
         this.default_node.shape = Shapes.circle;
         this.default_node.size = 6;
         this.projection = function(ssclass){
@@ -129,11 +141,11 @@ class Sseq {
      * @param ymax
      * @package
      */
-    calculateDrawnElements(page, xmin, xmax, ymin, ymax){
-        this.display_classes = this.classes.filter(c => {c.in_range = c.inRangeQ(xmin, xmax, ymin, ymax); return c.in_range && c.drawOnPageQ(page);});
+    _calculateDrawnElements(page, xmin, xmax, ymin, ymax){
+        this.display_classes = this.classes.filter(c => {c.in_range = c._inRangeQ(xmin, xmax, ymin, ymax); return c.in_range && c._drawOnPageQ(page);});
         this.display_edges = this.edges.filter(e => 
-             e.drawOnPageQ(page)
-          && e.source.drawOnPageQ(page) && e.target.drawOnPageQ(page) 
+             e._drawOnPageQ(page)
+          && e.source._drawOnPageQ(page) && e.target._drawOnPageQ(page)
           && ( e.source.in_range || e.target.in_range )
         );
         
@@ -150,7 +162,7 @@ class Sseq {
 
 
     /**
-     * Gets recalculated by calculateDrawnElements.
+     * Gets recalculated by _calculateDrawnElements.
      * @returns {Array|SseqClass} The list of classes currently being displayed.
      */
     getClassesToDisplay(){
@@ -159,7 +171,7 @@ class Sseq {
 
 
     /**
-     * Gets recalculated by calculateDrawnElements.
+     * Gets recalculated by _calculateDrawnElements.
      * @returns {Array|Edge} The list of edges currently being displayed.
      */
     getEdgesToDisplay(){
@@ -185,8 +197,6 @@ class Sseq {
         let struct = new Structline(source,target);
         this.structlines.push(struct);
         this.edges.push(struct);
-        source.addStructline(struct);
-        target.addStructline(struct);
         return struct;
     }
 
@@ -220,7 +230,7 @@ class Sseq {
      */
    addExtension(source, target){
         if(!source || !target){
-            return;
+            return null;
         }
         let ext = new Extension(source, target);
         this.edges.push(ext);
@@ -257,7 +267,6 @@ class Sseq {
         let stem_list = [];
         let filtration_list = [];
         let range_list = [];
-        let class_dict = new monomial_basis(this);
         
         for(let i=0; i<var_spec_list.length; i++){
             let var_spec = var_spec_list[i];
@@ -267,6 +276,8 @@ class Sseq {
             filtration_list.push(var_degree_dict[var_name][1]);
             range_list.push(range(...var_spec.slice(1)));
         }
+
+        let class_dict = new monomial_basis(this, var_name_list);
             
         let l = product(...range_list);
         for(let i = 0; i < l.length; i++){
@@ -288,7 +299,7 @@ class Sseq {
                 }
             }
             let name = monomialString(var_name_list,monomial_exponents);
-            class_dict.add_class(monomial_exponents, name, this.addClass(stem,filtration).setName(name));
+            class_dict._add_class(monomial_exponents, name, this.addClass(stem,filtration).setName(name));
         }
         return class_dict; 
    }
@@ -296,7 +307,13 @@ class Sseq {
 }
 
 
-
+/**
+ * Make an array based on the given start, stop, step
+ * @param start
+ * @param stop
+ * @param step
+ * @returns {Array|int}
+ */
 function range(start, stop, step = 1){
     if(arguments.length === 1){
         start = 1;
@@ -319,6 +336,12 @@ function product() {
   }, [[]]);
 }
 
+/**
+ * Calculate the dot product of two vectors of the same length
+ * @param {Array|int} k
+ * @param {Array|int} l
+ * @returns {int} the dot product of k and l.
+ */
 function dot_product(k,l){
     let s = 0;
     for(let i=0; i<k.length; i++){
@@ -327,6 +350,12 @@ function dot_product(k,l){
     return s;
 }
 
+/**
+ * Add two vectors of the same length.
+ * @param {Array|int} k
+ * @param {Array|int} l
+ * @returns {Array|int} The sum k + l.
+ */
 function vectorSum(k,l){
     let out = [];
     for(let i=0; i<k.length; i++){
@@ -337,43 +366,107 @@ function vectorSum(k,l){
 
 
 class monomial_basis {
-    constructor(sseq){
+    /**
+     * Construct a monomial_basis.
+     * @param sseq Parent spectral sequence.
+     * @param variable_list The list of variable names in the order that they are referred to by vectors.
+     * @private
+     */
+    constructor(sseq, variable_list){
         this.sseq = sseq;
         this._tuples_to_classes = new StringifyingMap();
         this._strings_to_classes = new Map();
         this._tuples_to_strings = new StringifyingMap();
+        this._strings_to_tuples = new Map();
         this.length = 0;
+        this.variable_list = variable_list;
     }
-        
-    add_class(tuple, name, the_class){
+
+    /**
+     * Add a class to the basis.
+     * @param tuple The vector of powers of each variable in the monomial
+     * @param name The name of the class.
+     * @param the_class The class
+     * @package
+     */
+    _add_class(tuple, name, the_class){
         this.length++;
         this._tuples_to_classes.set(tuple, the_class);
         this._strings_to_classes.set(name, the_class);
         this._tuples_to_strings.set(tuple, name);
+        this._strings_to_tuples.set(name, tuple);
     }
-    
-    addStructline(){
-        let kwargs, vect;
-        if(typeof(arguments[-1]) === "object"){
-            kwargs = arguments[-1];
-            vect =  Array.prototype.slice.call(arguments,0, -1);
-        } else {
-            vect = Array.prototype.slice.call(arguments);
-            kwargs = {};
+
+    /**
+     * Convert an object of the form {..., variable_name : power, ...} to a vector.
+     * @param map
+     * @returns {*}
+     * @private
+     */
+    _monomial_map_to_vect(map){
+        // We just map over the variable_list as a list of property names. Check if property is present, else return zero.
+        return this.variable_list.map(v => {
+            if(map.hasOwnProperty(v)){
+                return map[v];
+            } else {
+                return 0;
+            }
+        });
+    }
+
+    /**
+     * If the argument is already an array, do nothing. If it's a map, apply _monomial_map_to_vect to it. If it's a
+     * string look it up in _strings_to_classes.
+     * @param vect
+     * @returns {Array|int} The offset vector
+     * @private
+     */
+    _ensure_vect(vect){
+        if(! Array.isArray(vect)){
+            if(typeof(vect) === "string"){
+                if(!this._strings_to_classes.has(vect)){
+                    throw "Invalid variable name";
+                } else {
+                    vect = this._strings_to_tuples.get(vect);
+                }
+            } else {
+                vect = this._monomial_map_to_vect(vect);
+            }
         }
+        return vect;
+    }
+
+    /*
+     * Add structlines to every monomial corresponding to the given offset vector.
+     * For instance, if there is a generator called
+     */
+    addStructline(offset_vector, callback){
+        offset_vector = this._ensure_vect(offset_vector);
         for(let k of this){
             let c1 = k[1];
-            let c2 = this.get(vectorSum(k[0],vect));
+            let c2 = this.get(vectorSum(k[0],offset_vector));
             if(c2 !== undefined){
                 let sline = this.sseq.addStructline(c1, c2);
-                if("callback" in kwargs){
-                    kwargs["callback"](sline);
+                if(callback){
+                    callback(sline);
                 }
             }
         }
-    }        
-                
+        return this;
+    }
+
+
+    /**
+     * Add differentials to monomials.
+     * @param page The page of the differential
+     * @param target_vect The differential is effectively of the form d(x) = r*x where r is specified by target_vect.
+     *        This can either be of the form `[first_var_power, ..., last_var_power]` or of the form `{ "var_name" : var_power }`
+     * @param cond A conditional used to determine whether to place a differential coming off of this particular source.
+     * @param callback A callback called on each resulting differential.
+     * @returns {monomial_basis} Chainable
+     */
     addDifferential(page, target_vect, cond, callback){
+        target_vect = this._ensure_vect(target_vect);
         for(let key_value of this){
             let k = key_value[0];   
             let c1 = key_value[1];  
@@ -391,18 +484,25 @@ class monomial_basis {
                 }
             }
         }
+        return this;
     }
-    
-    has(item){
-        return this._tuples_to_classes.has(item) || this._strings_to_classes.has(item);
+
+    // These are immutable map methods.
+
+    has(key){
+        if(this._strings_to_classes.has(key))
+            return true;
+        key = this._ensure_vect(key);
+        return this._tuples_to_classes.has(key);
     }
     
     get(key, default_value){
+        if(this._strings_to_classes.has(key)) {
+            return this._strings_to_classes.get(key);
+        }
+        key = this._ensure_vect(key);
         if(this._tuples_to_classes.has(key)){
             return this._tuples_to_classes.get(key);
-        }
-        if(this._strings_to_classes.has(key)){
-            return this._strings_to_classes.get(key);
         }
         return default_value;
     }

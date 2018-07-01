@@ -1,16 +1,35 @@
 /**
  * The Node class controls the display of SseqClass's.
+ * The behavior of a Node's fields is controlled by the method Konva.Shape.prototype.setNode defined in display.js.
+ * The fields are:
+ *    color -- the color to draw with. Default black.
+ *    fill -- either a boolean or a color. "true" means fill it, and use the color field to decide what color.
+ *            Specifying a color overrides the value of the color key.
+ *    stroke -- similar to fill except for the stroke.
+ *    shape -- an object with a key "draw" with value a drawing function. Optionally a second key "hitRegion" which
+ *             determines what region the shape lies over.
+ *    size  -- this key should determine the scaling of the node. It is the responsibility of the draw function to
+ *             consider the value of this key when drawing the shape.
  */
 class Node {
-    constructor(){
-        this.fill = true;
-        this.stroke = true;
-    }
-
     copy(){
         return Object.assign(new Node(), this);
     }
+
+    /**
+     * @param {...Node} nodes -- a list of nodes to merge. Merges them into a new object.
+     * @returns {Node} -- a new node formed by merging the list of nodes passed as arguments. Later arguments have
+     *    priority over earlier ones.
+     */
+    static merge(...nodes){
+        let root = new SseqNode();
+        for ( var i = 0; i < nodes.length; i++ )
+            for ( var key in nodes[i] )
+                root[key] = nodes[i][key];
+        return root;
+    }
 }
+
 
 
 
@@ -70,19 +89,19 @@ class SseqClass {
         this._last_page_idx = 0;
     }
 
-    getDegree(){
-        return [this.x, this.y];
-    }
-
-    addStructline(sl){
+    /**
+     * Add a structline to this class. Called by Structline constructor.
+     * @param sl The
+     * @package
+     */
+    _addStructline(sl){
         this.structlines.push(sl);
         this.edges.push(sl);
     }
 
-    getStructlines(){
-        return this.structlines;
-    }
-
+    /**
+     * @returns {int} The page this class dies on (or infinity if it lives forever).
+     */
     getPage(){
         return this.page_list[this.page_list.length - 1];
     }
@@ -97,7 +116,19 @@ class SseqClass {
         return this;
     }
 
-    getPageIndex(page){
+    /**
+     * This gets the index of a specified page in the page list. What this means is that if the page list is of the
+     * form [5, 9, infinity], this divides the pages into three intervals, [0,5], [6,9], and [10, infinity].
+     * If page is in the range from 0 to 5, the pageIndex is zero, if it is in the range 6 to 9, the index is 1,
+     * and in the range 10 to infinity, it is 2.
+     *
+     * If the page_list does not end in infinity and page is larger than the largest entry in page_list then this throws
+     * an error.
+     * @param {int} page
+     * @returns {int} the index
+     * @private
+     */
+    _getPageIndex(page){
         if( page === undefined ) {
             return this.page_list.length - 1;
         } else if( page === this._last_page ) {
@@ -111,58 +142,93 @@ class SseqClass {
             }
         }
         if(page_idx === undefined){
-            page_idx = this.page_list.length - 1;
+            throw "Page too large.";
         }
         this._last_page = page;
         this._last_page_idx = page_idx;
         return page_idx;
     }
 
+    /**
+     * Get the node that controls the display of the class on the given page.
+     * @param page
+     * @returns {Node} The node that controls the display of this class on page `page`.
+     */
     getNode(page){
-        const idx = this.getPageIndex(page);
+        const idx = this._getPageIndex(page);
         return this.node_list[idx];
     }
 
+    /**
+     * Sets the node that controls the display on the given page.
+     * Properties that are missing from the given node are left unchanged.
+     * @param {Node} node
+     * @param {int} page
+     * @returns {SseqClass} Chainable
+     */
     setNode(node, page){
-//        if(typeof(node) === "string"){
-//            node = node_dict[node];
-//        }
         if(node === undefined){
             node = {};
         }
-        const idx = this.getPageIndex(page);
-        this.node_list[idx] = Object.assign(this.sseq.default_node.copy(), node);
+        const idx = this._getPageIndex(page);
+        this.node_list[idx] = Node.merge(this.node_list[idx], node);
         return this;
     }
 
 
-    appendPage(page){
+    /**
+     * Appends a page to the list of pages and sets the corresponding node to be the previous node.
+     * @param {int} page The page to append. Really should always be infinity...
+     * @returns {SseqClass} Chainable
+     * @private
+     */
+    _appendPage(page){
         this.page_list.push(page);
-        this.node_list.push(this.sseq.default_node.copy());
+        this.node_list.push(this.node_list[this.node_list.length - 1].copy());
         return this;
     }
 
+    /**
+     * Replace a "dead" class.
+     * @param node Control the way the display of the "replaced" class changes. If the node is undefined, no change
+     *   in appearance will occur.
+     * @returns {SseqClass}
+     */
     replace(node){
-        this.appendPage(infinity);
-//        if(typeof(node) === "string"){
-//            node = node_dict[node];
-//        }
+        this._appendPage(infinity);
         this.setNode(node);
         return this;
     }
 
+    /**
+     * Adds a string to extra_info (in practice, this controls the tooltip for the class).
+     * @param str
+     * @returns {SseqClass} Chainable
+     */
     addExtraInfo(str){
-        this.extra_info += "<hr>" + str;
+        this.extra_info += "\n" + str;
+        return this;
     }
 
-
-    getXOffset(){
+    /**
+     * If multiple classes are in the same (x,y) location, we offset their position a bit to avoid clashes.
+     * Gets called by display code.
+     * @returns {number} The x offset
+     * @package
+     */
+    _getXOffset(){
         let total_classes = this.sseq.num_classes_by_degree.get(this.projection);
         let idx = this.idx;
         return (idx - (total_classes - 1)/2)*this.sseq.offset_size;
     }
 
-    getYOffset(){
+    /**
+     * If multiple classes are in the same (x,y) location, we offset their position a bit to avoid clashes.
+     * Gets called by display code.
+     * @returns {number} The y offset
+     * @package
+     */
+    _getYOffset(){
         let total_classes = this.sseq.num_classes_by_degree.get(this.projection);
         let idx = this.idx;
         return -(idx - (total_classes - 1)/2)*this.sseq.offset_size;
@@ -172,7 +238,12 @@ class SseqClass {
         return this.name;
     }
 
-    addOutgoingDifferential(differential){
+    /**
+     * Adds an outgoing differential. Called by the differential constructor.
+     * @param differential
+     * @package
+     */
+    _addOutgoingDifferential(differential){
         if(this.getPage() < differential.page){
             //this.handleDoubledDifferential("supporting another" + differential.supportedMessage());
         }
@@ -181,7 +252,12 @@ class SseqClass {
         this.edges.push(differential);
     }
 
-    addIncomingDifferential(differential){
+    /**
+     * Adds an incoming differential. Called by the differential constructor.
+     * @param differential
+     * @package
+     */
+    _addIncomingDifferential(differential){
         if(this.getPage() < differential.page){
             //this.handleDoubledDifferential("receiving another" + differential.hitMessage());
         }
@@ -190,6 +266,13 @@ class SseqClass {
         this.edges.push(differential);
     }
 
+
+    /**
+     * Set the page of every structline incident to this edge. Structlines are not displayed on pages later than their
+     * page.
+     * @param page
+     * @returns {SseqClass}
+     */
     setStructlinePages(page){
         for(let i = 0; i < this.structlines.length; i++){
             let sl = this.structlines[i];
@@ -200,11 +283,26 @@ class SseqClass {
         return this;
     }
 
-    drawOnPageQ(page){
+    /**
+     * Determines whether this class is drawn on the given page.
+     * @param page
+     * @returns {boolean}
+     * @package
+     */
+    _drawOnPageQ(page){
         return this.page_list[this.page_list.length -1] >= page && this.visible;
     }
 
-    inRangeQ(xmin,xmax,ymin,ymax){
+    /**
+     * Determines wither the class is in the given range.
+     * @param xmin
+     * @param xmax
+     * @param ymin
+     * @param ymax
+     * @returns {boolean}
+     * @package
+     */
+    _inRangeQ(xmin, xmax, ymin, ymax){
         return xmin <= this.x && this.x <= xmax
             && ymin <= this.y && this.y <= ymax;
     }

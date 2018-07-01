@@ -20,7 +20,6 @@ var StringifyingMap = (function () {
     StringifyingMap.prototype.set = function (k, v) {
         this.keys.set(this.catToString(k),k);
         let s = this.m.set(this.catToString(k), v);
-        //console.log(this.m.get(this.catToString(k)));
         return s;
     };
     StringifyingMap.prototype.get = function (k) {

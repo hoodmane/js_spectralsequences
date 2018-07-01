@@ -26,11 +26,9 @@ function dot_mod_16(v){
 Zq = new SseqNode();
 Zq.shape = Shapes.square;
 Zq.size = 8;
-Zq.fill = 'black';
 
 qZq = Zq.copy();
-qZq.fill = "white";
-qZq.stroke = 'black';
+qZq.fill = false;
 
 sseq.default_node = Zq;
 
@@ -53,8 +51,8 @@ for(let kv of classes){
     }
 }
 
-classes.addStructline(1,0,0,0);
-classes.addStructline(0,0,1,6);//, { callback: sl => sl.setColor('gray',0) } );
+classes.addStructline("h_1");
+classes.addStructline({"b" : 1, "v" : 6});//, { callback: sl => sl.setColor('gray',0) } );
 
 
 // d5(v) = h1 b^2 v^{9}

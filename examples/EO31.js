@@ -17,7 +17,6 @@ classes = sseq.addPolynomialClasses(
 
 
 Znode = new SseqNode();
-console.log(Znode.fill);
 Znode.shape = Shapes.square;
 Znode.size = 8;
 
@@ -26,13 +25,13 @@ pZnode.fill = false;
 
 
 for(let v = vmin + 1; v < vmax; v++){
-    if(classes.has([0,0,v])){
-        classes.get([0,0,v]).setNode(Znode);
+    if(classes.has({"v" : v})){
+        classes.get({"v" : v}).setNode(Znode);
     }
 }
 
-classes.addStructline(1,0,0);
-classes.addStructline(0,1,0);
+classes.addStructline("a");
+classes.addStructline("b");
 
 classes.addDifferential(5, [1, 2,-1], k => k[2] % 3 !== 0 && k[0] === 0, (d, _) => d.addInfoToSourceAndTarget().setStructlinePages());
 classes.addDifferential(9, [-1,5,-2], k => (k[2] % 3 + 3)%3 === 2 && k[0] === 1, (d, _) => d.addInfoToSourceAndTarget());
@@ -45,8 +44,8 @@ for(let b = 0; b <= 1; b++){
 
 for(let v = vmin; v < vmax; v++){
     if(v % 3 !== 0){
-        if(classes.has([0,0,v])){
-            classes.get([0,0,v]).replace(pZnode);
+        if(classes.has({"v" : v})){
+            classes.get({"v" : v}).replace(pZnode);
         }
     }
 }

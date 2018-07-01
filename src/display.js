@@ -10,9 +10,6 @@ document.body.scroll = "no"; // ie only
 
 Konva.Factory.addGetterSetter(Konva.Shape, 'size');
 Konva.Shape.prototype.setNode = function(node){
-    // if(node.drawStyle = ){
-    //
-    // }
     this.node = node;
     this.setAttrs(node);
     this.sceneFunc(node.shape.draw);
@@ -296,8 +293,8 @@ class Display {
         this.xTicks = this.xScale.ticks(15);
         this.yTicks = this.yScale.ticks();
 
-        this.xTickStep = this.xTicks[1] - this.xTicks[0];
-        this.yTickStep = this.yTicks[1] - this.yTicks[0];
+        this.xTickStep = Math.ceil(this.xTicks[1] - this.xTicks[0]);
+        this.yTickStep = Math.ceil(this.yTicks[1] - this.yTicks[0]);
 
         this.xGridStep = (Math.floor(this.xTickStep / 5) === 0) ? 1 : Math.floor(this.xTickStep / 5);
         this.yGridStep = (Math.floor(this.yTickStep / 5) === 0) ? 1 : Math.floor(this.yTickStep / 5);
@@ -349,12 +346,12 @@ class Display {
         let context = this.marginLayerContext;
         context.clearRect(0, 0, this.width, this.height);
         context.textAlign = "center";
-        for (let i of this.xTicks) {
+        for (let i = Math.floor(this.xTicks[0]); i <= this.xTicks[this.xTicks.length - 1]; i += this.xTickStep) {
             context.fillText(i, this.xScale(i), this.clipHeight + 20);
         }
 
         context.textAlign = "right";
-        for (let i of this.yTicks) {
+        for (let i = Math.floor(this.yTicks[0]); i <= this.yTicks[this.yTicks.length - 1]; i += this.yTickStep) {
             context.fillText(i, this.xMarginSize - 10, this.yScale(i));
         }
     }
@@ -427,13 +424,12 @@ class Display {
         let context = this.classLayerContext;
         context.clearRect(0, 0, this.width, this.height);
         context.save();
-        this.sseq.calculateDrawnElements(this.page, this.xmin, this.xmax, this.ymin, this.ymax);
+        this.sseq._calculateDrawnElements(this.page, this.xmin, this.xmax, this.ymin, this.ymax);
 
 
         let classes = this.sseq.getClassesToDisplay();
         this.classLayer.removeChildren();
 
-        let default_size = 6;
         let scale_size;
         if (this.scale < 1 / 2) {
             scale_size = 1 / 2;
@@ -449,9 +445,9 @@ class Display {
             if (!s) {
                 continue;
             }
-            s.setPosition({x: this.xScale(c.x) + c.getXOffset(), y: this.yScale(c.y) + c.getYOffset()});
+            s.setPosition({x: this.xScale(c.x) + c._getXOffset(), y: this.yScale(c.y) + c._getYOffset()});
             s.setNode(c.getNode(this.page));
-            s.size(default_size * scale_size);
+            s.size(s.size() * scale_size);
             this.classLayer.add(s);
         }
 
@@ -490,12 +486,13 @@ class Display {
             disp.tooltip_div_dummy.html(c.tooltip_html);
             disp.setupTooltipDiv(shape);
         } else {
+            let extra_info_html = c.extra_info.replace("\n", "\n<hr>\n");
             if (MathJax && MathJax.Hub) {
-                disp.tooltip_div_dummy.html(`\\(${c.name}\\) -- (${c.x}, ${c.y})` + c.extra_info);
+                disp.tooltip_div_dummy.html(`\\(${c.name}\\) -- (${c.x}, ${c.y})` + extra_info_html);
                 MathJax.Hub.Queue(["Typeset", MathJax.Hub, "tooltip_div_dummy"]);
                 MathJax.Hub.Queue(() => disp.setupTooltipDiv(shape));
             } else {
-                disp.tooltip_div_dummy.html(`\\(${c.name}\\) -- (${c.x}, ${c.y})` + c.extra_info);
+                disp.tooltip_div_dummy.html(`\\(${c.name}\\) -- (${c.x}, ${c.y})` + extra_info_html);
                 disp.setupTooltipDiv(this);
             }
         }
