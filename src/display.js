@@ -60,6 +60,10 @@ class Display {
                 //pageNumText.text(page);
                 //window.page = page;
                 this.drawAll();
+                if (this.stage.getPointerPosition() && this.stage.getIntersection(this.stage.getPointerPosition())) {
+                    this.handleMouseover(this.stage.getIntersection(this.stage.getPointerPosition()));
+                }
+
             }
         });
 
@@ -396,7 +400,7 @@ class Display {
             c.canvas_shape = new Konva.Shape();
             c.canvas_shape.sseq_class = c;
             let self = this;
-            c.canvas_shape.on('mouseover', this.handleMouseover);
+            c.canvas_shape.on('mouseover', (event) => this.handleMouseover(event.currentTarget));
             c.canvas_shape.on('mouseout', function() { self.handleMouseout(this) });
             this.classLayer.add(c.canvas_shape);
         }
@@ -478,8 +482,7 @@ class Display {
     }
 
 
-    handleMouseover(event) {
-        let shape = event.currentTarget;
+    handleMouseover(shape) {
         let c = shape.sseq_class;
         let disp = c.sseq.disp;
         if (c.tooltip_html) {

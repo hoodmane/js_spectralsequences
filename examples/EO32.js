@@ -28,7 +28,8 @@ Zq.shape = Shapes.square;
 Zq.size = 8;
 
 qZq = Zq.copy();
-qZq.fill = false;
+qZq.fill = "white";
+qZq.stroke = "black";
 
 sseq.default_node = Zq;
 
