@@ -1,5 +1,6 @@
 "use strict";
 
+
 let d3 = require("d3");
 let Mousetrap = require("mousetrap");
 let Konva = require("konva");
@@ -9,29 +10,25 @@ document.documentElement.style.overflow = 'hidden';  // firefox, chrome
 document.body.scroll = "no"; // ie only
 
 Konva.Factory.addGetterSetter(Konva.Shape, 'size');
-Konva.Shape.prototype.setNode = function(node){
+Konva.Shape.prototype.setNode = function (node) {
     this.node = node;
     this.setAttrs(node);
     this.sceneFunc(node.shape.draw);
-    if(node.shape.hitRegion){
+    if (node.shape.hitRegion) {
         this.hitFunc(node.shape.hitRegion);
     }
     this.setFillEnabled(node.fill);
     this.setStrokeEnabled(node.stroke);
-    if((node.fill !== true && node.fill) || node.color){
+    if ((node.fill !== true && node.fill) || node.color) {
         this.fill((node.fill !== true && node.fill) || node.color);
     }
-    if((node.stroke !== true && node.stroke) || node.color){
+    if ((node.stroke !== true && node.stroke) || node.color) {
         this.stroke((node.stroke !== true && node.stroke) || node.color);
     }
 
 }
 
 
-
-const boundingRectangle = document.getElementById("main").getBoundingClientRect();
-const canvasWidth = boundingRectangle.width;
-const canvasHeight = boundingRectangle.height;
 
 class Display {
     constructor(ss) {
@@ -42,6 +39,9 @@ class Display {
         this.gridStrokeWidth = 0.5;
         this.boxSize = 50;
         this.ZOOM_BASE = 1.1;
+        const boundingRectangle = document.getElementById("main").getBoundingClientRect();
+        const canvasWidth = boundingRectangle.width;
+        const canvasHeight = boundingRectangle.height;
 
         this.old_scales_maxed = false;
 
@@ -344,8 +344,6 @@ class Display {
     }
 
 
-
-
     drawTicks() {
         let context = this.marginLayerContext;
         context.clearRect(0, 0, this.width, this.height);
@@ -401,7 +399,9 @@ class Display {
             c.canvas_shape.sseq_class = c;
             let self = this;
             c.canvas_shape.on('mouseover', (event) => this.handleMouseover(event.currentTarget));
-            c.canvas_shape.on('mouseout', function() { self.handleMouseout(this) });
+            c.canvas_shape.on('mouseout', function () {
+                self.handleMouseout(this)
+            });
             this.classLayer.add(c.canvas_shape);
         }
     }

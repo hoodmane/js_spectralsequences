@@ -1,3 +1,6 @@
+// Name: EO(3,2)
+// Description: The homotopy fixed point spectral sequence for $E_4^{hC_3 \rtimes C_{16}}$.
+
 let sseq = new Sseq();
 
 sseq.xRange = [0, 1000];
