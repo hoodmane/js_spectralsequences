@@ -1,3 +1,6 @@
+// Name: HFPSS $KO$
+// Description: The homotopy fixed point spectral sequence for $KO$.
+
 let sseq = new Sseq();
 
 sseq.xRange = [0, 40];

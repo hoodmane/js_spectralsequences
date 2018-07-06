@@ -1,9 +1,9 @@
-// Name: EO(3,2)
+// Name: HFPSS $EO(3,2)$
 // Description: The homotopy fixed point spectral sequence for $E_4^{hC_3 \rtimes C_{16}}$.
 
 let sseq = new Sseq();
 
-sseq.xRange = [0, 1000];
+sseq.xRange = [-54, 1000];
 sseq.yRange = [0, 30];
 sseq.max_differential_length = 33;
 
