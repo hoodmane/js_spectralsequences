@@ -8,7 +8,7 @@ if(jsFile){
     if(jsFile !== "examples/EO32.js"){
         jsFile = "examples/" + jsFile + ".js";
     }
-    jsFile = "js_interactive_sseq/" + jsFile;
+    //jsFile = "js_interactive_sseq/" + jsFile;
     let script = document.createElement('script');
     // script.onload = function () {
     //     //do stuff with the script

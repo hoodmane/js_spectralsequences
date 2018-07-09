@@ -1,8 +1,8 @@
 "use strict";
 
 function stdCatToString(x){
-    if(x.catToString !== undefined){
-        return x.catToString();
+    if(x.getStringifyingMapKey !== undefined){
+        return x.getStringifyingMapKey();
     } else {
         return x.toString();
     }

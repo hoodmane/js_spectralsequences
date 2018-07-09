@@ -500,7 +500,7 @@ class Display {
             }
         }
     }
-    
+
     setupTooltipDiv(shape) {
         let rect = this.tooltip_div.node().getBoundingClientRect();
         let tooltip_width = rect.width;

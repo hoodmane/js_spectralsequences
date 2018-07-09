@@ -16,6 +16,11 @@ class Node {
         return Object.assign(new Node(), this);
     }
 
+    setShape(shape){
+        this.shape = shape;
+        return this;
+    }
+
     /**
      * @param {...Node} nodes -- a list of nodes to merge. Merges them into a new object.
      * @returns {Node} -- a new node formed by merging the list of nodes passed as arguments. Later arguments have
