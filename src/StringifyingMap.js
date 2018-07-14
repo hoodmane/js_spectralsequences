@@ -30,6 +30,9 @@ var StringifyingMap = (function () {
         return this.m.delete(this.catToString(k));
     };
     StringifyingMap.prototype.has = function (k) {
+        if(k === undefined){
+            return false;
+        }
         return this.m.has(this.catToString(k));
     };    
 

@@ -21,6 +21,11 @@ class Node {
         return this;
     }
 
+    setColor(color){
+        this.color = color;
+        return this;
+    }
+
     /**
      * @param {...Node} nodes -- a list of nodes to merge. Merges them into a new object.
      * @returns {Node} -- a new node formed by merging the list of nodes passed as arguments. Later arguments have
@@ -77,6 +82,8 @@ class SseqClass {
         this.projection = sseq.projection(this);
         this.x = this.projection[0];
         this.y = this.projection[1];
+        this.x_offset = false;
+        this.y_offset = false;
 
         this.edges = [];
         this.structlines = [];
@@ -222,6 +229,9 @@ class SseqClass {
      * @package
      */
     _getXOffset(){
+        if(this.x_offset !== false){
+            return this.x_offset;
+        }
         let total_classes = this.sseq.num_classes_by_degree.get(this.projection);
         let idx = this.idx;
         return (idx - (total_classes - 1)/2)*this.sseq.offset_size;
@@ -234,6 +244,9 @@ class SseqClass {
      * @package
      */
     _getYOffset(){
+        if(this.x_offset !== false){
+            return this.y_offset;
+        }
         let total_classes = this.sseq.num_classes_by_degree.get(this.projection);
         let idx = this.idx;
         return -(idx - (total_classes - 1)/2)*this.sseq.offset_size;

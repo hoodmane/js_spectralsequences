@@ -10,8 +10,12 @@ let Extension = Edges.Extension;
 let Differential = Edges.Differential;
 let monomial_basisjs = require("./monomial_basis.js");
 let monomial_basis = monomial_basisjs.monomial_basis;
-let range = monomial_basisjs.range;
-let monomialString = monomial_basisjs.monomialString;
+
+exports.monomialString = monomial_basisjs.monomialString;
+exports.range = monomial_basisjs.range;
+exports.StringifyingMap = monomial_basisjs.StringifyingMap;
+
+
 
 let StringifyingMap = require("./StringifyingMap.js");
 
@@ -77,6 +81,7 @@ class Sseq {
         this.xshift = 0;
         this.yshift = 0;        
         this.offset_size = 10;
+        this.min_page_idx = 0;
         this.page_list = [0,infinity];
         this.default_node = new Node();
         this.default_node.fill = true;
@@ -98,7 +103,33 @@ class Sseq {
         this.xshift += x;
         this.yshift += y;
         return this;
+   }
+
+    onClassAdded(f){
+        this.on_class_added = f;
+        return this;
     }
+
+    onEdgeAdded(f){
+        this.on_edge_added = f;
+        return this;
+    }
+
+    onDifferentialAdded(f){
+        this.on_differential_added = f;
+        return this;
+    }
+
+    onStructlineAdded(f){
+        this.on_structline_added = f;
+        return this;
+    }
+
+    onExtensionAdded(f){
+        this.on_extension_added = f;
+        return this;
+    }
+
 
     /**
      * Add a class in position (x,y) and return the class. Uses sseq.default_node for display.
@@ -124,9 +155,12 @@ class Sseq {
         addToDictionaryOfLists(this.classes_by_degree, degree, c);
         addToDictionaryOfLists(this.classes_by_stem, c.x , c);
         this.total_classes ++;
+
+        if(this.on_class_added){
+            this.on_class_added(c);
+        }
         return c;
     }
-
 
     /**
      * This is an internal method used by display to calculate the set of features to be displayed on the current page.
@@ -138,9 +172,16 @@ class Sseq {
      * @package
      */
     _calculateDrawnElements(page, xmin, xmax, ymin, ymax){
+        let pageRange;
+        if(Array.isArray(page)){
+            pageRange = page;
+            page = page[0];
+        } else {
+            pageRange = [page,page];
+        }
         this.display_classes = this.classes.filter(c => {c.in_range = c._inRangeQ(xmin, xmax, ymin, ymax); return c.in_range && c._drawOnPageQ(page);});
         this.display_edges = this.edges.filter(e => 
-             e._drawOnPageQ(page)
+             e._drawOnPageQ(pageRange)
           && e.source._drawOnPageQ(page) && e.target._drawOnPageQ(page)
           && ( e.source.in_range || e.target.in_range )
         );
@@ -193,6 +234,12 @@ class Sseq {
         let struct = new Structline(source,target);
         this.structlines.push(struct);
         this.edges.push(struct);
+        if(this.on_edge_added){
+            this.on_edge_added(struct);
+        }
+        if(this.on_structline_added){
+            this.on_structline_added(struct);
+        }
         return struct;
     }
 
@@ -215,6 +262,12 @@ class Sseq {
         this.differentials.push(differential);
         this.edges.push(differential);
         this.addPageToPageList(page);
+        if(this.on_edge_added){
+            this.on_edge_added(differential);
+        }
+        if(this.on_differential_added){
+            this.on_differential_added(differential);
+        }
         return differential;
     }
 
@@ -230,6 +283,12 @@ class Sseq {
         }
         let ext = new Extension(source, target);
         this.edges.push(ext);
+        if(this.on_edge_added){
+            this.on_edge_added(ext);
+        }
+        if(this.on_extension_added){
+            this.on_extension_added(ext);
+        }
         return ext;
     }
 
@@ -241,14 +300,47 @@ class Sseq {
      */
    addPageToPageList(page){
         for(let i = 0; i < this.page_list.length; i++){
-            if(this.page_list[i] > page){
+            let compare_page;
+            if(Array.isArray(this.page_list[i])){
+                compare_page = this.page_list[i][0];
+            } else {
+                compare_page = this.page_list[i];
+            }
+            if(compare_page > page){
                 this.page_list.splice(i, 0, page);
             }
-            if(this.page_list[i] >= page){
+            if(compare_page >= page && !Array.isArray(this.page_list[i])){
                 return this;
             }
         }
    }
+
+    addPageRangeToPageList(pageRange){
+        let page = pageRange[0];
+        for(let i = 0; i < this.page_list.length; i++){
+            let compare_page;
+            if(Array.isArray(this.page_list[i])){
+                compare_page = this.page_list[i][0];
+            } else {
+                compare_page = this.page_list[i];
+            }
+            if(compare_page > page){
+                this.page_list.splice(i, 0, pageRange);
+                return this;
+            } else if(compare_page == page){
+                if(!Array.isArray(this.page_list[i])){
+                    this.page_list.splice(i, 0, pageRange);
+                } else {
+                    if(this.page_list[i][1] > pageRange[1]){
+                        this.page_list.splice(i, 0, pageRange);
+                        return this;
+                    } else if(this.page_list[i][1] == pageRange[1]){
+                        return this;
+                    }
+                }
+            }
+        }
+    }
 
 
    static _validateVarSpec(var_spec, var_degree_dict, index){

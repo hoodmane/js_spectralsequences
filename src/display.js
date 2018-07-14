@@ -32,8 +32,6 @@ Konva.Shape.prototype.setNode = function (node) {
 
 class Display {
     constructor(ss) {
-        this.sseq = ss;
-        ss.disp = this;
         // Global constants for grid and setup
         this.gridColor = "#555";
         this.gridStrokeWidth = 0.5;
@@ -46,41 +44,6 @@ class Display {
         this.old_scales_maxed = false;
 
         this.domainOffset = 1 / 2;
-
-        // The sseq object contains the list of valid pages. Always includes at least 0 and infinity.
-        this.page_idx = 0;
-        this.page = 0;
-
-        // Handle left / right mouse buttons to change page.
-        // noinspection JSUnusedLocalSymbols
-        Mousetrap.bind('left', (e, n) => {
-            if (this.page_idx > 0) {
-                this.page_idx--;
-                this.page = this.sseq.page_list[this.page_idx];
-                //pageNumText.text(page);
-                //window.page = page;
-                this.drawAll();
-                if (this.stage.getPointerPosition() && this.stage.getIntersection(this.stage.getPointerPosition())) {
-                    this.handleMouseover(this.stage.getIntersection(this.stage.getPointerPosition()));
-                }
-
-            }
-        });
-
-        // noinspection JSUnusedLocalSymbols
-        Mousetrap.bind('right', (e, n) => {
-            if (this.page_idx < this.sseq.page_list.length - 1) {
-                this.page_idx++;
-                this.page = this.sseq.page_list[this.page_idx];
-                if (this.page_idx === this.sseq.page_list.length - 1) {
-                    //pageNumText.text("∞");
-                } else {
-                    //pageNumText.text(page);
-                }
-                //window.page = page;
-                this.drawAll();
-            }
-        });
 
         // Drawing elements
         this.body = d3.select("body");
@@ -168,11 +131,7 @@ class Display {
 
         //window.context = this.classLayerContext;
 
-        this.xScaleInit = d3.scaleLinear().range([this.xMarginSize, this.width]);
-        this.yScaleInit = d3.scaleLinear().range([this.height - this.yMarginSize, 0]);
-
-        this.xScaleInit.domain([this.sseq.initialxRange[0] - this.domainOffset, this.sseq.initialxRange[1] + this.domainOffset]);
-        this.yScaleInit.domain([this.sseq.initialyRange[0] - this.domainOffset, this.sseq.initialyRange[1] + this.domainOffset]);
+        this.setSseq(ss);
 
         this.zoomDomElement = d3.select("#supermarginLayer");
 
@@ -190,6 +149,62 @@ class Display {
         //window.sseq = sseq;
         this.addClasses();
         this.drawAll();
+    }
+
+    setSseq(ss){
+        this.sseq = ss;
+        if(ss.disp !== this){
+            ss.disp = this;
+        }
+
+        // The sseq object contains the list of valid pages. Always includes at least 0 and infinity.
+        this.page_idx = this.sseq.min_page_idx;
+        this.setPage();
+
+        // Handle left / right mouse buttons to change page.
+        // noinspection JSUnusedLocalSymbols
+        Mousetrap.bind('left', (e, n) => {
+            if (this.page_idx > this.sseq.min_page_idx) {
+                this.page_idx --;
+                this.setPage();
+                this.drawAll();
+                if (this.stage.getPointerPosition() && this.stage.getIntersection(this.stage.getPointerPosition())) {
+                    this.handleMouseover(this.stage.getIntersection(this.stage.getPointerPosition()));
+                }
+
+            }
+        });
+
+        // noinspection JSUnusedLocalSymbols
+        Mousetrap.bind('right', (e, n) => {
+            if (this.page_idx < this.sseq.page_list.length - 1) {
+                this.page_idx++;
+                this.setPage();
+                this.drawAll();
+            }
+        });
+
+        this.xScaleInit = d3.scaleLinear().range([this.xMarginSize, this.width]);
+        this.yScaleInit = d3.scaleLinear().range([this.height - this.yMarginSize, 0]);
+
+        this.xScaleInit.domain([this.sseq.initialxRange[0] - this.domainOffset, this.sseq.initialxRange[1] + this.domainOffset]);
+        this.yScaleInit.domain([this.sseq.initialyRange[0] - this.domainOffset, this.sseq.initialyRange[1] + this.domainOffset]);
+
+        this.addClasses();
+    }
+
+    setPage(){
+        this.pageRange = this.sseq.page_list[this.page_idx];
+        if(Array.isArray(this.pageRange)){
+            this.page = this.pageRange[0];
+        } else {
+            this.page = this.pageRange;
+        }
+        if (this.page_idx === this.sseq.page_list.length - 1) {
+            //pageNumText.text("∞");
+        } else {
+            //pageNumText.text(page);
+        }
     }
 
     drawAll() {
@@ -393,6 +408,7 @@ class Display {
 
     addClasses() {
         let classes = this.sseq.classes;
+        this.classLayer.removeChildren();
         for (let i = 0; i < classes.length; i++) {
             let c = classes[i];
             c.canvas_shape = new Konva.Shape();
@@ -428,7 +444,7 @@ class Display {
         let context = this.classLayerContext;
         context.clearRect(0, 0, this.width, this.height);
         context.save();
-        this.sseq._calculateDrawnElements(this.page, this.xmin, this.xmax, this.ymin, this.ymax);
+        this.sseq._calculateDrawnElements(this.pageRange, this.xmin, this.xmax, this.ymin, this.ymax);
 
 
         let classes = this.sseq.getClassesToDisplay();
@@ -489,13 +505,13 @@ class Display {
             disp.tooltip_div_dummy.html(c.tooltip_html);
             disp.setupTooltipDiv(shape);
         } else {
-            let extra_info_html = c.extra_info.replace("\n", "\n<hr>\n");
+            let extra_info_html = c.extra_info.replace(/\n/g, "\n<hr>\n");
             if (MathJax && MathJax.Hub) {
-                disp.tooltip_div_dummy.html(`\\(${c.name}\\) -- (${c.x}, ${c.y})` + extra_info_html);
+                disp.tooltip_div_dummy.html(`\\(${c.name}\\) &mdash; (${c.x}, ${c.y})` + extra_info_html);
                 MathJax.Hub.Queue(["Typeset", MathJax.Hub, "tooltip_div_dummy"]);
                 MathJax.Hub.Queue(() => disp.setupTooltipDiv(shape));
             } else {
-                disp.tooltip_div_dummy.html(`\\(${c.name}\\) -- (${c.x}, ${c.y})` + extra_info_html);
+                disp.tooltip_div_dummy.html(`\\(${c.name}\\) &mdash; (${c.x}, ${c.y})` + extra_info_html);
                 disp.setupTooltipDiv(this);
             }
         }

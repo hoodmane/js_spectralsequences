@@ -18,8 +18,8 @@ class Edge {
      * @returns {boolean}
      * @package
      */
-    _drawOnPageQ(page){
-        return page <= this.page && this.page_min <= page;
+    _drawOnPageQ(pageRange){
+        return pageRange[0] <= this.page && this.page_min <= pageRange[0];
     }
 }
 exports.Edge = Edge;
@@ -42,8 +42,8 @@ exports.Structline = Structline;
  * Only difference between a vanilla edge and an Extension is that Extensions are only drawn on the Einfty page.
  */
 class Extension extends Edge {
-    _drawOnPageQ(page){
-        return page === infinity;
+    _drawOnPageQ(pageRange){
+        return pageRange[1] === infinity;
     }
 }
 exports.Extension = Extension;
@@ -69,8 +69,8 @@ class Differential extends Edge {
      * @returns {boolean}
      * @package
      */
-    _drawOnPageQ(page){
-        return page === 0 || this.page === page;
+    _drawOnPageQ(pageRange){
+        return pageRange[0] === 0 || (pageRange[0] <= this.page && this.page <= pageRange[1]);
     }
 
     /**
