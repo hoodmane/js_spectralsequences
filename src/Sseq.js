@@ -10,6 +10,8 @@ let Extension = Edges.Extension;
 let Differential = Edges.Differential;
 let monomial_basisjs = require("./monomial_basis.js");
 let monomial_basis = monomial_basisjs.monomial_basis;
+let range = monomial_basisjs.range;
+let monomialString = monomial_basisjs.monomialString;
 
 let StringifyingMap = require("./StringifyingMap.js");
 

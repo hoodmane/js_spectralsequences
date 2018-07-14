@@ -12,8 +12,9 @@ window.mod = function(n,d){
 
 window.Shapes = require("./Shape.js");
 window.Display = require("./display.js").Display;
-
-
 window.Sseq = require("./Sseq.js").Sseq;
+window.range = d3.range;
+window.monomialString = Sseq.monomialString;
+
 window.d3 = require("d3");
 //require("../examples/KO.js");

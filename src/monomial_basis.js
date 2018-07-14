@@ -16,6 +16,7 @@ function range(start, stop, step = 1){
     }
     return Array(Math.ceil((stop - start + step)/step)).fill(start).map((x, y) => x + y * step);
 }
+exports.range = range;
 
 function product() {
     const args = Array.prototype.slice.call(arguments); // makes array from arguments
@@ -70,6 +71,7 @@ function monomialString(vars, exponents, module_generator = ""){
     }
     return outStr;
 }
+exports.monomialString = monomialString;
 
 
 
@@ -230,7 +232,11 @@ class monomial_basis {
             filtration_list.push(var_degree_dict[var_name][1]);
             range_list.push(range(...var_spec.slice(1)));
         }
-        console.log(range_list);
+
+        this._stem_list = stem_list;
+        this._filtration_list = filtration_list;
+        this._range_list = range_list;
+
 
         this._ring = new monomial_ring(var_name_list, var_degree_dict, module_generators_dict);
 
@@ -267,7 +273,7 @@ class monomial_basis {
      * @param tuple The vector of powers of each variable in the monomial
      * @param name The name of the class.
      * @param the_class The class
-     * @package
+     * @private
      */
     _add_class(elt, the_class){
         this.length++;
