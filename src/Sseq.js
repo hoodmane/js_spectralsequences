@@ -1,4 +1,5 @@
 "use strict";
+
 let Shapes = require("./Shape.js");
 let SseqClassjs = require("./SseqClass.js");
 let SseqClass = SseqClassjs.SseqClass;

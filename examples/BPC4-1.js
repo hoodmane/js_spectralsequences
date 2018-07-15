@@ -116,7 +116,7 @@ let sseq = new Sseq();
 sseq.addPageRangeToPageList([5,15]);
 sseq.min_page_idx = 1;
 let s1max = 10;
-let d1max = 20;
+let d1max = 50;
 
 sseq.xRange = [0, 100];
 sseq.yRange = [0, 40];
@@ -273,6 +273,9 @@ for(let d1_a = 5; d1_a < d1max; d1_a += 4){
     for(let d1_translate = 0; d1_translate + d1_a < d1max; d1_translate += 4){
         for(let eps = 0; eps <= 1; eps ++ ) {
             let translate_parity = (d1_translate % 8) / 4;
+            if(translate_parity == 1 && eps == 1){
+                continue;
+            }
             let stem = 7 + 2 * d1_a + 4 * d1_translate - 3 * translate_parity + eps;
             let d1 = d1_a + d1_translate - translate_parity  + eps;
             if (d1 >= d1max) {

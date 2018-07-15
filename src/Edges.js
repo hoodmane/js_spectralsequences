@@ -1,3 +1,5 @@
+"use strict";
+
 class Edge {
     /**
      * Add edge to source and target.

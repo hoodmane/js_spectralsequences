@@ -1,3 +1,5 @@
+"use strict";
+
 let StringifyingMap = require("./StringifyingMap.js");
 exports.StringifyingMap = StringifyingMap;
 

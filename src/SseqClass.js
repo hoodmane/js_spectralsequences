@@ -1,3 +1,5 @@
+"use strict";
+
 /**
  * The Node class controls the display of SseqClass's.
  * The behavior of a Node's fields is controlled by the method Konva.Shape.prototype.setNode defined in display.js.

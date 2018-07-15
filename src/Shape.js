@@ -1,3 +1,5 @@
+"use strict";
+
 exports.circle = {
     draw : function(context) {
         context.beginPath();
