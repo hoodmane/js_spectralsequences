@@ -14,6 +14,10 @@ class Edge {
         this.color = "#000";
     }
 
+    setMinPage(min_page){
+        this.page_min = min_page;
+    }
+
     /**
      * Determine whether the edge is drawn on the given page. Overridden in subclasses.
      * @param page
@@ -61,8 +65,17 @@ class Differential extends Edge {
         this.color = "#00F";
         source._addOutgoingDifferential(this);
         target._addIncomingDifferential(this);
-        this.source_name = this.source.toString();
-        this.target_name = this.target.toString();
+        this.source_name = this.source.last_page_name;
+        this.target_name = this.target.last_page_name;
+    }
+
+
+    /**
+     * @override
+     * @param p
+     */
+    setMinPage(p){
+        throw "Unsupported operation";
     }
 
     /**
@@ -70,6 +83,7 @@ class Differential extends Edge {
      * @param page
      * @returns {boolean}
      * @package
+     * @override
      */
     _drawOnPageQ(pageRange){
         return pageRange[0] === 0 || (pageRange[0] <= this.page && this.page <= pageRange[1]);
@@ -81,8 +95,8 @@ class Differential extends Edge {
      * @param {Node} node Specifies any changes in the display of source that occur after this page.
      * @returns {Differential} Chainable
      */
-    setKernel(node){
-        this.source.replace(node);
+    setKernel(node, lastPageName){
+        this.source.replace(node, lastPageName);
         return this;
     }
 
@@ -91,8 +105,8 @@ class Differential extends Edge {
      * @param {Node} node
      * @returns {Differential} Chainable
      */
-    replaceSource(node){
-        this.setKernel(node);
+    replaceSource(node, lastPageName){
+        this.setKernel(node,lastPageName);
         return this;
     }
 
@@ -102,8 +116,8 @@ class Differential extends Edge {
      * @param {Node} node Specifies any changes in the display of target that occur after this page.
      * @returns {Differential} Chainable
      */
-    setCokernel(node){
-        this.target.replace(node);
+    setCokernel(node, lastPageName){
+        this.target.replace(node, lastPageName);
         return this;
     }
 
@@ -112,8 +126,8 @@ class Differential extends Edge {
      * @param {Node} node
      * @returns {Differential} Chainable
      */
-    replaceTarget(node){
-        this.setCokernel(node);
+    replaceTarget(node, lastPageName){
+        this.setCokernel(node, lastPageName);
         return this;
     }
 

@@ -92,6 +92,7 @@ class SseqClass {
         this.outgoing_differentials = [];
         this.incoming_differentials = [];
         this.name = "";
+        this.last_page_name = "";
         this.extra_info = "";
         this.page_list = [infinity];
         this.node_list = [sseq.default_node.copy()];
@@ -127,7 +128,18 @@ class SseqClass {
 
     setName(name){
         this.name = name;
+        this.last_page_name = name;
         return this;
+    }
+
+    getTooltip(){
+        let tooltip = "";
+        if(this.name !== ""){
+            tooltip = `\\(${this.name}\\) &mdash; `;
+        }
+        tooltip += `(${this.x}, ${this.y})`;
+        tooltip += this.extra_info;
+        return tooltip;
     }
 
     /**
@@ -208,7 +220,15 @@ class SseqClass {
      *   in appearance will occur.
      * @returns {SseqClass}
      */
-    replace(node){
+    replace(node, lastPageName){
+        if(lastPageName){
+            if(typeof lastPageName === "string"){
+                this.last_page_name = lastPageName;
+            } else{
+                this.last_page_name = lastPageName(this.name);
+            }
+
+        }
         this._appendPage(infinity);
         this.setNode(node);
         return this;

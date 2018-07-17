@@ -36,6 +36,7 @@ function setNode(node) {
 
 
 class Display {
+
     constructor(ss) {
         // Drawing elements
         this.body = d3.select("body");
@@ -119,9 +120,9 @@ class Display {
         this.height = this.stage.height();
 
         // TODO: Allow programmatic control over margins.
-        this.leftMargin = 55;
+        this.leftMargin = 50;
         this.rightMargin = 5;
-        this.topMargin = 0;
+        this.topMargin = 5;
         this.bottomMargin = 50;
 
 
@@ -225,6 +226,7 @@ class Display {
         if (this.page_idx > this.sseq.min_page_idx) {
             this.setPage(this.page_idx - 1);
             this.update();
+            // If the page change has added a class underneath the mouse, display the tooltip.
             if (this.stage.getPointerPosition() && this.stage.getIntersection(this.stage.getPointerPosition())) {
                 this._handleMouseover(this.stage.getIntersection(this.stage.getPointerPosition()));
             }
@@ -562,13 +564,13 @@ class Display {
             disp.tooltip_div_dummy.html(c.tooltip_html);
             disp._setupTooltipDiv(shape);
         } else {
-            let extra_info_html = c.extra_info.replace(/\n/g, "\n<hr>\n");
+            let tooltip = c.getTooltip().replace(/\n/g, "\n<hr>\n");
             if (MathJax && MathJax.Hub) {
-                disp.tooltip_div_dummy.html(`\\(${c.name}\\) &mdash; (${c.x}, ${c.y})` + extra_info_html);
+                disp.tooltip_div_dummy.html(tooltip);
                 MathJax.Hub.Queue(["Typeset", MathJax.Hub, "tooltip_div_dummy"]);
                 MathJax.Hub.Queue(() => disp._setupTooltipDiv(shape));
             } else {
-                disp.tooltip_div_dummy.html(`\\(${c.name}\\) &mdash; (${c.x}, ${c.y})` + extra_info_html);
+                disp.tooltip_div_dummy.html(tooltip);
                 disp._setupTooltipDiv(this);
             }
         }

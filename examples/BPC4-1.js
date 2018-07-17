@@ -128,10 +128,10 @@ sseq.onDifferentialAdded(d => {
     d.addInfoToSourceAndTarget();
     if(d.source.group == "Z4"){
         d.source.group = "Z2";
-        d.source.replace(Groups.Z2supp);
+        d.source.replace(Groups.Z2supp, (name) => "2\\," + name);
     } else if(d.source.group === "Z"){
         d.source.group = "2Z";
-        d.source.replace(Groups.Zsup);
+        d.source.replace(Groups.Zsup, (name) => "2\\," + name);
     } else if(d.source.group === "2Z"){
         d.source.group = "4Z";
         d.source.replace(Groups.Zsupsup);
@@ -206,6 +206,12 @@ function addSlice(sseq,d1) {
 
 for(let d1 = 0; d1 < d1max; d1 ++ ){
     addSlice(sseq,d1);
+}
+
+for(let d1 = 0; d1 < d1max; d1 += 2){
+    for(let s = 0; s <= 1; s++){
+     //   sseq.addStructline(d3_cycles_map.get(big_slices[d1][s][4*d1]),d3_cycles_map.get(big_slices[d1][s + 1][4*d1 + 1])).setMinPage(3);
+    }
 }
 
 for(let d1 = 2; d1 < d1max; d1++ ){
