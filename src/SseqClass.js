@@ -18,14 +18,26 @@ class Node {
         return Object.assign(new Node(), this);
     }
 
+    getShape(){
+        return this.shape;
+    }
+
     setShape(shape){
         this.shape = shape;
         return this;
     }
 
+    getColor(){
+        return this.color;
+    }
+
     setColor(color){
         this.color = color;
         return this;
+    }
+
+    isDummy(){
+        return false;
     }
 
     /**
@@ -35,9 +47,14 @@ class Node {
      */
     static merge(...nodes){
         let root = new SseqNode();
-        for ( var i = 0; i < nodes.length; i++ )
-            for ( var key in nodes[i] )
+        for ( var i = 0; i < nodes.length; i++ ) {
+            if(nodes[i].isDummy()){
+                continue;
+            }
+            for (var key in nodes[i]) {
                 root[key] = nodes[i][key];
+            }
+        }
         return root;
     }
 }
@@ -76,7 +93,7 @@ class Node {
 class SseqClass {
     /**
      * @param sseq The parent spectral sequence.
-     *
+     * @package
      */
     constructor(sseq, degree){
         this.sseq = sseq;
@@ -104,14 +121,24 @@ class SseqClass {
         this._last_page_idx = 0;
     }
 
-    /**
-     * Add a structline to this class. Called by Structline constructor.
-     * @param sl The
-     * @package
-     */
-    _addStructline(sl){
-        this.structlines.push(sl);
-        this.edges.push(sl);
+    static getDummy(sseq){
+        if(SseqClass._dummy){
+            return SseqClass._dummy;
+        }
+        let dummy = Object.create(Class);
+
+    }
+
+    /* Public methods: */
+
+    getName(){
+        return this.name;
+    }
+
+    setName(name){
+        this.name = name;
+        this.last_page_name = name;
+        return this;
     }
 
     /**
@@ -126,12 +153,102 @@ class SseqClass {
         return this;
     }
 
-    setName(name){
-        this.name = name;
-        this.last_page_name = name;
+
+    /**
+     * Get the node that controls the display of the class on the given page.
+     * @param page
+     * @returns {Node} The node that controls the display of this class on page `page`.
+     */
+    getNode(page){
+        const idx = this._getPageIndex(page);
+        return this.node_list[idx];
+    }
+
+    /**
+     * Sets the node that controls the display on the given page.
+     * Properties that are missing from the given node are left unchanged.
+     * @param {Node} node
+     * @param {int} page
+     * @returns {SseqClass} Chainable
+     */
+    setNode(node, page){
+        if(node === undefined){
+            node = {};
+        }
+        const idx = this._getPageIndex(page);
+        this.node_list[idx] = Node.merge(this.node_list[idx], node);
         return this;
     }
 
+    getColor(page){
+        return this.getNode(page).getColor();
+    }
+
+    setColor(color, page){
+        this.getNode(page).setColor(color);
+        return this;
+    }
+
+    getShape(page){
+        return this.getNode(page).getShape();
+    }
+
+    setShape(shape, page){
+        this.getNode(page).setShape(shape);
+        return this;
+    }
+
+    /**
+     * Set the page of every structline incident to this edge. Structlines are not displayed on pages later than their
+     * page.
+     * @param page
+     * @returns {SseqClass}
+     */
+    setStructlinePages(page){
+        for(let i = 0; i < this.structlines.length; i++){
+            let sl = this.structlines[i];
+            if(sl.page > page){
+                sl.page = page;
+            }
+        }
+        return this;
+    }
+
+
+    /**
+     * Replace a "dead" class.
+     * @param node Control the way the display of the "replaced" class changes. If the node is undefined, no change
+     *   in appearance will occur.
+     * @returns {SseqClass}
+     */
+    replace(node, lastPageName){
+        if(lastPageName){
+            if(typeof lastPageName === "string"){
+                this.last_page_name = lastPageName;
+            } else{
+                this.last_page_name = lastPageName(this.name);
+            }
+
+        }
+        this._appendPage(infinity);
+        this.setNode(node);
+        return this;
+    }
+
+    /**
+     * Adds a string to extra_info (in practice, this controls the tooltip for the class).
+     * @param str
+     * @returns {SseqClass} Chainable
+     */
+    addExtraInfo(str){
+        this.extra_info += "\n" + str;
+        return this;
+    }
+
+    /**
+     * Get tooltip. TODO: Give sseq control over this. Maybe we need a callback or to call sseq._getTooltip(this) or something...
+     * @returns {string}
+     */
     getTooltip(){
         let tooltip = "";
         if(this.name !== ""){
@@ -141,6 +258,13 @@ class SseqClass {
         tooltip += this.extra_info;
         return tooltip;
     }
+
+
+    toString(){
+        return this.name;
+    }
+
+    /* Package / private methods: */
 
     /**
      * This gets the index of a specified page in the page list. What this means is that if the page list is of the
@@ -175,32 +299,7 @@ class SseqClass {
         return page_idx;
     }
 
-    /**
-     * Get the node that controls the display of the class on the given page.
-     * @param page
-     * @returns {Node} The node that controls the display of this class on page `page`.
-     */
-    getNode(page){
-        const idx = this._getPageIndex(page);
-        return this.node_list[idx];
-    }
-
-    /**
-     * Sets the node that controls the display on the given page.
-     * Properties that are missing from the given node are left unchanged.
-     * @param {Node} node
-     * @param {int} page
-     * @returns {SseqClass} Chainable
-     */
-    setNode(node, page){
-        if(node === undefined){
-            node = {};
-        }
-        const idx = this._getPageIndex(page);
-        this.node_list[idx] = Node.merge(this.node_list[idx], node);
-        return this;
-    }
-
+    /* Used by Sseq: */
 
     /**
      * Appends a page to the list of pages and sets the corresponding node to be the previous node.
@@ -214,35 +313,48 @@ class SseqClass {
         return this;
     }
 
-    /**
-     * Replace a "dead" class.
-     * @param node Control the way the display of the "replaced" class changes. If the node is undefined, no change
-     *   in appearance will occur.
-     * @returns {SseqClass}
-     */
-    replace(node, lastPageName){
-        if(lastPageName){
-            if(typeof lastPageName === "string"){
-                this.last_page_name = lastPageName;
-            } else{
-                this.last_page_name = lastPageName(this.name);
-            }
 
+
+
+    /**
+     * Add a structline to this class. Called by sseq.addStructline.
+     * @param sl The
+     * @package
+     */
+    _addStructline(sl){
+        this.structlines.push(sl);
+        this.edges.push(sl);
+    }
+
+    /**
+     * Adds an outgoing differential. Called by the sseq.addDifferential.
+     * @param differential
+     * @package
+     */
+    _addOutgoingDifferential(differential){
+        if(this.getPage() < differential.page){
+            //this.handleDoubledDifferential("supporting another" + differential.supportedMessage());
         }
-        this._appendPage(infinity);
-        this.setNode(node);
-        return this;
+        this.setPage(differential.page);
+        this.outgoing_differentials.push(differential);
+        this.edges.push(differential);
     }
 
     /**
-     * Adds a string to extra_info (in practice, this controls the tooltip for the class).
-     * @param str
-     * @returns {SseqClass} Chainable
+     * Adds an incoming differential. Called by the sseq.addDifferential.
+     * @param differential
+     * @package
      */
-    addExtraInfo(str){
-        this.extra_info += "\n" + str;
-        return this;
+    _addIncomingDifferential(differential){
+        if(this.getPage() < differential.page){
+            //this.handleDoubledDifferential("receiving another" + differential.hitMessage());
+        }
+        this.setPage(differential.page);
+        this.incoming_differentials.push(differential);
+        this.edges.push(differential);
     }
+
+    /* For display: */
 
     /**
      * If multiple classes are in the same (x,y) location, we offset their position a bit to avoid clashes.
@@ -274,54 +386,7 @@ class SseqClass {
         return -(idx - (total_classes - 1)/2)*this.sseq.offset_size;
     }
 
-    toString(){
-        return this.name;
-    }
 
-    /**
-     * Adds an outgoing differential. Called by the differential constructor.
-     * @param differential
-     * @package
-     */
-    _addOutgoingDifferential(differential){
-        if(this.getPage() < differential.page){
-            //this.handleDoubledDifferential("supporting another" + differential.supportedMessage());
-        }
-        this.setPage(differential.page);
-        this.outgoing_differentials.push(differential);
-        this.edges.push(differential);
-    }
-
-    /**
-     * Adds an incoming differential. Called by the differential constructor.
-     * @param differential
-     * @package
-     */
-    _addIncomingDifferential(differential){
-        if(this.getPage() < differential.page){
-            //this.handleDoubledDifferential("receiving another" + differential.hitMessage());
-        }
-        this.setPage(differential.page);
-        this.incoming_differentials.push(differential);
-        this.edges.push(differential);
-    }
-
-
-    /**
-     * Set the page of every structline incident to this edge. Structlines are not displayed on pages later than their
-     * page.
-     * @param page
-     * @returns {SseqClass}
-     */
-    setStructlinePages(page){
-        for(let i = 0; i < this.structlines.length; i++){
-            let sl = this.structlines[i];
-            if(sl.page > page){
-                sl.page = page;
-            }
-        }
-        return this;
-    }
 
     /**
      * Determines whether this class is drawn on the given page.

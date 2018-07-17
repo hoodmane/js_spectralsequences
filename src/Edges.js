@@ -34,14 +34,7 @@ exports.Edge = Edge;
 /**
  * The structline class is just a renamed version of Edge. So far no methods here...
  */
-class Structline extends Edge {
-    constructor(source, target){
-        super(source, target);
-        source._addStructline(this);
-        target._addStructline(this);
-    }
-
-}
+class Structline extends Edge { }
 exports.Structline = Structline;
 
 /**
@@ -63,8 +56,6 @@ class Differential extends Edge {
         super(source, target);
         this.page = page;
         this.color = "#00F";
-        source._addOutgoingDifferential(this);
-        target._addIncomingDifferential(this);
         this.source_name = this.source.last_page_name;
         this.target_name = this.target.last_page_name;
     }
@@ -72,22 +63,12 @@ class Differential extends Edge {
 
     /**
      * @override
-     * @param p
+     * @param min_page
      */
-    setMinPage(p){
+    setMinPage(min_page){
         throw "Unsupported operation";
     }
 
-    /**
-     * Draw the differential on "page 0" or on the page corresponding to the differential.
-     * @param page
-     * @returns {boolean}
-     * @package
-     * @override
-     */
-    _drawOnPageQ(pageRange){
-        return pageRange[0] === 0 || (pageRange[0] <= this.page && this.page <= pageRange[1]);
-    }
 
     /**
      * By default, source of differential disappears after the page the differential occurs on. Instead, from now on
@@ -209,6 +190,17 @@ class Differential extends Edge {
 
     toString(){
         return `\\(d_{${this.page}}(${this.source_name}) = ${this.target_name}\\)`;
+    }
+
+    /**
+     * Draw the differential on "page 0" or on the page corresponding to the differential.
+     * @param page
+     * @returns {boolean}
+     * @package
+     * @override
+     */
+    _drawOnPageQ(pageRange){
+        return pageRange[0] === 0 || (pageRange[0] <= this.page && this.page <= pageRange[1]);
     }
 }
 exports.Differential = Differential;
