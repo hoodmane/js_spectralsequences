@@ -1,3 +1,6 @@
+// Name: Slice SS $BP^{((C_4))}\langle 1\rangle$
+// Description: The slice spectral sequence for the $C_4$ fixed points of $BP^{((C_4))}\langle 1\rangle$.
+
 let Groups = {};
 
 Groups.Z = new SseqNode();
@@ -306,5 +309,4 @@ for(let d1_a = 5; d1_a < d1max; d1_a += 4){
 //
 // body.append("div")
 
-let disp = new Display(sseq);
-window.disp = disp;
+sseq.display();

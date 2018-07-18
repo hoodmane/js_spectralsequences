@@ -11,6 +11,8 @@ class Edge {
     constructor(source, target){
         this.source = source;
         this.target = target;
+        this.source_name = this.source.last_page_name;
+        this.target_name = this.target.last_page_name;
         this.page = infinity;
         this.page_min = 0;
         this.color = "#000";
@@ -75,8 +77,6 @@ class Differential extends Edge {
         super(source, target);
         this.page = page;
         this.color = "#00F";
-        this.source_name = this.source.last_page_name;
-        this.target_name = this.target.last_page_name;
     }
 
 

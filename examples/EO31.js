@@ -63,5 +63,4 @@ for(let v = vmin; v < vmax; v++){
     }
 }
 
-let disp = new Display(sseq);
-window.disp = disp;
+sseq.display();

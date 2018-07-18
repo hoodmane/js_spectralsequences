@@ -116,13 +116,13 @@ class SseqClass {
      * @package
      */
     constructor(sseq, degree){
-        this.sseq = sseq;
         this.degree = degree;
-        this.projection = sseq.projection(this);
+        this.projection = sseq.projection(this); // Needed by display
         this.x = this.projection[0];
         this.y = this.projection[1];
         this.x_offset = false;
         this.y_offset = false;
+        this.idx = 0; // Set by addClass.
 
         this.edges = [];
         this.structlines = [];
@@ -269,7 +269,7 @@ class SseqClass {
         if(lastPageName){
             if(typeof lastPageName === "string"){
                 this.last_page_name = lastPageName;
-            } else{
+            } else {
                 this.last_page_name = lastPageName(this.name);
             }
 
@@ -289,23 +289,13 @@ class SseqClass {
         return this;
     }
 
-    /**
-     * Get tooltip. TODO: Give sseq control over this. Maybe we need a callback or to call sseq._getTooltip(this) or something...
-     * @returns {string}
-     */
-    getTooltip(){
-        let tooltip = "";
-        if(this.name !== ""){
-            tooltip = `\\(${this.name}\\) &mdash; `;
-        }
-        tooltip += `(${this.x}, ${this.y})`;
-        tooltip += this.extra_info;
-        return tooltip;
-    }
-
 
     toString(){
         return this.name;
+    }
+
+    getStringifyingMapKey(){
+        return this.x + "," + this.y + "," + this.idx;
     }
 
     /* Package / private methods: */
@@ -396,38 +386,6 @@ class SseqClass {
         this.setPage(differential.page);
         this.incoming_differentials.push(differential);
         this.edges.push(differential);
-    }
-
-    /* For display: */
-
-    /**
-     * If multiple classes are in the same (x,y) location, we offset their position a bit to avoid clashes.
-     * Gets called by display code.
-     * @returns {number} The x offset
-     * @package
-     */
-    _getXOffset(){
-        if(this.x_offset !== false){
-            return this.x_offset;
-        }
-        let total_classes = this.sseq.num_classes_by_degree.get(this.projection);
-        let idx = this.idx;
-        return (idx - (total_classes - 1)/2)*this.sseq.offset_size;
-    }
-
-    /**
-     * If multiple classes are in the same (x,y) location, we offset their position a bit to avoid clashes.
-     * Gets called by display code.
-     * @returns {number} The y offset
-     * @package
-     */
-    _getYOffset(){
-        if(this.x_offset !== false){
-            return this.y_offset;
-        }
-        let total_classes = this.sseq.num_classes_by_degree.get(this.projection);
-        let idx = this.idx;
-        return -(idx - (total_classes - 1)/2)*this.sseq.offset_size;
     }
 
 

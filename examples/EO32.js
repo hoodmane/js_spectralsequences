@@ -104,9 +104,7 @@ for(let v of d3.range(-36,121,6)){
 
 
 
-let disp = new Display(sseq);
-window.disp = disp;
-//display.draw();
+sseq.display();
 
 
 

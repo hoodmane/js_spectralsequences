@@ -238,7 +238,7 @@ class Display {
      * Eventually I should make a display that indicates the current page again, then this can also say what that is.
      */
     setPage(idx){
-        if(idx){
+        if(idx !== undefined){
             this.page_idx = idx;
         }
         this.pageRange = this.sseq.page_list[this.page_idx];
@@ -457,8 +457,8 @@ class Display {
             if (!s) {
                 continue;
             }
-            s.setPosition({x: this.xScale(c.x) + c._getXOffset(), y: this.yScale(c.y) + c._getYOffset()});
-            s.setNode(c.getNode(this.page));
+            s.setPosition({x: this.xScale(c.x) + this.sseq._getXOffset(c), y: this.yScale(c.y) + this.sseq._getYOffset(c)});
+            s.setNode(this.sseq.getClassNode(c,this.page));
             s.size(s.size() * scale_size);
             this.classLayer.add(s);
         }
@@ -531,8 +531,9 @@ class Display {
             let c = classes[i];
             c.canvas_shape = new Konva.Shape();
             c.canvas_shape.sseq_class = c;
-            let self = this;
             c.canvas_shape.on('mouseover', (event) => this._handleMouseover(event.currentTarget));
+
+            let self = this;
             c.canvas_shape.on('mouseout', function () {
                 self._handleMouseout(this)
             });
@@ -558,20 +559,19 @@ class Display {
 
     _handleMouseover(shape) {
         let c = shape.sseq_class;
-        let disp = c.sseq.disp;
         // Is the result cached?
         if (c.tooltip_html) {
-            disp.tooltip_div_dummy.html(c.tooltip_html);
-            disp._setupTooltipDiv(shape);
+            this.tooltip_div_dummy.html(c.tooltip_html);
+            this._setupTooltipDiv(shape);
         } else {
-            let tooltip = c.getTooltip().replace(/\n/g, "\n<hr>\n");
+            let tooltip = sseq.getTooltip(c, this.page).replace(/\n/g, "\n<hr>\n");
             if (MathJax && MathJax.Hub) {
-                disp.tooltip_div_dummy.html(tooltip);
+                this.tooltip_div_dummy.html(tooltip);
                 MathJax.Hub.Queue(["Typeset", MathJax.Hub, "tooltip_div_dummy"]);
-                MathJax.Hub.Queue(() => disp._setupTooltipDiv(shape));
+                MathJax.Hub.Queue(() => this._setupTooltipDiv(shape));
             } else {
-                disp.tooltip_div_dummy.html(tooltip);
-                disp._setupTooltipDiv(this);
+                this.tooltip_div_dummy.html(tooltip);
+                this._setupTooltipDiv(this);
             }
         }
     }

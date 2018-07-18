@@ -27,7 +27,4 @@ window.classes = sseq.addPolynomialClasses(vars, var_spec_list,module_gens)
     .addStructline([-1,1]).addStructline([1,0]);
 
 
-
-
-
-let disp = new Display(sseq);
+sseq.display();

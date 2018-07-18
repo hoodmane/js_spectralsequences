@@ -26,7 +26,4 @@ for(let v=-10; v<=11; v++){
     }
 }
 
-window.classes = classes;
-
-let disp = new Display(sseq);
-
+sseq.display();

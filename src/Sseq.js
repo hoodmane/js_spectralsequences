@@ -1,5 +1,6 @@
 "use strict";
 
+let DisplaySseq = require("./DisplaySseq.js").DisplaySseq;
 let Shapes = require("./Shape.js");
 let SseqClassjs = require("./SseqClass.js");
 let SseqClass = SseqClassjs.SseqClass;
@@ -58,6 +59,14 @@ function addToDictionaryOfLists(dictionary, key,value){
         dictionary.set(key, []);
     }
     dictionary.get(key).push(value);
+}
+
+function getObjectWithFields(obj, fieldNames){
+    let out = new Object();
+    for(let field of fieldNames){
+        out[field] = obj[field];
+    }
+    return out;
 }
 
 
@@ -149,8 +158,8 @@ class Sseq {
             degree = {x: x, y: y};
         }
         let c = new SseqClass(this, degree);
-        let idx  = this.num_classes_by_degree.getOrElse(c.projection, 0);
-        this.num_classes_by_degree.set(c.projection, idx + 1);
+        let idx  = this.num_classes_by_degree.getOrElse([c.x, c.y], 0);
+        this.num_classes_by_degree.set([c.x, c.y], idx + 1);
         c.idx = idx;
         this.classes.push(c);
         addToDictionaryOfLists(this.classes_by_degree, degree, c);
@@ -391,6 +400,110 @@ class Sseq {
             if(!e.target.in_range){
                 this.display_classes.push(e.target);
             }
+        }
+    }
+
+
+    /* For display: */
+
+    /**
+     * If multiple classes are in the same (x,y) location, we offset their position a bit to avoid clashes.
+     * Gets called by display code.
+     * @returns {number} The x offset
+     * @package
+     */
+    _getXOffset(c){
+        if(c.x_offset !== false){
+            return c.x_offset;
+        }
+        let total_classes = this.num_classes_by_degree.get([c.x, c.y]);
+        let idx = c.idx;
+        return (idx - (total_classes - 1)/2) * this.offset_size;
+    }
+
+    /**
+     * If multiple classes are in the same (x,y) location, we offset their position a bit to avoid clashes.
+     * Gets called by display code.
+     * @returns {number} The y offset
+     * @package
+     */
+    _getYOffset(c){
+        if(c.x_offset !== false){
+            return c.y_offset;
+        }
+        let total_classes = this.num_classes_by_degree.get([c.x, c.y]);
+        let idx = c.idx;
+        return -(idx - (total_classes - 1)/2) * this.offset_size;
+    }
+
+    /**
+     * Get tooltip.
+     * @returns {string}
+     */
+    getTooltip(c){
+        let tooltip = "";
+        if(c.name !== ""){
+            tooltip = `\\(${c.name}\\) &mdash; `;
+        }
+        tooltip += `(${c.x}, ${c.y})`;
+        tooltip += c.extra_info;
+        return tooltip;
+    }
+
+    getDisplaySseq(){
+        let dss = new DisplaySseq();
+        dss.min_page_idx = this.min_page_idx;
+        dss.page_list = this.page_list;
+        dss.initialxRange = this.initialxRange;
+        dss.initialyRange = this.initialyRange;
+        dss.xRange = this.xRange;
+        dss.yRange = this.yRange;
+
+        dss.num_classes_by_degree = this.num_classes_by_degree;
+        dss._getXOffset = this._getXOffset;
+        dss._getYOffset = this._getYOffset;
+        dss.offset_size = this.offset_size;
+
+
+        let classMap = new StringifyingMap();
+        let classes = [];
+        for(let c of this.classes){
+            let dc = getObjectWithFields(c,
+                [
+                    "x", "y", "idx", "x_offset", "y_offset",
+                    "name", "extra_info", "page_list", "node_list",
+                    "visible",
+                    "_inRangeQ", "_drawOnPageQ"
+                ]
+            );
+            classes.push(dc);
+            classMap.set(c, dc);
+        }
+        dss.classes = classes;
+
+        let edges = [];
+        for(let e of this.edges){
+            let de = getObjectWithFields(e,
+                [
+                    "page", "page_min", "color", "source_name", "target_name",
+                    "_drawOnPageQ"
+                ]
+            );
+            de.source = classMap.get(e.source);
+            de.target = classMap.get(e.target);
+            de.edge_type = e.constructor.name;
+            edges.push(de);
+        }
+        dss.edges = edges;
+        return dss;
+    }
+
+    display(){
+        let dss = this.getDisplaySseq();
+        if(window.display){
+            window.display.setSseq(dss);
+        } else {
+            window.display = new Display(dss);
         }
     }
 }
