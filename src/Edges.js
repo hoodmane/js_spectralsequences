@@ -1,5 +1,7 @@
 "use strict";
 
+let Dummy = require("./dummy.js");
+
 class Edge {
     /**
      * Add edge to source and target.
@@ -16,6 +18,23 @@ class Edge {
 
     setMinPage(min_page){
         this.page_min = min_page;
+        return this;
+    }
+
+    static getDummy(){
+        if(Edge._dummy){
+            return Edge._dummy;
+        }
+        let dummy = Object.create(Edge);
+        Edge._dummy = dummy;
+
+        Dummy.setPrivateMethodsToInvalidOperation(dummy);
+        dummy.setMinPage = Dummy.getDummyConstantFunction(dummy);
+        dummy.constructor = Edge.constructor;
+
+        Dummy.checkAllCommandsDefined(dummy);
+
+        return dummy;
     }
 
     /**
@@ -60,6 +79,23 @@ class Differential extends Edge {
         this.target_name = this.target.last_page_name;
     }
 
+
+    static getDummy(){
+        if(Differential._dummy){
+            return Differential._dummy;
+        }
+        let dummy = Object.create(Differential);
+        Differential._dummy = dummy;
+
+        let edgeDummy = Edge.getDummy();
+        Object.assign(dummy, edgeDummy);
+
+        let chainableNoOp = Dummy.getDummyConstantFunction(dummy);
+        Dummy.setRemainingMethods(dummy, () => true, () => chainableNoOp);
+        Dummy.setPrivateMethodsToInvalidOperation(dummy);
+        dummy.toString = Dummy.getDummyConstantFunction("");
+        return dummy;
+    }
 
     /**
      * @override

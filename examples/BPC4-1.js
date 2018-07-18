@@ -210,7 +210,7 @@ for(let d1 = 0; d1 < d1max; d1 ++ ){
 
 for(let d1 = 0; d1 < d1max; d1 += 2){
     for(let s = 0; s <= 1; s++){
-     //   sseq.addStructline(d3_cycles_map.get(big_slices[d1][s][4*d1]),d3_cycles_map.get(big_slices[d1][s + 1][4*d1 + 1])).setMinPage(3);
+        sseq.addStructline(d3_cycles_map.get(big_slices[d1][s][4*d1 + s]),d3_cycles_map.get(big_slices[d1][s + 1][4*d1 + s + 1])).setMinPage(3);
     }
 }
 

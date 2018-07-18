@@ -1,5 +1,9 @@
 "use strict";
 
+
+let Dummy = require("./Dummy.js");
+
+
 /**
  * The Node class controls the display of SseqClass's.
  * The behavior of a Node's fields is controlled by the method Konva.Shape.prototype.setNode defined in display.js.
@@ -12,9 +16,14 @@
  *             determines what region the shape lies over.
  *    size  -- this key should determine the scaling of the node. It is the responsibility of the draw function to
  *             consider the value of this key when drawing the shape.
+ *
+ *  TODO: currently merge and copy ignore dummies. Is this the right behavior? Maybe they should throw errors?
  */
 class Node {
     copy(){
+        if(this.isDummy()){
+            return new Node();
+        }
         return Object.assign(new Node(), this);
     }
 
@@ -40,6 +49,17 @@ class Node {
         return false;
     }
 
+    static getDummy(){
+        if(Node._dummy){
+            return Node._dummy;
+        }
+        let dummy = new Node();
+        let chainableNoOp = Dummy.getDummyConstantFunction(dummy);
+        dummy.isDummy = function(){ return true; };
+        dummy.setShape = chainableNoOp;
+        dummy.setColor = chainableNoOp;
+    }
+
     /**
      * @param {...Node} nodes -- a list of nodes to merge. Merges them into a new object.
      * @returns {Node} -- a new node formed by merging the list of nodes passed as arguments. Later arguments have
@@ -48,7 +68,7 @@ class Node {
     static merge(...nodes){
         let root = new SseqNode();
         for ( var i = 0; i < nodes.length; i++ ) {
-            if(nodes[i].isDummy()){
+            if(nodes[i].isDummy && nodes[i].isDummy()){
                 continue;
             }
             for (var key in nodes[i]) {
@@ -121,12 +141,36 @@ class SseqClass {
         this._last_page_idx = 0;
     }
 
-    static getDummy(sseq){
+    static getDummy(){
         if(SseqClass._dummy){
             return SseqClass._dummy;
         }
-        let dummy = Object.create(Class);
+        let dummy = Object.create(SseqClass);
+        SseqClass._dummy = dummy;
 
+        let chainableNoOp = Dummy.getDummyConstantFunction(dummy);
+
+        dummy.isDummy = Dummy.getDummyConstantFunction(true);
+        dummy.getName = Dummy.getDummyConstantFunction("dummy");
+        dummy.getColor = Dummy.getDummyConstantFunction("black");
+        dummy.getShape = Dummy.getDummyConstantFunction(null);
+        dummy.getTooltip = Dummy.getDummyConstantFunction("");
+        dummy.getPage = Dummy.getDummyConstantFunction(-1);
+        dummy.getNode = Dummy.getDummyConstantFunction(Node.getDummy());
+        dummy.toString = dummy.getName;
+        dummy.constructor = SseqClass.constructor;
+
+        dummy.replace = chainableNoOp;
+        dummy.addExtraInfo = chainableNoOp;
+        Dummy.setPrivateMethodsToInvalidOperation(dummy);
+        Dummy.setDummyMethods(dummy, p => p.startsWith("set"), () => chainableNoOp );
+
+        Dummy.checkAllCommandsDefined(dummy, SseqClass);
+        return dummy;
+    }
+
+    isDummy(){
+        return false;
     }
 
     /* Public methods: */
@@ -199,7 +243,7 @@ class SseqClass {
     }
 
     /**
-     * Set the page of every structline incident to this edge. Structlines are not displayed on pages later than their
+     * Set the page of every structline incident to this class. Structlines are not displayed on pages later than their
      * page.
      * @param page
      * @returns {SseqClass}

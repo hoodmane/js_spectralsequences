@@ -196,11 +196,11 @@ class Sseq {
 //            target = this.last_classes[0]
 //        }
         if(!source || !target){
-            return null;
+            return Structline.getDummy();
         }
         let struct = new Structline(source,target);
-        source._addStructline(this);
-        target._addStructline(this);
+        source._addStructline(struct);
+        target._addStructline(struct);
         this.structlines.push(struct);
         this.edges.push(struct);
         if(this.on_edge_added){
@@ -222,14 +222,14 @@ class Sseq {
    addDifferential(source, target, page){
         if(page <= 0){
             console.log("No page <= 0 differentials allowed.");
-            return null;
+            return Differential.getDummy();
         }
         if(!source || !target){
-            return null;
+            return Differential.getDummy();
         }        
         let differential = new Differential(source, target, page);
-        source._addOutgoingDifferential(this);
-        target._addIncomingDifferential(this);
+        source._addOutgoingDifferential(differential);
+        target._addIncomingDifferential(differential);
         this.differentials.push(differential);
         this.edges.push(differential);
         this.addPageToPageList(page);
@@ -250,7 +250,7 @@ class Sseq {
      */
    addExtension(source, target){
         if(!source || !target){
-            return null;
+            return Extension.getDummy();
         }
         let ext = new Extension(source, target);
         this.edges.push(ext);
