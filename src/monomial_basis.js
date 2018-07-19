@@ -81,16 +81,32 @@ exports.monomialString = monomialString;
 /**
  * Add two vectors of the same length.
  * @param {Array|int} k
- * @param {Array|int} l
  * @returns {Array|int} The sum k + l.
  */
-function vectorSum(k,l){
+function vectorSum(k){
     let out = [];
-    for(let i=0; i<k.length; i++){
-        out.push(k[i]+l[i]);
+    for(let i = 0; i < k.length; i++){
+        let entry = 0;
+        for(let l of arguments){
+            entry += l[i];
+        }
+        out.push(entry);
     }
     return out;
 }
+
+function vectorScale(c, v){
+    return v.map((x) => c*x);
+}
+
+function vectorLinearCombination(vector_list, coefficient_list){
+    let scaled_list = [];
+    for(let i = 0; i < vector_list.length; i++){
+        scaled_list.push(vectorScale(coefficient_list[i], vector_list[i]));
+    }
+    return vectorSum(...scaled_list);
+}
+
 
 class monomial_ring {
     constructor(var_name_list, var_degree_dict, module_generators_dict){
@@ -229,7 +245,7 @@ class monomial_basis {
         for(let i = 0; i < var_spec_list.length; i++){
             let var_spec = var_spec_list[i];
             let var_name = var_spec[0];
-            Sseq._validateVarSpec(var_spec, var_degree_dict, i);
+            monomial_basis._validateVarSpec(var_spec, var_degree_dict, i);
             var_name_list.push(var_name);
             stem_list.push(var_degree_dict[var_name][0]);
             filtration_list.push(var_degree_dict[var_name][1]);
@@ -267,7 +283,6 @@ class monomial_basis {
             }
             this._add_class(elt, sseq.addClass(stem,filtration).setName(name));
         }
-        return this;
     }
 
 
@@ -386,6 +401,34 @@ class monomial_basis {
         } catch(error) {}
         return default_value;
     }
+
+    static _validateVarSpec(var_spec, var_degree_dict, index){
+        let err_string = "Invalid variable specification '" + var_spec + "' at position " + index + ".";
+        if(!Array.isArray(var_spec)){
+            throw err_string + " Variable specification must be a list.";
+        }
+
+        if(var_spec.length < 2 || var_spec.length > 4 ){
+            throw err_string + " Variable specification should be of length at least 2 and at most 4.";
+        }
+
+
+        if(typeof var_spec[0] !== 'string'){
+            throw err_string + " First entry of variable specification should be a string, the name of a variable.";
+        }
+
+        if(!var_degree_dict.hasOwnProperty(var_spec[0])){
+            throw err_string + " Variable '" + var_spec[0] + "' does not have an entry in the degree dictionary";
+        }
+
+        for(let i = 1; i < var_spec.length; i++){
+            if(!Number.isInteger(var_spec[i])){
+                throw err_string + " Expecting an integer in position '" + i + "'."
+            }
+        }
+
+
+    }
 }
 
 
@@ -396,3 +439,161 @@ monomial_basis.prototype[Symbol.iterator] = function*(){
 };
 
 exports.monomial_basis = monomial_basis;
+
+class slice_basis {
+    constructor(sseq, var_degree_dict, var_spec_list, make_slice){
+        this.sseq = sseq;
+        this._tuples_to_slices = new StringifyingMap();
+        this.length = 0;
+
+        this.var_degree_dict = var_degree_dict;
+        this.var_spec_list = var_spec_list;
+
+        let var_name_list = [];
+        let stem_list = [];
+        let range_list = [];
+
+        for(let i = 0; i < var_spec_list.length; i++){
+            let var_spec = var_spec_list[i];
+            let var_name = var_spec[0];
+            monomial_basis._validateVarSpec(var_spec, var_degree_dict, i);
+            var_name_list.push(var_name);
+            stem_list.push(var_degree_dict[var_name]);
+            range_list.push(range(...var_spec.slice(1)));
+        }
+
+        this._stem_list = stem_list;
+        this._range_list = range_list;
+
+        let var_degree_dict_with_zeroes = Object.assign({}, ...Object.keys(var_degree_dict).map(k => ({[k]: [var_degree_dict[k],0]})));
+
+        this._ring = new monomial_ring(var_name_list, var_degree_dict_with_zeroes);
+
+        for(let exponent_vector of product(...range_list)){
+            let elt = this._ring.getElementFromVector(exponent_vector);
+            let degree = elt.getDegree()[0];
+            let name = elt.getName();
+            this._add_slice(elt, make_slice);
+        }
+    }
+
+    /**
+     * Add a class to the basis.
+     * @param tuple The vector of powers of each variable in the monomial
+     * @param name The name of the class.
+     * @param the_class The class
+     * @private
+     */
+    _add_slice(elt, make_slice){
+        this.length++;
+        let tuple = elt.exponent_vector;
+        let name = elt.getName();
+        this._tuples_to_slices.set(elt, make_slice(this.sseq, elt));
+    }
+
+    /*
+ * Add structlines to every monomial corresponding to the given offset vector.
+ * For instance, if there is a generator called
+ */
+    addStructline(slice_offset_vector, stem_offset, callback){
+        slice_offset_vector = this._ring.getElement(slice_offset_vector);
+        for(let k of this){
+            let s1 = k[1];
+            let s2 = this.get(k[0].multiply(slice_offset_vector));
+            if(s2 !== undefined){
+                for(let stem of Object.keys(s1)){
+                    if(s2.hasOwnProperty(stem + stem_offset)){
+                        let sline = this.sseq.addStructline(s1.get(stem), s2.get(stem+stem_offset));
+                        if(callback){
+                            callback(sline);
+                        }
+                    }
+                }
+            }
+        }
+        return this;
+    }
+
+    addDifferential(page, slice_offset_vector, cond, callback){
+        let target_vect = this._ring.getElement(slice_offset_vector);
+        for(let key_value of this){
+            let k = key_value[0];
+            let s1 = key_value[1];
+            let s2 = this.get(k.multiply(target_vect));
+            for(let key_value of s1) {
+                let stem = key_value[0];
+                if (cond(k, stem, s1.get(stem).y)) {
+                    let c1 = s1.get(stem);
+                    if (s2 && s2.has(stem - 1)) {
+                        let d = this.sseq.addDifferential(c1, s2.get(stem - 1), page);
+                        if (callback !== undefined) {
+                            callback(d, k);
+                        }
+                    } else {
+                        if (!s2 && c1.getPage() > page) {
+                            c1.setPage(page);
+                        }
+                    }
+                }
+            }
+        }
+        return this;
+    }
+
+    addDifferentialLeibniz(page, source_slice, source_stem, target_slice,  offset_vectors, offset_vector_ranges, callback){
+        for(let exponent_vector of product(...offset_vector_ranges.map( r => range(...r)))){
+            let offset_slice = vectorLinearCombination(offset_vectors, exponent_vector);
+            let stem = offset_slice.pop() + source_stem;
+            let cur_source_slice = vectorSum(source_slice, offset_slice);
+            if(!this.has(cur_source_slice) || !this.get(cur_source_slice).has(stem)){
+                continue;
+            }
+            let sourceClass = this.get(cur_source_slice).get(stem);
+            let cur_target_slice = vectorSum(target_slice, offset_slice);
+            if(this.has(cur_target_slice) && this.get(cur_target_slice).has(stem - 1)){
+                let targetClass = this.get(cur_target_slice).get(stem-1);
+                let d = this.sseq.addDifferential(sourceClass, targetClass, page);
+                if (callback !== undefined) {
+                    callback(d);
+                }
+            } else {
+                if(!this.has(cur_target_slice) && sourceClass.getPage() > page){
+                    sourceClass.setPage(page);
+                }
+            }
+        }
+    }
+
+    has(key){
+        key = this._ensure_vect(key);
+        return this._tuples_to_slices.has(key);
+    }
+
+    get(key, default_value){
+        if(this._tuples_to_slices.has(key)){
+            return this._tuples_to_slices.get(key);
+        }
+        try {
+            key = this._ring.getElement(key);
+            if (this._tuples_to_slices.has(key)) {
+                return this._tuples_to_slices.get(key);
+            }
+        } catch(error) {}
+        return default_value;
+    }
+
+}
+
+
+
+slice_basis.prototype[Symbol.iterator] = function*(){
+    for(let k of this._tuples_to_slices){
+        yield k;
+    }
+};
+
+slice_basis.prototype._ensure_vect = monomial_basis.prototype._ensure_vect;
+
+exports.slice_basis = slice_basis;
+
+

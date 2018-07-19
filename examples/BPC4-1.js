@@ -115,19 +115,27 @@ function getSlice(d1pow, s1pow){
 }
 
 
-let sseq = new Sseq();
-sseq.addPageRangeToPageList([5,15]);
-sseq.min_page_idx = 1;
+let BPC4 = new Sseq();
+BPC4.addPageRangeToPageList([5,15]);
+BPC4.min_page_idx = 1;
 let s1max = 10;
 let d1max = 50;
 
-sseq.xRange = [0, 100];
-sseq.yRange = [0, 40];
+BPC4.xRange = [0, 100];
+BPC4.yRange = [0, 40];
 
-sseq.initialxRange = [0, 20];
-sseq.initialyRange = [0, 16];
+BPC4.initialxRange = [0, 20];
+BPC4.initialyRange = [0, 16];
 
-sseq.onDifferentialAdded(d => {
+let differential_colors = {
+    3 : "blue",
+    5 : "blue",
+    7 : "red",
+    11 : "green",
+    13 : "orange"
+};
+
+BPC4.onDifferentialAdded(d => {
     d.addInfoToSourceAndTarget();
     if(d.source.group == "Z4"){
         d.source.group = "Z2";
@@ -144,6 +152,7 @@ sseq.onDifferentialAdded(d => {
         d.target.group = "Z2";
         d.target.replace(Groups.Z2hit);
     }
+    d.color = differential_colors[d.page];
 })
 
 
@@ -153,160 +162,71 @@ let d3_cycles_map  = new StringifyingMap();
 let big_slices = [];
 
 
-function addSlice(sseq,d1) {
-    let classes = new StringifyingMap();
-    let sliceMonomials = [];
-    let slices = [];
+function addSlice(sseq, elt) {
+    let slice = new Map();
+    let d1 = elt[0];
+    let s1 = elt[1];
 
-
-    for (let s1 = 0; s1 < s1max; s1++) {
-        slices[s1] = {};
-        for (let c of getSlice(d1, s1)) {
-            slices[s1][c.degree()[0]] = c;
-            sliceMonomials.push(c);
-            let sseq_class = sseq.addClass(...c.degree())
-                .setName(c.toString())
-                .setNode(Groups[c.group()])
-            classes.set(c, sseq_class);
-            sseq_class.getNode().setColor(c.is_induced() ? "blue" : "black");
-            sseq_class.group = c.group();
+    for(let c of getSlice(d1, s1)) {
+        let sseq_class = sseq.addClass(...c.degree())
+            .setName(c.toString())
+            .setNode(Groups[c.group()]);
+        sseq_class.getNode().setColor(c.is_induced() ? "blue" : "black");
+        sseq_class.group = c.group();
+        sseq_class.slice = c;
+        if(s1 == 0){
+            sseq_class.x_offset = 0;
+            sseq_class.y_offset = 0;
         }
+        slice.set(sseq_class.x, sseq_class);
     }
-    big_slices[d1] = slices;
 
-
-    for (source of sliceMonomials) {
-        let sourceClass = classes.get(source);
-        if ((source.stem - source.filtration) % 8 === 4) {
-            let tuple = source.getTuple();
-            let s1 = tuple[1];
-
-            if (slices[s1 + 1] && classes.has(slices[s1 + 1][source.stem - 1])) {
-                let target = slices[s1 + 1][source.stem - 1];
-                sseq.addDifferential(sourceClass, classes.get(target), 3);
-            } else {
-                sourceClass.setPage(3);
-            }
-        }
-
-        if(source.filtration < 3 && ( source.s1 > 2 || source.us2 > 0) ){
-            sourceClass.setPage(3);
-        }
-
-        if(sourceClass.getPage() > 3){
-            d3_cycles.push(source);
-            d3_cycles_map.set(source, classes.get(source));
-            sourceClass.x_offset = 0;
-            sourceClass.y_offset = 0;
-        }
-    }
-    return sseq;
+    return slice;
 }
 
-//for(let source of d3_cycles){
-//}
+slices = BPC4.addSliceClasses({"\\overline{s}_1" : 2, "\\overline{\\mathfrak{d}}_1" : 4}, [["\\overline{\\mathfrak{d}}_1", 0, d1max],["\\overline{s}_1", 0, s1max]], addSlice);
 
+slices.addDifferential(3, [0, 1], (k, stem, filtration) => (stem - filtration) % 8 === 4);
 
-for(let d1 = 0; d1 < d1max; d1 ++ ){
-    addSlice(sseq,d1);
+for(let c of BPC4.getSurvivingClasses(4)){
+    if(c.y < 3 && (c.slice.s1 > 2 || c.slice.us2 > 0) ){
+        c.setPage(3);
+    } else {
+        c.x_offset = 0;
+        c.y_offset = 0;
+    }
 }
 
 for(let d1 = 0; d1 < d1max; d1 += 2){
     for(let s = 0; s <= 1; s++){
-        sseq.addStructline(d3_cycles_map.get(big_slices[d1][s][4*d1 + s]),d3_cycles_map.get(big_slices[d1][s + 1][4*d1 + s + 1])).setMinPage(3);
+        BPC4.addStructline(slices.get([d1,s]).get(4*d1 + s),slices.get([d1, s + 1]).get(4*d1 + s + 1)).setMinPage(5);
     }
 }
 
-for(let d1 = 2; d1 < d1max; d1++ ){
-    for(let i = d1 + 2; i <= 2*d1; i += 4){
-        let source = big_slices[d1][0][i];
-        let sourceClass = d3_cycles_map.get(source);
-        if(d1 < d1max - 1 && d3_cycles_map.has(big_slices[d1+1][0][source.stem - 1])){
-            sseq.addDifferential(sourceClass, d3_cycles_map.get(big_slices[d1+1][0][source.stem - 1]), 5);
-        } else {
-            sourceClass.setPage(5);
-        };
-    }
-}
+slices.addDifferentialLeibniz(5, [2,0], 4, [3,0], [[1,0,1],[4,0,8]], [[0,20],[0,10]]);
+slices.addDifferentialLeibniz(5, [2, 0], 8, [3,0], [[2,0,4],[4,0,16]], [[0,10],[0,10]]);
+slices.addDifferentialLeibniz(5, [3, 0], 9, [4,0], [[2,0,4],[4,0,16]], [[0,10],[0,10]]);
+slices.addDifferentialLeibniz(5, [3, 0], 11, [4,0], [[2,0,4],[4,0,16]], [[0,10],[0,10]]);
 
-for(let d1_a= 2; d1_a < d1max; d1_a += 2){
-    for(let d1_translate = 0; d1_translate + d1_a < d1max; d1_translate += 4){
-        for(let eps = 0; eps <= 2; eps++){
-            let stem = 4 + 2*d1_a + 4*d1_translate + eps + (eps == 2 ? 1 : 0);
-            let d1 = d1_a + d1_translate + (eps == 0 ? 0 : 1);
-            let source = big_slices[d1][0][stem];
-            let sourceClass = d3_cycles_map.get(source);
-            if(d1 + 1 < d1max){
-                let target = big_slices[d1 + 1][0][stem - 1];
-                sseq.addDifferential(sourceClass, d3_cycles_map.get(target),5);
-            }
-        }
-    }
-}
-
-for(let d1_a = 2; d1_a < d1max; d1_a += 2){
-    for(let d1_translate = 0; d1_translate + d1_a < d1max; d1_translate += 2){
-        let stem = 4 + 2*d1_a + 4*d1_translate;
-        let d1 = d1_a + d1_translate;
-        if(d1_translate % 4 === 0 || (d1_translate + 2*d1_a) % 8 === 6 ) {
-            let source = big_slices[d1][0][stem];
-            let sourceClass = d3_cycles_map.get(source);
-            if (d1 + 1 < d1max) {
-                let target = big_slices[d1 + 1][1][stem - 1];
-                sseq.addDifferential(sourceClass, d3_cycles_map.get(target), 7);
-            }
-        }
-    }
-}
-
-for(let d1_a = 3; d1_a < d1max; d1_a += 4){
-    for(let d1_translate = 0; d1_translate + d1_a < d1max; d1_translate += 8){
-        for(let eps = 0; eps <= 1; eps++){
-            let stem = 5 + 2*d1_a + 4*d1_translate + 20*eps;
-            let d1 = d1_a + d1_translate + 6*eps;
-            if(d1 >= d1max){
-                continue;
-            }
-            let source = big_slices[d1][1][stem];
-            let sourceClass = d3_cycles_map.get(source);
-            if (d1 + 3 < d1max) {
-                let target = big_slices[d1 + 3][0][stem - 1];
-                sseq.addDifferential(sourceClass, d3_cycles_map.get(target), 11);
-            }
-        }
-    }
-}
+slices.addDifferentialLeibniz(7, [2, 0], 8, [3,1], [[2,0,4],[4,0,16]], [[0,10],[0,10]]);
+slices.addDifferentialLeibniz(7, [4, 0], 16, [5,1], [[4,0,8],[8,0,32]], [[0,10],[0,10]]);
+slices.addDifferentialLeibniz(7, [10, 0], 36, [11,1], [[4,0,8],[8,0,32]], [[0,10],[0,10]]);
 
 
-for(let d1_a = 5; d1_a < d1max; d1_a += 4){
-    for(let d1_translate = 0; d1_translate + d1_a < d1max; d1_translate += 4){
-        for(let eps = 0; eps <= 1; eps ++ ) {
-            let translate_parity = (d1_translate % 8) / 4;
-            if(translate_parity == 1 && eps == 1){
-                continue;
-            }
-            let stem = 7 + 2 * d1_a + 4 * d1_translate - 3 * translate_parity + eps;
-            let d1 = d1_a + d1_translate - translate_parity  + eps;
-            if (d1 >= d1max) {
-                continue;
-            }
-            let source = big_slices[d1][0][stem];
-            let sourceClass = d3_cycles_map.get(source);
-            if (d1 + 3 < d1max) {
-                let target = big_slices[d1 + 3][0][stem - 1];
-                sseq.addDifferential(sourceClass, d3_cycles_map.get(target), 13);
-            }
-        }
-    }
-}
+slices.addDifferentialLeibniz(11, [3, 1], 11, [6, 0], [[4,0,8],[8,0,32]], [[0,10],[0,10]]);
+slices.addDifferentialLeibniz(11, [9, 1], 31, [12, 0], [[4,0,8],[8,0,32]], [[0,10],[0,10]]);
 
-// sseq.addDifferential(d3_cycles_map.get(new sliceMonomial(2, 0, 0, 2, 0)), d3_cycles_map.get(new sliceMonomial(3, 0, 0, 3, 3)), 5)
-//     .addInfoToSourceAndTarget();
+slices.addDifferentialLeibniz(13, [5, 0], 17, [8, 0], [[4,0,8],[8,0,32]], [[0,10],[0,10]]);
+slices.addDifferentialLeibniz(13, [6, 0], 18, [9, 0], [[4,0,8],[8,0,32]], [[0,10],[0,10]]);
+slices.addDifferentialLeibniz(13, [8, 0], 30, [11, 0], [[4,0,8],[8,0,32]], [[0,10],[0,10]]);
+slices.addDifferentialLeibniz(13, [11, 0], 37, [14, 0], [[4,0,8],[8,0,32]], [[0,10],[0,10]]);
 
-// this.tooltip_div = body.append("div")
-//     .attr("id", "tooltip_div")
-//     .attr("class", "tooltip")
-//
-// body.append("div")
 
-sseq.display();
+
+
+
+
+
+
+
+BPC4.display();

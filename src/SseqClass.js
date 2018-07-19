@@ -1,7 +1,7 @@
 "use strict";
 
 
-let Dummy = require("./Dummy.js");
+let Util = require("./Util.js");
 
 
 /**
@@ -54,7 +54,7 @@ class Node {
             return Node._dummy;
         }
         let dummy = new Node();
-        let chainableNoOp = Dummy.getDummyConstantFunction(dummy);
+        let chainableNoOp = Util.getDummyConstantFunction(dummy);
         dummy.isDummy = function(){ return true; };
         dummy.setShape = chainableNoOp;
         dummy.setColor = chainableNoOp;
@@ -148,24 +148,24 @@ class SseqClass {
         let dummy = Object.create(SseqClass);
         SseqClass._dummy = dummy;
 
-        let chainableNoOp = Dummy.getDummyConstantFunction(dummy);
+        let chainableNoOp = Util.getDummyConstantFunction(dummy);
 
-        dummy.isDummy = Dummy.getDummyConstantFunction(true);
-        dummy.getName = Dummy.getDummyConstantFunction("dummy");
-        dummy.getColor = Dummy.getDummyConstantFunction("black");
-        dummy.getShape = Dummy.getDummyConstantFunction(null);
-        dummy.getTooltip = Dummy.getDummyConstantFunction("");
-        dummy.getPage = Dummy.getDummyConstantFunction(-1);
-        dummy.getNode = Dummy.getDummyConstantFunction(Node.getDummy());
+        dummy.isDummy = Util.getDummyConstantFunction(true);
+        dummy.getName = Util.getDummyConstantFunction("dummy");
+        dummy.getColor = Util.getDummyConstantFunction("black");
+        dummy.getShape = Util.getDummyConstantFunction(null);
+        dummy.getTooltip = Util.getDummyConstantFunction("");
+        dummy.getPage = Util.getDummyConstantFunction(-1);
+        dummy.getNode = Util.getDummyConstantFunction(Node.getDummy());
         dummy.toString = dummy.getName;
         dummy.constructor = SseqClass.constructor;
 
         dummy.replace = chainableNoOp;
         dummy.addExtraInfo = chainableNoOp;
-        Dummy.setPrivateMethodsToInvalidOperation(dummy);
-        Dummy.setDummyMethods(dummy, p => p.startsWith("set"), () => chainableNoOp );
+        Util.setPrivateMethodsToInvalidOperation(dummy);
+        Util.setDummyMethods(dummy, p => p.startsWith("set"), () => chainableNoOp );
 
-        Dummy.checkAllCommandsDefined(dummy, SseqClass);
+        Util.checkAllCommandsDefined(dummy, SseqClass);
         return dummy;
     }
 

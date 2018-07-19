@@ -15,8 +15,8 @@ const vmax = 20;
 const bmax = 40;
 
 classes = sseq.addPolynomialClasses(
-    {   "a" : [3,1], "b" : [10,2],   "v" : [12,0] },
-      [["a", 0, 1], ["b", 0, bmax], ["v", vmin, vmax]])
+    {   "\\alpha" : [3,1], "\\beta" : [10,2],   "v" : [12,0] },
+      [["\\alpha", 0, 1], ["\\beta", 0, bmax], ["v", vmin, vmax]])
 
 
 Znode = new SseqNode();
@@ -26,6 +26,7 @@ Znode.size = 8;
 pZnode = Znode.copy();
 pZnode.fill = false;
 
+sseq.onDifferentialAdded((d) => d.addInfoToSourceAndTarget());
 
 for(let v = vmin + 1; v < vmax; v++){
     if(classes.has({"v" : v})){
@@ -33,11 +34,11 @@ for(let v = vmin + 1; v < vmax; v++){
     }
 }
 
-classes.addStructline("a");
-classes.addStructline("b");
+classes.addStructline("\\alpha");
+classes.addStructline("\\beta");
 
-classes.addDifferential(5, [1, 2,-2], k => k[2] % 3 !== 0 && k[0] === 0, (d, _) => d.addInfoToSourceAndTarget().setStructlinePages());
-classes.addDifferential(9, [-1,5,-4], k => (mod(k[2], 6) === 4 || mod(k[2],6) == 1) && k[0] === 1, (d, _) => d.addInfoToSourceAndTarget());
+classes.addDifferential(5, [1, 2,-2], k => k[2] % 3 !== 0 && k[0] === 0, (d) => d.setStructlinePages());
+classes.addDifferential(9, [-1,5,-4], k => (mod(k[2], 6) === 4 || mod(k[2],6) == 1) && k[0] === 1);
 
 for(let b = 0; b <= 1; b++){
     for(let v = 11; v < 9; v += 3){

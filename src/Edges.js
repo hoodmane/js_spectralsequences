@@ -1,6 +1,6 @@
 "use strict";
 
-let Dummy = require("./dummy.js");
+let Dummy = require("./Util.js");
 
 class Edge {
     /**

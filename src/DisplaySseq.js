@@ -1,4 +1,7 @@
 let SseqClass = require("./SseqClass.js").SseqClass;
+let Util = require("./Util.js");
+
+
 
 /**
  *
@@ -28,6 +31,7 @@ class DisplaySseq {
      * @package
      */
     _calculateDrawnElements(page, xmin, xmax, ymin, ymax){
+        Util.checkArgumentsDefined(DisplaySseq.prototype._calculateDrawnElements, arguments);
         let pageRange;
         if(Array.isArray(page)){
             pageRange = page;

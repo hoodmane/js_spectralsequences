@@ -12,6 +12,7 @@ let Extension = Edges.Extension;
 let Differential = Edges.Differential;
 let monomial_basisjs = require("./monomial_basis.js");
 let monomial_basis = monomial_basisjs.monomial_basis;
+let slice_basis = monomial_basisjs.slice_basis;
 
 exports.monomialString = monomial_basisjs.monomialString;
 exports.range = monomial_basisjs.range;
@@ -173,24 +174,6 @@ class Sseq {
     }
 
 
-
-    /**
-     * Gets recalculated by _calculateDrawnElements.
-     * @returns {Array|SseqClass} The list of classes currently being displayed.
-     */
-    getClassesToDisplay(){
-        return this.display_classes;
-    }
-
-
-    /**
-     * Gets recalculated by _calculateDrawnElements.
-     * @returns {Array|Edge} The list of edges currently being displayed.
-     */
-    getEdgesToDisplay(){
-        return this.display_edges;
-    }
-
     /**
      * Adds a structline from source to target.
      * @param source
@@ -339,69 +322,19 @@ class Sseq {
        return new monomial_basis(this, var_degree_dict, var_spec_list, module_generators);
    }
 
-    static _validateVarSpec(var_spec, var_degree_dict, index){
-        let err_string = "Invalid variable specification '" + var_spec + "' at position " + index + ".";
-        if(!Array.isArray(var_spec)){
-            throw err_string + " Variable specification must be a list.";
+    addSliceClasses(var_degree_dict, var_spec_list, make_slice){
+        if(!Array.isArray(var_spec_list)){
+            throw "Second argument of addPolynomialClasses should be an array"
         }
 
-        if(var_spec.length < 2 || var_spec.length > 4 ){
-            throw err_string + " Variable specification should be of length at least 2 and at most 4.";
-        }
-
-
-        if(typeof var_spec[0] !== 'string'){
-            throw err_string + " First entry of variable specification should be a string, the name of a variable.";
-        }
-
-        if(!var_degree_dict.hasOwnProperty(var_spec[0])){
-            throw err_string + " Variable '" + var_spec[0] + "' does not have an entry in the degree dictionary";
-        }
-
-        for(let i = 1; i < var_spec.length; i++){
-            if(!Number.isInteger(var_spec[i])){
-                throw err_string + " Expecting an integer in position '" + i + "'."
-            }
-        }
-
-
+        return new slice_basis(this, var_degree_dict, var_spec_list, make_slice);
     }
 
 
-    /**
-     * This is an internal method used by display to calculate the set of features to be displayed on the current page.
-     * @param page
-     * @param xmin
-     * @param xmax
-     * @param ymin
-     * @param ymax
-     * @package
-     */
-    _calculateDrawnElements(page, xmin, xmax, ymin, ymax){
-        let pageRange;
-        if(Array.isArray(page)){
-            pageRange = page;
-            page = page[0];
-        } else {
-            pageRange = [page,page];
-        }
-        this.display_classes = this.classes.filter(c => {c.in_range = c._inRangeQ(xmin, xmax, ymin, ymax); return c.in_range && c._drawOnPageQ(page);});
-        this.display_edges = this.edges.filter(e =>
-            e._drawOnPageQ(pageRange)
-            && e.source._drawOnPageQ(page) && e.target._drawOnPageQ(page)
-            && ( e.source.in_range || e.target.in_range )
-        );
-
-        for(let i = 0; i < this.display_edges.length; i++){
-            let e = this.display_edges[i];
-            if(!e.source.in_range){
-                this.display_classes.push(e.source);
-            }
-            if(!e.target.in_range){
-                this.display_classes.push(e.target);
-            }
-        }
+    getSurvivingClasses(page){
+        return this.classes.filter((c) => c.page_list[c.page_list.length-1] >= page);
     }
+
 
 
     /* For display: */

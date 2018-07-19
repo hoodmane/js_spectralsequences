@@ -198,6 +198,11 @@ class Display {
 
         // The sseq object contains the list of valid pages. Always includes at least 0 and infinity.
         this.page_idx = this.sseq.min_page_idx;
+        if(this.page_idx >= this.sseq.page_list.length){
+            console.log(`Warning: min_page_idx ${this.sseq.min_page_idx} greater than page list length ${this.sseq.page_list.length}. Using 0 for min_page_idx instead.`);
+            this.page_idx = 0;
+            this.min_page_idx = 0;
+        }
         this.setPage();
 
         if(resetScale) {
