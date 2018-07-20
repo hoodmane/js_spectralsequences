@@ -4,7 +4,9 @@ if(MathJax && MathJax.Hub){
         tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']], displayMath: [ ['$$','$$'], ['\[','\]'] ]},
         jax: ["input/TeX","output/SVG"],
         extensions: ["toMathML.js", "AMSsymbols.js"],
-        TeX: {},
+        TeX: {
+            extensions: ["color.js"]
+        },
         "HTML-CSS": {
           scale: 100
         }

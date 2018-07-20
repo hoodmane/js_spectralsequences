@@ -60,3 +60,14 @@ exports.checkArgumentsDefined = function(func, args){
         }
     }
 }
+
+
+/**
+ * Map method get with default.
+ * @param key
+ * @param value
+ * @returns {*}
+ */
+Map.prototype.getOrElse = function(key, value) {
+    return this.has(key) ? this.get(key) : value;
+};

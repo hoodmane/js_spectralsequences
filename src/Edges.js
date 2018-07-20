@@ -188,8 +188,8 @@ class Differential extends Edge {
      * @returns {Differential} chainable
      */
     addInfoToSourceAndTarget(){
-        this.source.addExtraInfo(this);
-        this.target.addExtraInfo(this);
+        this.source.addExtraInfo(this.toString(true,false));
+        this.target.addExtraInfo(this.toString(false,true));
         return this;
     }
 
@@ -224,8 +224,16 @@ class Differential extends Edge {
         return this;
     }
 
-    toString(){
-        return `\\(d_{${this.page}}(${this.source_name}) = ${this.target_name}\\)`;
+    toString(highlight_source, highlight_target){
+        let source = this.source_name;
+        let target = this.target_name;
+        if(highlight_source){
+            source = `\\textcolor{blue}{${source}}`;
+        }
+        if(highlight_target){
+            target = `\\textcolor{blue}{${target}}`
+        }
+        return `\\(d_{${this.page}}(${source}) = ${target}\\)`;
     }
 
     /**

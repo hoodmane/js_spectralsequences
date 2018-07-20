@@ -14,6 +14,13 @@ let monomial_basisjs = require("./monomial_basis.js");
 let monomial_basis = monomial_basisjs.monomial_basis;
 let slice_basis = monomial_basisjs.slice_basis;
 
+exports.DisplaySseq = DisplaySseq;
+exports.SseqClass = SseqClass;
+exports.Node = Node;
+exports.Edge = Edge;
+exports.Differential = Differential
+exports.Structline = Structline;
+exports.Extension = Extension;
 exports.monomialString = monomial_basisjs.monomialString;
 exports.range = monomial_basisjs.range;
 exports.StringifyingMap = monomial_basisjs.StringifyingMap;
@@ -22,15 +29,6 @@ exports.StringifyingMap = monomial_basisjs.StringifyingMap;
 
 let StringifyingMap = require("./StringifyingMap.js");
 
-/**
- * Map method get with default.
- * @param key
- * @param value
- * @returns {*}
- */
-Map.prototype.getOrElse = function(key, value) {
-  return this.has(key) ? this.get(key) : value;
-};
 
 
 /**
@@ -92,6 +90,7 @@ class Sseq {
         this.xshift = 0;
         this.yshift = 0;        
         this.offset_size = 10;
+        this.class_scale = 1;
         this.min_page_idx = 0;
         this.page_list = [0,infinity];
         this.default_node = new Node();
@@ -139,6 +138,10 @@ class Sseq {
     onExtensionAdded(f){
         this.on_extension_added = f;
         return this;
+    }
+
+    onDraw(f){
+        this.on_draw = f;
     }
 
 
@@ -332,6 +335,9 @@ class Sseq {
 
 
     getSurvivingClasses(page){
+       if(page===undefined){
+           page = infinity - 1;
+       }
         return this.classes.filter((c) => c.page_list[c.page_list.length-1] >= page);
     }
 
@@ -339,35 +345,6 @@ class Sseq {
 
     /* For display: */
 
-    /**
-     * If multiple classes are in the same (x,y) location, we offset their position a bit to avoid clashes.
-     * Gets called by display code.
-     * @returns {number} The x offset
-     * @package
-     */
-    _getXOffset(c){
-        if(c.x_offset !== false){
-            return c.x_offset;
-        }
-        let total_classes = this.num_classes_by_degree.get([c.x, c.y]);
-        let idx = c.idx;
-        return (idx - (total_classes - 1)/2) * this.offset_size;
-    }
-
-    /**
-     * If multiple classes are in the same (x,y) location, we offset their position a bit to avoid clashes.
-     * Gets called by display code.
-     * @returns {number} The y offset
-     * @package
-     */
-    _getYOffset(c){
-        if(c.x_offset !== false){
-            return c.y_offset;
-        }
-        let total_classes = this.num_classes_by_degree.get([c.x, c.y]);
-        let idx = c.idx;
-        return -(idx - (total_classes - 1)/2) * this.offset_size;
-    }
 
     /**
      * Get tooltip.
@@ -391,11 +368,19 @@ class Sseq {
         dss.initialyRange = this.initialyRange;
         dss.xRange = this.xRange;
         dss.yRange = this.yRange;
+        dss.on_draw = this.on_draw;
+        dss.class_scale = this.class_scale;
 
         dss.num_classes_by_degree = this.num_classes_by_degree;
-        dss._getXOffset = this._getXOffset;
-        dss._getYOffset = this._getYOffset;
-        dss.offset_size = this.offset_size;
+        if(this._getXOffset){
+            dss._getXOffset = this._getXOffset;
+        }
+        if(this._getYOffset){
+            dss._getYOffset = this._getYOffset;
+        }
+        if(this.offset_size){
+            dss.offset_size = this.offset_size;
+        }
 
 
         let classMap = new StringifyingMap();
@@ -432,12 +417,7 @@ class Sseq {
     }
 
     display(){
-        let dss = this.getDisplaySseq();
-        if(window.display){
-            window.display.setSseq(dss);
-        } else {
-            window.display = new Display(dss);
-        }
+        this.getDisplaySseq().display();
     }
 }
 

@@ -1,6 +1,8 @@
 "use strict";
 
-exports.circle = {
+let Shapes = {};
+
+Shapes.circle = {
     draw : function(context) {
         context.beginPath();
         context.arc(0, 0, this.size(), 0, 2 * Math.PI, false);
@@ -19,7 +21,7 @@ exports.circle = {
 }
 
 
-exports.square = {
+Shapes.square = {
     draw : function(context) {
         let size = this.size();
         context.beginPath();
@@ -37,4 +39,9 @@ exports.square = {
         context.fillStrokeShape(this);
         this.fillEnabled(save_fill);
     }
+}
+
+for(let k of Object.getOwnPropertyNames(Shapes)){
+    Shapes[k].name = k;
+    exports[k] = Shapes[k];
 }

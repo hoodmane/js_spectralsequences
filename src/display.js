@@ -394,6 +394,7 @@ class Display {
 
         this.xGridStep = (Math.floor(this.xTickStep / 5) === 0) ? 1 : Math.floor(this.xTickStep / 5);
         this.yGridStep = (Math.floor(this.yTickStep / 5) === 0) ? 1 : Math.floor(this.yTickStep / 5);
+        this.xGridStep = this.yGridStep // TODO: Clean up Danny mod
     }
 
     _drawGrid() {
@@ -436,6 +437,9 @@ class Display {
         this.sseq._calculateDrawnElements(this.pageRange, this.xmin, this.xmax, this.ymin, this.ymax);
         this._drawClasses();
         this._drawEdges();
+        if(this.sseq.on_draw){
+            this.sseq.on_draw(this);
+        }
     }
 
 
@@ -462,9 +466,26 @@ class Display {
             if (!s) {
                 continue;
             }
+
+            let invalid_coords = ["x","y"].filter(v => isNaN(c[v]));
+            if(invalid_coords.length > 0){
+                console.log(`Invalid ${invalid_coords.join(" and ")} coodinate${invalid_coords.length === 2 ? "s" : ""} for class:`);
+                console.log(c);
+            }
+            // let invalid_offsets = ["x","y"].filter((v) => this.sseq[`_get${v.toUpperCase()}Offset`](c));
+            // if(invalid_offsets.length > 0){
+            //     console.log(`Invalid ${invalid_offsets.join(" and ")} offset${invalid_offsets.length === 2 ? "s" : ""} for class:`);
+            //     console.log(c);
+            // }
+
             s.setPosition({x: this.xScale(c.x) + this.sseq._getXOffset(c), y: this.yScale(c.y) + this.sseq._getYOffset(c)});
-            s.setNode(this.sseq.getClassNode(c,this.page));
-            s.size(s.size() * scale_size);
+            let node = this.sseq.getClassNode(c,this.page);
+            if(node === undefined){
+                console.log("Error: node for class is undefined. Using default node."); console.log(c);
+                node = this.sseq.default_node;
+            }
+            s.setNode(node);
+            s.size(s.size() * scale_size * this.sseq.class_scale);
             this.classLayer.add(s);
         }
 
@@ -534,6 +555,9 @@ class Display {
         this.classLayer.removeChildren();
         for (let i = 0; i < classes.length; i++) {
             let c = classes[i];
+            if(! Number.isInteger(c.x) || !Number.isInteger(c.y)){
+                console.log("Class has invalid coordinates:\n" ); console.log(c);
+            }
             c.canvas_shape = new Konva.Shape();
             c.canvas_shape.sseq_class = c;
             c.canvas_shape.on('mouseover', (event) => this._handleMouseover(event.currentTarget));
@@ -569,7 +593,7 @@ class Display {
             this.tooltip_div_dummy.html(c.tooltip_html);
             this._setupTooltipDiv(shape);
         } else {
-            let tooltip = sseq.getTooltip(c, this.page).replace(/\n/g, "\n<hr>\n");
+            let tooltip = this.sseq.getClassTooltip(c, this.page).replace(/\n/g, "\n<hr>\n");
             if (MathJax && MathJax.Hub) {
                 this.tooltip_div_dummy.html(tooltip);
                 MathJax.Hub.Queue(["Typeset", MathJax.Hub, "tooltip_div_dummy"]);

@@ -12,8 +12,17 @@ window.mod = function(n,d){
 
 window.Shapes = require("./Shape.js");
 window.Display = require("./display.js").Display;
+
 let Sseqjs = require("./Sseq.js");
 window.Sseq = Sseqjs.Sseq;
+window.DisplaySseq = Sseqjs.DisplaySseq;
+window.SseqClass = Sseqjs.SseqClass;
+window.Node = Sseqjs.Node;
+window.Edge = Sseqjs.Edge;
+window.Differential = Sseqjs.Differential
+window.Structline = Sseqjs.Structline;
+window.Extension = Sseqjs.Extension;
+
 window.d3 = require("d3");
 
 window.range = Sseqjs.range;

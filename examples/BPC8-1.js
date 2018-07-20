@@ -55,6 +55,7 @@ class sliceMonomial {
     constructor(d1, s1, as2, al, as){
         this.d1 = d1;
         this.s1 = s1;
+        this.d3 = 0;
         this.as2 = as2;
         this.al = al;
         this.as = as;
@@ -75,6 +76,13 @@ class sliceMonomial {
         this._induced = s1 > 0;
     }
 
+    copy(){
+        let out = Object.create(sliceMonomial);
+        out.__proto__ = sliceMonomial.prototype;
+        Object.assign(out, this);
+        return out;
+    }
+
     degree(){
         return [this.stem, this.filtration];
     }
@@ -93,13 +101,17 @@ class sliceMonomial {
 
     toString() {
         return subnomialString(
-            [["u","\\sigma_2"], ["u","\\lambda"], ["u", "\\sigma"],
-             ["a","\\sigma_2"], ["a","\\lambda"], ["a", "\\sigma"]],
-            [this.us2, this.ul, this.us,
-             this.as2, this.al, this.as],
-            monomialString(["\\overline{\\mathfrak{d}}_1", "\\overline{s}_1"],[this.d1,this.s1]));
+            [["u","\\lambda"], ["u", "\\sigma"], ["u","\\sigma_2"],
+                ["a","\\lambda"], ["a", "\\sigma"], ["a","\\sigma_2"]],
+            [this.ul, this.us, this.us2,
+                this.al, this.as, this.as2],
+            monomialString(["\\overline{\\mathfrak{d}}_3","\\overline{\\mathfrak{d}}_1", "\\overline{s}_1"],[this.d3, this.d1,this.s1]));
     }
-    
+
+    sliceName(){
+        return monomialString(["\\overline{\\mathfrak{d}}_3","\\overline{\\mathfrak{d}}_1", "\\overline{s}_1"],[this.d3, this.d1,this.s1]);
+    }
+
 }
 
 
@@ -119,18 +131,18 @@ let BPC4 = new Sseq();
 BPC4.addPageRangeToPageList([5,15]);
 BPC4.min_page_idx = 1;
 let s1max = 10;
-let d1max = 50;
+let d1max = 100;
 
 BPC4.xRange = [0, 100];
-BPC4.yRange = [0, 50];
+BPC4.yRange = [0, 40];
 
 BPC4.initialxRange = [0, 20];
 BPC4.initialyRange = [0, 16];
 
 let differential_colors = {
     3 : "blue",
-    5 : "blue",
-    7 : "red",
+    5 : "#40E0D0", // turquoise -- cyan is too bright
+    7 : "magenta",
     11 : "green",
     13 : "orange"
 };
@@ -171,8 +183,8 @@ function addSlice(sseq, elt) {
         let sseq_class = sseq.addClass(...c.degree())
             .setName(c.toString())
             .setNode(Groups[c.group()]);
-        sseq_class.getNode().setColor(c.is_induced() ? "blue" : "black");
         sseq_class.group = c.group();
+        sseq_class.E2group = c.group();
         sseq_class.slice = c;
         if(s1 == 0){
             sseq_class.x_offset = 0;
@@ -184,7 +196,8 @@ function addSlice(sseq, elt) {
     return slice;
 }
 
-slices = BPC4.addSliceClasses({"\\overline{s}_1" : 2, "\\overline{\\mathfrak{d}}_1" : 4}, [["\\overline{\\mathfrak{d}}_1", 0, d1max],["\\overline{s}_1", 0, s1max]], addSlice);
+slices = BPC4.addSliceClasses({"\\overline{s}_1" : 2, "\\overline{\\mathfrak{d}}_1" : 4},
+    [["\\overline{\\mathfrak{d}}_1", 0, d1max],["\\overline{s}_1", 0, 3]], addSlice);
 
 slices.addDifferential(3, [0, 1], (k, stem, filtration) => (stem - filtration) % 8 === 4);
 
@@ -202,6 +215,7 @@ for(let d1 = 0; d1 < d1max; d1 += 2){
         BPC4.addStructline(slices.get([d1,s]).get(4*d1 + s),slices.get([d1, s + 1]).get(4*d1 + s + 1)).setMinPage(5);
     }
 }
+
 
 function addDifferential(page, source_slice, target_slice, stem, translation_multiple){
     let i = translation_multiple;
@@ -230,4 +244,93 @@ addDifferential(13, [8, 0], [11, 0], 30, 2);
 addDifferential(13, [11, 0],[14, 0], 37, 2);
 
 
-BPC4.display();
+// The logic here gets the coloring of the following classes wrong:
+//  (40,8) should be white fill
+//  (32,16) should be red
+//
+function getTruncationClasses(n){
+    let out = [];
+    for(let c of BPC4.classes){
+        if(c.x + c.y >= 4*n && c.incoming_differentials.length > 0){
+            for(let i = 0; i < c.incoming_differentials.length; i++){
+                let d = c.incoming_differentials[i];
+                if(d.source.x + d.source.y < 4*n && c.incoming_differentials[c.incoming_differentials.length - 1].page > 3){
+                    let node = c.getNode();
+                    node.stroke = differential_colors[d.page];
+                    node.color = differential_colors[d.page];
+                    c.slice.d1 -= n;
+                    c.slice.d3 = n/3;
+                    c.name = c.slice.toString();
+                    if(c.E2group === "Z4"){
+                        if(c.outgoing_differentials.length > 0){
+                            node.fill = "red";
+                            c.name = "2\\," + c.name;
+                        } else {
+                            if(i > 0){
+                                node.fill = "grey";
+                            } else {
+                                node.fill = "white";
+                            }
+                        }
+                    }
+                    out.push(c);
+                    break;
+                }
+            }
+        }
+    }
+    return out;
+}
+
+
+
+
+let truncation_sseq = new Sseq();
+truncation_sseq.xRange = [0, 100];
+truncation_sseq.yRange = [0, 50];
+
+truncation_sseq.initialxRange = [0, 40];
+truncation_sseq.initialyRange = [0, 40];
+
+//truncation_sseq.min_page_idx = BPC4.page_list.length - 1;
+
+for(let c of BPC4.getSurvivingClasses()){
+    let nc = truncation_sseq.addClass(c.x,c.y);
+    nc.name = c.name;
+    if(c.group === "4Z"){
+        nc.name = "4\\," + nc.name;
+    } else if(c.group === "2Z" || c.outgoing_differentials.length > 0){
+        nc.name = "2\\," + nc.name;
+    }
+    let slice_names = [];
+    for(let d3 = 0; d3 < c.slice.d1/3; d3 ++){
+        let slice = c.slice.copy();
+        slice.d3 = d3;
+        slice.d1 -= 3*d3;
+        slice_names.push(`\\(${slice.sliceName()}\\)`);
+    }
+    for(i = 0; i < slice_names.length; i+=5){
+        nc.addExtraInfo(slice_names.slice(i,i+5).join(", "));
+    }
+    nc.setNode(c.getNode());
+}
+
+
+for(let n = 0; n < 100; n += 1){
+    for(c of getTruncationClasses(n)){
+        let nc = truncation_sseq.addClass(c.x,c.y);
+        nc.name = c.name;
+        let idx = nc.idx;
+        Object.assign(nc, c);
+        let node;
+        node = c.node_list[c.node_list.length - 1].copy();
+        let dlength = c.incoming_differentials[c.incoming_differentials.length - 1].page;
+        nc.idx = idx;
+        nc.page_list = [infinity];
+        nc.node_list = [node];
+    }
+}
+
+
+
+truncation_sseq.display();
