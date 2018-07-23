@@ -22,6 +22,7 @@ window.Edge = Sseqjs.Edge;
 window.Differential = Sseqjs.Differential
 window.Structline = Sseqjs.Structline;
 window.Extension = Sseqjs.Extension;
+window.Util = require("./Util.js");
 
 window.d3 = require("d3");
 

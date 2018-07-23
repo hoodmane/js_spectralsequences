@@ -104,19 +104,14 @@ class Display {
         Mousetrap.bind('right', this.nextPage);
 
         // TODO: ad hoc changes here:
-        Mousetrap.bind('z',
+
+        Mousetrap.bind('x',
             () => {
                 if(this.mouseover_class){
-                    if(this.last_class){
-                        console.log([this.mouseover_class.x - this.last_class.x, this.mouseover_class.y - this.last_class.y]);
-                        this.last_class = null;
-                    } else {
-                        this.last_class = this.mouseover_class;
-                    }
+                    console.log(this.mouseover_class);
                 }
             }
         )
-
 
 
         for(let key of Object.getOwnPropertyNames(this.sseq.keyHandlers)){
@@ -152,10 +147,10 @@ class Display {
         this.height = this.stage.height();
 
         // TODO: Allow programmatic control over margins.
-        this.leftMargin = 40;
+        this.leftMargin = 30;
         this.rightMargin = 5;
-        this.topMargin = 5;
-        this.bottomMargin = 60;
+        this.topMargin = 20;
+        this.bottomMargin = 30;
 
         for(let side of ["left", "right", "top", "bottom"]){
             let field = side + "Margin"
@@ -507,8 +502,7 @@ class Display {
         context.clearRect(0, 0, this.width, this.height);
         context.save();
 
-        let classes = this.sseq.getClassesToDisplay();
-        this.classLayer.removeChildren();
+
 
         let scale_size;
         if (this.scale < 1 / 2) {
@@ -519,8 +513,12 @@ class Display {
             scale_size = this.scale;
         }
 
-        for (let i = 0; i < classes.length; i++) {
-            let c = classes[i];
+        this.classLayer.removeChildren();
+        for (let c of this.sseq.getClassesToDisplay()) {
+            if(!c){ // TODO: should we log these cases?
+                continue;
+            }
+
             let s = c.canvas_shape;
             if (!s) {
                 continue;
@@ -536,7 +534,6 @@ class Display {
             //     console.log(`Invalid ${invalid_offsets.join(" and ")} offset${invalid_offsets.length === 2 ? "s" : ""} for class:`);
             //     console.log(c);
             // }
-
 
             s.setPosition({x: this.xScale(c.x + this.sseq._getXOffset(c)), y: this.yScale(c.y + this.sseq._getYOffset(c))});
 
@@ -572,11 +569,14 @@ class Display {
         let edges = this.sseq.getEdgesToDisplay();
         for (let i = 0; i < edges.length; i++) {
             let e = edges[i];
-            if(!e || e.invalid){
+            if(!e || e.invalid){ // TODO: should probably log some of the cases where we skip an edge...
                 continue;
             }
             let source_shape = e.source.canvas_shape;
             let target_shape = e.target.canvas_shape;
+            if(!source_shape || ! target_shape){
+                continue;
+            }
             context.beginPath();
             if (!e.sourceOffset || (e.sourceOffset.x === 0 && e.sourceOffset.y === 0)) {
                 e.sourceOffset = {x: 0, y: 0};
@@ -627,13 +627,15 @@ class Display {
     }
 
     _addClasses() {
-        let classes = this.sseq.classes;
         this.classLayer.removeChildren();
-        this.stage.on("click", () => console.log("hi"));
-        for (let i = 0; i < classes.length; i++) {
-            let c = classes[i];
+        for (let c of this.sseq.classes) {
+            if(!c){ // TODO: should we log invalid classes?
+                continue;
+            }
+
             if(! Number.isInteger(c.x) || !Number.isInteger(c.y)){
                 console.log("Class has invalid coordinates:\n" ); console.log(c);
+                continue;
             }
             c.canvas_shape = new Konva.Shape();
             c.canvas_shape.sseq_class = c;

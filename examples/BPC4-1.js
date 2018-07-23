@@ -257,5 +257,8 @@ addDifferential(13, {"d1" : 6}, {"d1" : 9}, 18, 2);
 addDifferential(13, {"d1" : 8}, {"d1" : 11}, 30, 2);
 addDifferential(13, {"d1" : 11},{"d1" : 14}, 37, 2);
 
+console.log(BPC4.classes[10].name);
+
 
 BPC4.display();
+

@@ -288,6 +288,7 @@ function getTruncationClasses(n){
                     c.slice.d1 -= n;
                     c.slice.d3 = n/3;
                     c.name = c.slice.toString();
+                    c.cut_length = d.page;
                     if(c.E2group === "Z4"){
                         if(c.outgoing_differentials.length > 0){
                             node.fill = "red";
@@ -401,18 +402,12 @@ for(let c of BPC4.getSurvivingClasses()){
 }
 
 
+let msgs = 0;
 for(let n = 0; n < max_diagonal; n += 3){
     for(c of getTruncationClasses(n)){
         let nc = truncation_sseq.addClass(c.x,c.y);
-        let idx = nc.idx;
-        Object.assign(nc, c);
-        let node;
-        node = c.node_list[c.node_list.length - 1].copy();
-        let dlength = c.incoming_differentials[c.incoming_differentials.length - 1].page;
-        nc.idx = idx;
-        nc.page_list = [infinity];
-        nc.node_list = [node];
-        nc.extra_info = "";
+        Util.assignFields(nc, c, ["name"]);
+        nc.setNode(c.getNode(c.cut_length - 1));
         partitionList(c.slice.getSliceNames()).forEach((s) => nc.addExtraInfo(`\\(${s}\\)`));
         nc.addToMap(classes);
     }
@@ -558,17 +553,28 @@ truncation_sseq.onDraw((display) => {
     // page number
     context.clearRect(50,0,400,200)
     context.font = "15px Arial";
-    context.fillText(`Page ${display.pageRange}`,100,10);
+    context.fillText(`Page ${display.pageRange}`,100,12);
 });
+
+let dss = truncation_sseq.getDisplaySseq();
+window.dss = dss;
+dss.addKeyHandler('z',
+    () => {
+        if(this.mouseover_class){
+            if(this.last_class){
+                console.log([this.mouseover_class.x - this.last_class.x, this.mouseover_class.y - this.last_class.y]);
+                this.last_class = null;
+            } else {
+                this.last_class = this.mouseover_class;
+            }
+        }
+    }
+);
 
 truncation_sseq.topMargin = 20;
 truncation_sseq.squareAspectRatio = true;
 
-if(typeof window === "undefined"){
-    exports.sseq = truncation_sseq;
-} else {
-    truncation_sseq.display();
-    delete truncation_sseq;
-}
+truncation_sseq.display();
+window.truncation_sseq = truncation_sseq;
 
 

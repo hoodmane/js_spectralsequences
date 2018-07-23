@@ -179,7 +179,10 @@ class Sseq {
         if(this.on_class_added){
             this.on_class_added(c);
         }
+        c.display_class = {};
+        this.display_sseq.classes[c.class_list_index] = c.display_class;
         this.updateClass(c);
+        this.display_class_to_real_class.set(c.display_class, c);
         return c;
     }
 
@@ -212,7 +215,7 @@ class Sseq {
         if(this.on_structline_added){
             this.on_structline_added(struct);
         }
-        this.updateEdge(struct);
+        this.setupDisplayEdge(struct);
         return struct;
     }
 
@@ -228,16 +231,16 @@ class Sseq {
            console.log("addDifferential a SseqClass in position 1, got a number. Probably the arguments are in the wrong order.")
            return Differential.getDummy();
        }
-       if(source.constructor != SseqClass.constructor){
-           let err = new Error("addDifferential expected a SseqClass in position 1.");
-           console.log(err);
-           //return Differential.getDummy();
-       }
-        if(target.constructor != SseqClass.constructor){
-            console.log("addDifferential expected a SseqClass in position 2.")
-            console.log(target);
-            return Differential.getDummy();
-        }
+       // if(source.constructor != SseqClass.constructor){
+       //     let err = new Error("addDifferential expected a SseqClass in position 1.");
+       //     console.log(err);
+       //     //return Differential.getDummy();
+       // }
+       //  if(target.constructor != SseqClass.constructor){
+       //      console.log("addDifferential expected a SseqClass in position 2.")
+       //      console.log(target);
+       //      return Differential.getDummy();
+       //  }
         if(page <= 0){
             console.log("No page <= 0 differentials allowed.");
             return Differential.getDummy();
@@ -258,7 +261,7 @@ class Sseq {
         if(this.on_differential_added){
             this.on_differential_added(differential);
         }
-        this.updateEdge(differential);
+        this.setupDisplayEdge(differential);
         return differential;
     }
 
@@ -281,8 +284,42 @@ class Sseq {
         if(this.on_extension_added){
             this.on_extension_added(ext);
         }
-        this.updateEdge(ext);
+        this.setupDisplayEdge(ext);
         return ext;
+    }
+
+
+    setupDisplayEdge(edge) {
+        let display_edge = {};
+        edge.display_edge = display_edge;
+        this.display_sseq.edges[edge.edge_list_index] = display_edge;
+        display_edge.source = edge.source.display_class;
+        display_edge.target = edge.target.display_class;
+        display_edge.type = edge.constructor.name;
+
+        this.updateEdge(edge);
+    }
+
+    updateClass(c){
+        Util.assignFields(c.display_class, c,
+            [
+                "x", "y", "idx", "x_offset", "y_offset",
+                "name", "extra_info", "page_list", "node_list",
+                "visible",
+                "_inRangeQ", "_drawOnPageQ"
+            ]
+        );
+    }
+
+    updateEdge(edge){
+        let display_edge = edge.display_edge;
+        Util.assignFields(display_edge, edge,
+            [
+                "page", "page_min", "color", "source_name", "target_name",
+                "_drawOnPageQ"
+            ]
+        );
+        //this.display_sseq.update();
     }
 
     /**
@@ -388,42 +425,15 @@ class Sseq {
     }
 
 
-    updateClass(c){
-        let display_class = Util.getObjectWithFields(c,
-            [
-                "x", "y", "idx", "x_offset", "y_offset",
-                "name", "extra_info", "page_list", "node_list",
-                "visible",
-                "_inRangeQ", "_drawOnPageQ"
-            ]
-        );
-        c.display_class = display_class;
-        this.display_sseq.classes[c.class_list_index] = display_class;
-        for(let edge of c.edges){
-            if(edge.source === c){
-                edge.display_edge.source = display_class;
-            } else {
-                edge.display_edge.target = display_class;
-            }
-        }
-        this.display_class_to_real_class.set(display_class, c);
-        this.display_sseq.update();
-    }
 
-    updateEdge(edge){
-        let display_edge = Util.getObjectWithFields(edge,
-            [
-                "page", "page_min", "color", "source_name", "target_name",
-                "_drawOnPageQ"
-            ]
-        );
-        display_edge.source = edge.source.display_class;
-        display_edge.target = edge.target.display_class;
-        display_edge.type = edge.constructor.name;
-        this.display_sseq.edges[edge.edge_list_index] = display_edge;
-        this.display_edge_to_real_edge.set(display_edge, edge);
-        edge.display_edge = display_edge;
-        this.display_sseq.update();
+
+    update(){
+        for(let c of this.classes){
+            this.updateClass(c);
+        }
+        for(let e of this.edges){
+            this.updateEdge(e);
+        }
     }
 
     static getSseqFromDisplay(dss){
@@ -505,7 +515,9 @@ class Sseq {
         return dss;
     }
 
+
     display(){
+        this.update();
         this.getDisplaySseq().display();
     }
 }

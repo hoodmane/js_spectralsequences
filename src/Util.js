@@ -83,6 +83,13 @@ exports.getObjectWithFields = function(obj, fieldNames){
     return out;
 }
 
+exports.assignFields = function(dest, source, fieldNames){
+    for(let field of fieldNames){
+        dest[field] = source[field];
+    }
+    return dest;
+}
+
 /**
  * Map method get with default.
  * @param key
