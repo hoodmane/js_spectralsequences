@@ -34,6 +34,8 @@ function product() {
     }, [[]]);
 }
 
+exports.product = product;
+
 function convert_exponent_map_to_vector(var_list, exponent_map){
     return var_list.map(v => {
         if(exponent_map.hasOwnProperty(v)){
@@ -94,10 +96,13 @@ function vectorSum(k){
     }
     return out;
 }
+exports.vectorSum = vectorSum;
 
 function vectorScale(c, v){
     return v.map((x) => c*x);
 }
+
+exports.vectorScale = vectorScale;
 
 function vectorLinearCombination(vector_list, coefficient_list){
     let scaled_list = [];
@@ -106,18 +111,20 @@ function vectorLinearCombination(vector_list, coefficient_list){
     }
     return vectorSum(...scaled_list);
 }
+exports.vectorLinearCombination = vectorLinearCombination;
 
 
 class monomial_ring {
-    constructor(var_name_list, var_degree_dict, module_generators_dict){
+    constructor(var_list, var_name_list, var_degree_dict, module_generators_dict){
         this._var_degree_dict = var_degree_dict;
+        this._var_list = var_list;
         this._var_name_list = var_name_list;
-        this._var_degree_list = this._var_name_list.map( v => this._var_degree_dict[v] );
+        this._var_degree_list = this._var_list.map( v => this._var_degree_dict[v] );
         this._module_generators_dict = module_generators_dict;
     }
 
     _exponent_map_to_vector(var_powers_dict){
-        return convert_exponent_map_to_vector(this._var_name_list, var_powers_dict);
+        return convert_exponent_map_to_vector(this._var_list, var_powers_dict);
     }
 
     getElement(var_powers_dict, module_generator = "") {
@@ -172,6 +179,7 @@ class monomial_element {
             stem_degree += this._ring._module_generators_dict[this._module_generator][0];
             filtration += this._ring._module_generators_dict[this._module_generator][1];
         }
+
 
         for(let i = 0; i < this.exponent_vector.length; i++){
             stem_degree += this._ring._var_degree_list[i][0] * this.exponent_vector[i];
@@ -257,7 +265,7 @@ class monomial_basis {
         this._range_list = range_list;
 
 
-        this._ring = new monomial_ring(var_name_list, var_degree_dict, module_generators_dict);
+        this._ring = new monomial_ring(var_name_list, var_name_list, var_degree_dict, module_generators_dict);
 
         let l = product(this.module_generators,...range_list);
         for(let i = 0; i < l.length; i++){
@@ -449,6 +457,7 @@ class slice_basis {
         this.var_degree_dict = var_degree_dict;
         this.var_spec_list = var_spec_list;
 
+        let var_list = [];
         let var_name_list = [];
         let stem_list = [];
         let range_list = [];
@@ -457,8 +466,13 @@ class slice_basis {
             let var_spec = var_spec_list[i];
             let var_name = var_spec[0];
             monomial_basis._validateVarSpec(var_spec, var_degree_dict, i);
-            var_name_list.push(var_name);
-            stem_list.push(var_degree_dict[var_name]);
+            var_list.push(var_name);
+            if(var_degree_dict[var_name].name){
+                var_name_list.push(var_degree_dict[var_name].name);
+            } else {
+                var_name_list.push(var_name);
+            }
+            stem_list.push(var_degree_dict[var_name].degree);
             range_list.push(range(...var_spec.slice(1)));
         }
 
@@ -467,7 +481,7 @@ class slice_basis {
 
         let var_degree_dict_with_zeroes = Object.assign({}, ...Object.keys(var_degree_dict).map(k => ({[k]: [var_degree_dict[k],0]})));
 
-        this._ring = new monomial_ring(var_name_list, var_degree_dict_with_zeroes);
+        this._ring = new monomial_ring(var_list, var_name_list, var_degree_dict_with_zeroes);
 
         for(let exponent_vector of product(...range_list)){
             let elt = this._ring.getElementFromVector(exponent_vector);
@@ -541,6 +555,8 @@ class slice_basis {
     }
 
     addDifferentialLeibniz(page, source_slice, source_stem, target_slice,  offset_vectors, offset_vector_ranges, callback){
+        source_slice = this._ensure_vect(source_slice);
+        target_slice = this._ensure_vect(target_slice);
         for(let exponent_vector of product(...offset_vector_ranges.map( r => range(...r)))){
             let offset_slice = vectorLinearCombination(offset_vectors, exponent_vector);
             let stem = offset_slice.pop() + source_stem;

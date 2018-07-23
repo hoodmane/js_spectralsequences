@@ -13,6 +13,8 @@ let Differential = Edges.Differential;
 let monomial_basisjs = require("./monomial_basis.js");
 let monomial_basis = monomial_basisjs.monomial_basis;
 let slice_basis = monomial_basisjs.slice_basis;
+let Util = require("./Util.js");
+let infinity = Util.infinity;
 
 exports.DisplaySseq = DisplaySseq;
 exports.SseqClass = SseqClass;
@@ -24,6 +26,10 @@ exports.Extension = Extension;
 exports.monomialString = monomial_basisjs.monomialString;
 exports.range = monomial_basisjs.range;
 exports.StringifyingMap = monomial_basisjs.StringifyingMap;
+exports.product = monomial_basisjs.product;
+exports.vectorSum = monomial_basisjs.vectorSum;
+exports.vectorScale = monomial_basisjs.vectorScale;
+exports.vectorLinearCombination = monomial_basisjs.vectorLinearCombination;
 
 
 
@@ -60,13 +66,7 @@ function addToDictionaryOfLists(dictionary, key,value){
     dictionary.get(key).push(value);
 }
 
-function getObjectWithFields(obj, fieldNames){
-    let out = new Object();
-    for(let field of fieldNames){
-        out[field] = obj[field];
-    }
-    return out;
-}
+
 
 
 class Sseq {
@@ -76,6 +76,11 @@ class Sseq {
      *
      */
     constructor(){
+        this.display_sseq = new DisplaySseq();
+        this.display_class_to_real_class = new StringifyingMap((c) => `${c.x}, ${c.y}, ${c.idx}`);
+        this.display_edge_to_real_edge = new StringifyingMap((e) =>
+            `${e.type}(${e.page}) : (${e.source.x}, ${e.source.y}, ${e.source.idx}) => (${e.target.x}, ${e.target.y}, ${e.target.idx})`
+        );
         this.total_classes = 0;
         this.classes_by_degree = new StringifyingMap();
         this.num_classes_by_degree = new StringifyingMap();
@@ -89,7 +94,7 @@ class Sseq {
         this.display_differentials = [];
         this.xshift = 0;
         this.yshift = 0;        
-        this.offset_size = 10;
+        this.offset_size = 0.3;
         this.class_scale = 1;
         this.min_page_idx = 0;
         this.page_list = [0,infinity];
@@ -165,6 +170,7 @@ class Sseq {
         let idx  = this.num_classes_by_degree.getOrElse([c.x, c.y], 0);
         this.num_classes_by_degree.set([c.x, c.y], idx + 1);
         c.idx = idx;
+        c.class_list_index = this.classes.length;
         this.classes.push(c);
         addToDictionaryOfLists(this.classes_by_degree, degree, c);
         addToDictionaryOfLists(this.classes_by_stem, c.x , c);
@@ -173,6 +179,7 @@ class Sseq {
         if(this.on_class_added){
             this.on_class_added(c);
         }
+        this.updateClass(c);
         return c;
     }
 
@@ -197,6 +204,7 @@ class Sseq {
         source._addStructline(struct);
         target._addStructline(struct);
         this.structlines.push(struct);
+        struct.edge_list_index = this.edges.length;
         this.edges.push(struct);
         if(this.on_edge_added){
             this.on_edge_added(struct);
@@ -204,6 +212,7 @@ class Sseq {
         if(this.on_structline_added){
             this.on_structline_added(struct);
         }
+        this.updateEdge(struct);
         return struct;
     }
 
@@ -215,16 +224,31 @@ class Sseq {
      * @returns {Differential}
      */
    addDifferential(source, target, page){
+       if(typeof source === "number"){
+           console.log("addDifferential a SseqClass in position 1, got a number. Probably the arguments are in the wrong order.")
+           return Differential.getDummy();
+       }
+       if(source.constructor != SseqClass.constructor){
+           let err = new Error("addDifferential expected a SseqClass in position 1.");
+           console.log(err);
+           //return Differential.getDummy();
+       }
+        if(target.constructor != SseqClass.constructor){
+            console.log("addDifferential expected a SseqClass in position 2.")
+            console.log(target);
+            return Differential.getDummy();
+        }
         if(page <= 0){
             console.log("No page <= 0 differentials allowed.");
             return Differential.getDummy();
         }
         if(!source || !target){
             return Differential.getDummy();
-        }        
+        }
         let differential = new Differential(source, target, page);
         source._addOutgoingDifferential(differential);
         target._addIncomingDifferential(differential);
+        differential.edge_list_index = this.edges.length;
         this.differentials.push(differential);
         this.edges.push(differential);
         this.addPageToPageList(page);
@@ -234,6 +258,7 @@ class Sseq {
         if(this.on_differential_added){
             this.on_differential_added(differential);
         }
+        this.updateEdge(differential);
         return differential;
     }
 
@@ -248,6 +273,7 @@ class Sseq {
             return Extension.getDummy();
         }
         let ext = new Extension(source, target);
+        ext.edge_list_index = this.edges.length;
         this.edges.push(ext);
         if(this.on_edge_added){
             this.on_edge_added(ext);
@@ -255,6 +281,7 @@ class Sseq {
         if(this.on_extension_added){
             this.on_extension_added(ext);
         }
+        this.updateEdge(ext);
         return ext;
     }
 
@@ -360,9 +387,99 @@ class Sseq {
         return tooltip;
     }
 
+
+    updateClass(c){
+        let display_class = Util.getObjectWithFields(c,
+            [
+                "x", "y", "idx", "x_offset", "y_offset",
+                "name", "extra_info", "page_list", "node_list",
+                "visible",
+                "_inRangeQ", "_drawOnPageQ"
+            ]
+        );
+        c.display_class = display_class;
+        this.display_sseq.classes[c.class_list_index] = display_class;
+        for(let edge of c.edges){
+            if(edge.source === c){
+                edge.display_edge.source = display_class;
+            } else {
+                edge.display_edge.target = display_class;
+            }
+        }
+        this.display_class_to_real_class.set(display_class, c);
+        this.display_sseq.update();
+    }
+
+    updateEdge(edge){
+        let display_edge = Util.getObjectWithFields(edge,
+            [
+                "page", "page_min", "color", "source_name", "target_name",
+                "_drawOnPageQ"
+            ]
+        );
+        display_edge.source = edge.source.display_class;
+        display_edge.target = edge.target.display_class;
+        display_edge.type = edge.constructor.name;
+        this.display_sseq.edges[edge.edge_list_index] = display_edge;
+        this.display_edge_to_real_edge.set(display_edge, edge);
+        edge.display_edge = display_edge;
+        this.display_sseq.update();
+    }
+
+    static getSseqFromDisplay(dss){
+        let sseq = new Sseq();
+        sseq.display_sseq = dss;
+        dss.real_sseq = sseq;
+        Object.assign(sseq, dss);
+        sseq.num_classes_by_degree = new StringifyingMap();
+        sseq.classes = [];
+        sseq.edges = [];
+        sseq.display_class_to_real_class = new StringifyingMap((c) => `${c.x}, ${c.y}, ${c.idx}`);
+
+        let classes = dss.classes;
+        let edges = dss.edges;
+
+        let temp_display_class_to_real_class = new StringifyingMap((c) => `${c.x}, ${c.y}, ${c.idx}`);
+
+        for(let display_class of classes){
+            if(!display_class){
+                continue;
+            }
+            let real_class = sseq.addClass(display_class.x,display_class.y);
+            let idx = real_class.idx;
+            Object.assign(real_class,display_class);
+            real_class.constructor = SseqClass.constructor;
+            temp_display_class_to_real_class.set(display_class, real_class);
+            sseq.updateClass(real_class);
+        }
+
+        for(let e of edges){
+            if(!e){
+                continue;
+            }
+            let en;
+            let source = temp_display_class_to_real_class.get(e.source);
+            let target = temp_display_class_to_real_class.get(e.target);
+            switch(e.type){
+                case "Differential" :
+                    en = sseq.addDifferential(source, target, e.page);
+                    break
+                case "Structline" :
+                default:
+                    en = sseq.addStructline(source, target);
+            }
+            Object.assign(en, e);
+            en.source = source;
+            en.target = target;
+            sseq.updateEdge(en);
+        }
+        return sseq;
+    }
+
     getDisplaySseq(){
-        let dss = new DisplaySseq();
+        let dss = this.display_sseq;
         dss.min_page_idx = this.min_page_idx;
+        dss.initial_page_idx = this.initial_page_idx;
         dss.page_list = this.page_list;
         dss.initialxRange = this.initialxRange;
         dss.initialyRange = this.initialyRange;
@@ -370,8 +487,8 @@ class Sseq {
         dss.yRange = this.yRange;
         dss.on_draw = this.on_draw;
         dss.class_scale = this.class_scale;
-
         dss.num_classes_by_degree = this.num_classes_by_degree;
+
         if(this._getXOffset){
             dss._getXOffset = this._getXOffset;
         }
@@ -381,38 +498,10 @@ class Sseq {
         if(this.offset_size){
             dss.offset_size = this.offset_size;
         }
-
-
-        let classMap = new StringifyingMap();
-        let classes = [];
-        for(let c of this.classes){
-            let dc = getObjectWithFields(c,
-                [
-                    "x", "y", "idx", "x_offset", "y_offset",
-                    "name", "extra_info", "page_list", "node_list",
-                    "visible",
-                    "_inRangeQ", "_drawOnPageQ"
-                ]
-            );
-            classes.push(dc);
-            classMap.set(c, dc);
+        if(this.onmouseoverClass){
+            dss.onmouseoverClass = this.onmouseoverClass;
         }
-        dss.classes = classes;
 
-        let edges = [];
-        for(let e of this.edges){
-            let de = getObjectWithFields(e,
-                [
-                    "page", "page_min", "color", "source_name", "target_name",
-                    "_drawOnPageQ"
-                ]
-            );
-            de.source = classMap.get(e.source);
-            de.target = classMap.get(e.target);
-            de.edge_type = e.constructor.name;
-            edges.push(de);
-        }
-        dss.edges = edges;
         return dss;
     }
 
@@ -424,5 +513,5 @@ class Sseq {
 
 
 exports.Sseq = Sseq;
-window.SseqNode = Node;
+//window.SseqNode = Node;
 

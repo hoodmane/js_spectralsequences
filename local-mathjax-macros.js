@@ -3,7 +3,7 @@ if(MathJax && MathJax.Hub){
         messageStyle: "none",
         tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']], displayMath: [ ['$$','$$'], ['\[','\]'] ]},
         jax: ["input/TeX","output/SVG"],
-        extensions: ["toMathML.js", "AMSsymbols.js"],
+        extensions: ["toMathML.js", "AMSsymbols.js","color.js"],
         TeX: {
             extensions: ["color.js"]
         },

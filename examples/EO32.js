@@ -26,7 +26,7 @@ function dot_mod_16(v){
     return mod(out,16);
 }
 
-Zq = new SseqNode();
+Zq = new Node();
 Zq.shape = Shapes.square;
 Zq.size = 8;
 
@@ -36,7 +36,7 @@ qZq.stroke = "black";
 
 sseq.default_node = Zq;
 
-Zmq = new SseqNode();
+Zmq = new Node();
 Zmq.shape = Shapes.circle;
 
 //sseq.setDefaultStyle('Zq');

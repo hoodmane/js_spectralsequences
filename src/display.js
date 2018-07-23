@@ -31,6 +31,9 @@ function setNode(node) {
     if ((node.stroke !== true && node.stroke) || node.color) {
         this.stroke((node.stroke !== true && node.stroke) || node.color);
     }
+    if(node.opacity){
+        this.opacity(node.opacity);
+    }
 
 }
 
@@ -64,17 +67,23 @@ class Display {
                 .style("opacity", 0)
         );
 
+
+        this.status_div = this.body.append("div")
+            .attr("id", "status")
+            .style("position", "absolute")
+            .style("left", `20px`)
+            .style("bottom",`20px`);
+
         this.tooltip_div       = tooltip_divs[0];
         this.tooltip_div_dummy = tooltip_divs[1];
 
-        this._initializeCanvas();
 
         // TODO: improve window resize handling. Currently the way that the domain changes is suboptimal.
         // I think the best would be to maintain the x and y range by scaling.
         this._initializeCanvas.bind(this);
         window.addEventListener("resize", () => {
             this._initializeCanvas();
-            this.update();
+            this.updateBatch();
         });
 
         this.setSseq(ss, true);
@@ -83,8 +92,8 @@ class Display {
         // than the event being handled.
 
         this.zoom = d3.zoom().scaleExtent([0, 4]);
-        this.update = this.update.bind(this);
-        this.zoom.on("zoom", this.update);
+        this.updateBatch = this.updateBatch.bind(this);
+        this.zoom.on("zoom", this.updateBatch);
         this.zoomDomElement = d3.select("#supermarginLayer");
         this.zoomDomElement.call(this.zoom).on("dblclick.zoom", null);
 
@@ -93,6 +102,29 @@ class Display {
         this.previousPage = this.previousPage.bind(this);
         Mousetrap.bind('left',  this.previousPage);
         Mousetrap.bind('right', this.nextPage);
+
+        // TODO: ad hoc changes here:
+        Mousetrap.bind('z',
+            () => {
+                if(this.mouseover_class){
+                    if(this.last_class){
+                        console.log([this.mouseover_class.x - this.last_class.x, this.mouseover_class.y - this.last_class.y]);
+                        this.last_class = null;
+                    } else {
+                        this.last_class = this.mouseover_class;
+                    }
+                }
+            }
+        )
+
+
+
+        for(let key of Object.getOwnPropertyNames(this.sseq.keyHandlers)){
+            Mousetrap.bind(key, (event) => {
+                event.mouseover_class = this.mouseover_class;
+                this.sseq.keyHandlers[key].call(this.sseq, event);
+            });
+        }
 
         this.update();
     }
@@ -120,10 +152,18 @@ class Display {
         this.height = this.stage.height();
 
         // TODO: Allow programmatic control over margins.
-        this.leftMargin = 50;
+        this.leftMargin = 40;
         this.rightMargin = 5;
         this.topMargin = 5;
-        this.bottomMargin = 50;
+        this.bottomMargin = 60;
+
+        for(let side of ["left", "right", "top", "bottom"]){
+            let field = side + "Margin"
+            if(this.sseq[field]){
+                this[field] = this.sseq[field];
+            }
+        }
+
 
 
         // Set up clip.
@@ -191,13 +231,21 @@ class Display {
      * @param ss
      */
     setSseq(ss, resetScale = false){
+        if(this.sseq){
+            this.sseq.registerUpdateListener(undefined);
+        }
         this.sseq = ss;
+        this.sseq.registerUpdateListener(this.updateBatch.bind(this));
         if(ss.disp !== this){
             ss.disp = this;
         }
 
         // The sseq object contains the list of valid pages. Always includes at least 0 and infinity.
-        this.page_idx = this.sseq.min_page_idx;
+        if(this.sseq.initial_page_idx){
+            this.page_idx = this.sseq.initial_page_idx;
+        } else {
+            this.page_idx = this.sseq.min_page_idx;
+        }
         if(this.page_idx >= this.sseq.page_list.length){
             console.log(`Warning: min_page_idx ${this.sseq.min_page_idx} greater than page list length ${this.sseq.page_list.length}. Using 0 for min_page_idx instead.`);
             this.page_idx = 0;
@@ -207,6 +255,7 @@ class Display {
 
         if(resetScale) {
             this._initializeScale();
+            this._initializeCanvas();
         }
 
         this._addClasses();
@@ -262,13 +311,26 @@ class Display {
     /**
      * The main update routine.
      */
-    update() {
+    updateBatch(){
+        this.update(true);
+    }
+
+    update(batch = false) {
         this._updateScale();
         this._updateGridAndTickStep();
+        this._updateSseq();
 
-        this._drawGrid();
-        this._drawTicks();
-        this._drawSseq();
+        let drawFunc = () => {
+            this._drawGrid();
+            this._drawTicks();
+            this._drawSseq();
+        };
+        if(batch){
+            requestAnimationFrame(drawFunc);
+        } else {
+            drawFunc();
+        }
+
 
         if (d3.event) {
             // The Konvas stage tracks the pointer position using _setPointerPosition.
@@ -369,7 +431,7 @@ class Display {
                 this.pre_zoom_max_transform = this.transform;
             }
         }
-        this.zoom.on("zoom", this.update);
+        this.zoom.on("zoom", this.updateBatch);
 
         this.transform = d3.zoomTransform(zoomDomElement.node());
         this.scale = this.transform.k;
@@ -394,7 +456,9 @@ class Display {
 
         this.xGridStep = (Math.floor(this.xTickStep / 5) === 0) ? 1 : Math.floor(this.xTickStep / 5);
         this.yGridStep = (Math.floor(this.yTickStep / 5) === 0) ? 1 : Math.floor(this.yTickStep / 5);
-        this.xGridStep = this.yGridStep // TODO: Clean up Danny mod
+        if(this.sseq.squareAspectRatio){
+            this.xGridStep = this.yGridStep; // TODO: Clean up Danny mod
+        }
     }
 
     _drawGrid() {
@@ -433,17 +497,12 @@ class Display {
         }
     }
 
-    _drawSseq() {
+    _updateSseq(){
         this.sseq._calculateDrawnElements(this.pageRange, this.xmin, this.xmax, this.ymin, this.ymax);
-        this._drawClasses();
-        this._drawEdges();
-        if(this.sseq.on_draw){
-            this.sseq.on_draw(this);
-        }
+        this._updateClasses();
     }
 
-
-    _drawClasses(){
+    _updateClasses(){
         let context = this.classLayerContext;
         context.clearRect(0, 0, this.width, this.height);
         context.save();
@@ -478,17 +537,31 @@ class Display {
             //     console.log(c);
             // }
 
-            s.setPosition({x: this.xScale(c.x) + this.sseq._getXOffset(c), y: this.yScale(c.y) + this.sseq._getYOffset(c)});
+
+            s.setPosition({x: this.xScale(c.x + this.sseq._getXOffset(c)), y: this.yScale(c.y + this.sseq._getYOffset(c))});
+
             let node = this.sseq.getClassNode(c,this.page);
             if(node === undefined){
                 console.log("Error: node for class is undefined. Using default node."); console.log(c);
                 node = this.sseq.default_node;
             }
+
             s.setNode(node);
             s.size(s.size() * scale_size * this.sseq.class_scale);
             this.classLayer.add(s);
         }
+    }
 
+    _drawSseq() {
+        this._drawClasses();
+        this._drawEdges();
+        if(this.sseq.on_draw){
+            this.sseq.on_draw(this);
+        }
+    }
+
+
+    _drawClasses(){
         this.classLayer.draw();
     }
 
@@ -499,6 +572,9 @@ class Display {
         let edges = this.sseq.getEdgesToDisplay();
         for (let i = 0; i < edges.length; i++) {
             let e = edges[i];
+            if(!e || e.invalid){
+                continue;
+            }
             let source_shape = e.source.canvas_shape;
             let target_shape = e.target.canvas_shape;
             context.beginPath();
@@ -553,6 +629,7 @@ class Display {
     _addClasses() {
         let classes = this.sseq.classes;
         this.classLayer.removeChildren();
+        this.stage.on("click", () => console.log("hi"));
         for (let i = 0; i < classes.length; i++) {
             let c = classes[i];
             if(! Number.isInteger(c.x) || !Number.isInteger(c.y)){
@@ -587,8 +664,10 @@ class Display {
     }
 
     _handleMouseover(shape) {
+        this.mouseover_class = shape.sseq_class;
         let c = shape.sseq_class;
         // Is the result cached?
+        MathJax.Hub.Queue(["Typeset", MathJax.Hub, "tooltip_div_dummy"]);
         if (c.tooltip_html) {
             this.tooltip_div_dummy.html(c.tooltip_html);
             this._setupTooltipDiv(shape);
@@ -597,13 +676,29 @@ class Display {
             if (MathJax && MathJax.Hub) {
                 this.tooltip_div_dummy.html(tooltip);
                 MathJax.Hub.Queue(["Typeset", MathJax.Hub, "tooltip_div_dummy"]);
-                MathJax.Hub.Queue(() => this._setupTooltipDiv(shape));
+                MathJax.Hub.Queue(() => this._setupTooltipDiv(shape,tooltip));
             } else {
                 this.tooltip_div_dummy.html(tooltip);
                 this._setupTooltipDiv(this);
             }
         }
+        if(this.sseq.onmouseoverClass){
+            this.sseq.onmouseoverClass(c);
+        }
+        if(c.onmouseover){
+            c.onmouseover();
+        }
     }
+
+    // _checkTooltipDiv(shape, tooltip){
+    //     if(this.tooltip_div_dummy.html().includes("\\textcolor")){
+    //          this.tooltip_div_dummy.html("\\(\\def\\textcolor#1{}\\)" + tooltip);
+    //          MathJax.Hub.Queue(["Typeset", MathJax.Hub, "tooltip_div_dummy"]);
+    //          MathJax.Hub.Queue(() => this._setupTooltipDiv(shape));
+    //     } else {
+    //         this._setupTooltipDiv(shape);
+    //     }
+    // }
 
     _setupTooltipDiv(shape) {
         let rect = this.tooltip_div.node().getBoundingClientRect();
@@ -632,6 +727,7 @@ class Display {
     }
 
     _handleMouseout() {
+        this.mouseover_class = null;
         this.tooltip_div.transition()
             .duration(500)
             .style("opacity", 0);

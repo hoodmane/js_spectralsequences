@@ -1,6 +1,7 @@
 "use strict";
 
-let Dummy = require("./Util.js");
+let Util = require("./Util.js");
+let infinity = Util.infinity;
 
 class Edge {
     /**
@@ -16,6 +17,7 @@ class Edge {
         this.page = infinity;
         this.page_min = 0;
         this.color = "#000";
+        this.type = this.constructor.name;
     }
 
     setMinPage(min_page){
@@ -30,11 +32,11 @@ class Edge {
         let dummy = Object.create(Edge);
         Edge._dummy = dummy;
 
-        Dummy.setPrivateMethodsToInvalidOperation(dummy);
-        dummy.setMinPage = Dummy.getDummyConstantFunction(dummy);
+        Util.setPrivateMethodsToInvalidOperation(dummy);
+        dummy.setMinPage = Util.getDummyConstantFunction(dummy);
         dummy.constructor = Edge.constructor;
 
-        Dummy.checkAllCommandsDefined(dummy);
+        Util.checkAllCommandsDefined(dummy);
 
         return dummy;
     }
@@ -90,10 +92,10 @@ class Differential extends Edge {
         let edgeDummy = Edge.getDummy();
         Object.assign(dummy, edgeDummy);
 
-        let chainableNoOp = Dummy.getDummyConstantFunction(dummy);
-        Dummy.setRemainingMethods(dummy, () => true, () => chainableNoOp);
-        Dummy.setPrivateMethodsToInvalidOperation(dummy);
-        dummy.toString = Dummy.getDummyConstantFunction("");
+        let chainableNoOp = Util.getDummyConstantFunction(dummy);
+        Util.setRemainingMethods(dummy, () => true, () => chainableNoOp);
+        Util.setPrivateMethodsToInvalidOperation(dummy);
+        dummy.toString = Util.getDummyConstantFunction("");
         return dummy;
     }
 
@@ -226,12 +228,18 @@ class Differential extends Edge {
 
     toString(highlight_source, highlight_target){
         let source = this.source_name;
+        if(!source){
+            source = this.source.name;
+        }
         let target = this.target_name;
+        if(!target){
+            target = this.target.name;
+        }
         if(highlight_source){
-            source = `\\textcolor{blue}{${source}}`;
+            source = `{\\color{blue}{${source}}}`;
         }
         if(highlight_target){
-            target = `\\textcolor{blue}{${target}}`
+            target = `{\\color{blue}{${target}}}`
         }
         return `\\(d_{${this.page}}(${source}) = ${target}\\)`;
     }

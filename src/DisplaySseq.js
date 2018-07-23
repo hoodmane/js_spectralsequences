@@ -1,7 +1,14 @@
+"use strict"
+
 let SseqClassjs = require("./SseqClass.js");
 let SseqClass = SseqClassjs.SseqClass;
 let Node = SseqClassjs.Node;
 let Util = require("./Util.js");
+let Shapes = require("../src/Shape.js");
+let infinity = Util.infinity;
+
+const {parse, stringify} = require('flatted/cjs');
+
 
 
 
@@ -15,6 +22,7 @@ default_node.size = 6;
  *
  */
 
+
 class DisplaySseq {
 
     constructor(){
@@ -26,15 +34,19 @@ class DisplaySseq {
         this.initialyRange = [0, 20];
         this.xRange = [0, 100];
         this.yRange = [0, 100];
-        this.offset_size = 10;
+        this.offset_size = 0.3;
         this.default_node = new Node();
         this.default_node.fill = true;
         this.default_node.stroke = true;
         this.default_node.shape = Shapes.circle;
         this.default_node.size = 6;
         this.class_scale = 1;
+        this.keyHandlers = {};
     }
 
+    static getSerializeFields(){
+        return Object.getOwnPropertyNames(new DisplaySseq());
+    }
 
     /**
      * This is an internal method used by display to calculate the set of features to be displayed on the current page.
@@ -54,10 +66,15 @@ class DisplaySseq {
         } else {
             pageRange = [page,page];
         }
-        this.display_classes = this.classes.filter(c => {c.in_range = DisplaySseq._inRangeQ(c,xmin, xmax, ymin, ymax); return c.in_range && c._drawOnPageQ(page);});
+        this.display_classes = this.classes.filter(c => {
+                if(!c){ return false; }
+                c.in_range = DisplaySseq._inRangeQ(c,xmin, xmax, ymin, ymax);
+                return c.in_range && DisplaySseq._drawClassOnPageQ(c,page);
+        });
         this.display_edges = this.edges.filter(e =>
-            e._drawOnPageQ(pageRange)
-            && e.source._drawOnPageQ(page) && e.target._drawOnPageQ(page)
+            e &&
+            DisplaySseq._drawEdgeOnPageQ(e, pageRange)
+            && DisplaySseq._drawClassOnPageQ(e.source,page) && DisplaySseq._drawClassOnPageQ(e.target,page)
             && ( e.source.in_range || e.target.in_range )
         );
 
@@ -68,6 +85,32 @@ class DisplaySseq {
             }
             if(!e.target.in_range){
                 this.display_classes.push(e.target);
+            }
+        }
+    }
+
+    static _drawClassOnPageQ(c,page){
+        if(c._drawOnPageQ){
+            return c._drawOnPageQ(page);
+        } else {
+            return SseqClass.prototype._drawOnPageQ.call(c, page);
+        }
+    }
+
+    static _drawEdgeOnPageQ(edge, pageRange){
+        if(edge._drawOnPageQ){
+            return edge._drawOnPageQ(pageRange);
+        } else {
+            switch(edge.type){
+                case "Differential":
+                    return Differential.prototype._drawOnPageQ.call(edge, pageRange);
+                case "Extension":
+                    return Extension.prototype._drawOnPageQ.call(edge, pageRange);
+                case "Structline":
+                    return Structline.prototype._drawOnPageQ.call(edge, pageRange);
+                default:
+                    return Edge.prototype._drawOnPageQ.call(edge, pageRange);
+
             }
         }
     }
@@ -108,7 +151,7 @@ class DisplaySseq {
         }
         let total_classes = this.num_classes_by_degree.get([c.x, c.y]);
         let idx = c.idx;
-        let out = (idx - (total_classes - 1)/2) * this.offset_size;
+        let out = - (idx - (total_classes - 1)/2) * this.offset_size;
         return out;
     }
 
@@ -134,6 +177,16 @@ class DisplaySseq {
         return tooltip;
     }
 
+    registerUpdateListener(f){
+        this.update_listener = f;
+    }
+
+    update(){
+        if(this.update_listener){
+            this.update_listener();
+        }
+    }
+
     static newClass(){
         let c = {
             x: 0,
@@ -144,7 +197,7 @@ class DisplaySseq {
             name: "",
             extra_info: "",
             page_list: [infinity],
-            node_list: [default_node],
+            node_list: [default_node.copy()],
             visible: true,
             _drawOnPageQ : () => true
         };
@@ -160,6 +213,11 @@ class DisplaySseq {
         return e;
     }
 
+    addKeyHandler(key, fn){
+        this.keyHandlers[key] = fn;
+    }
+
+    /* */
     static async loadFromResolutionJSON(path){
         let response = await fetch(path);
         let json = await response.json();
@@ -189,15 +247,52 @@ class DisplaySseq {
         dss.edges = edges;
         return dss;
     }
+    /**/
+
+    static async fromJSON(path){
+        let response = await fetch(path);
+        console.log(response);
+        let json = await response.text();
+        let sseq = parse(json);
+        Object.setPrototypeOf(sseq, DisplaySseq.prototype);
+        sseq.default_node = Object.assign(new Node(), sseq.default_node);
+        let num_classes_by_degree = new StringifyingMap();
+        for(let c of sseq.classes){
+            if(!c){
+                continue;
+            }
+            let idx  = num_classes_by_degree.getOrElse([c.x, c.y], 0);
+            num_classes_by_degree.set([c.x, c.y], idx + 1);
+            for(let i = 0; i < c.node_list.length; i++){
+                c.node_list[i].shape = Shapes[c.node_list[i].shape.name];
+            }
+        }
+        sseq.num_classes_by_degree = num_classes_by_degree;
+        return sseq;
+    }/**/
+
 
 
     display(){
+        if(typeof window === "undefined"){
+            console.log("Can only display in browser.");
+            return;
+        }
         if(window.display){
             window.display.setSseq(this);
         } else {
             window.display = new Display(this);
         }
     }
+
+    download(filename){
+        for(let c of this.classes){
+            c.tooltip_html = undefined;
+        }
+        Util.download(filename, stringify(this));
+    }
+
+
 
 
 }

@@ -2,6 +2,7 @@
 
 
 let Util = require("./Util.js");
+let infinity = Util.infinity;
 
 
 /**
@@ -20,6 +21,11 @@ let Util = require("./Util.js");
  *  TODO: currently merge and copy ignore dummies. Is this the right behavior? Maybe they should throw errors?
  */
 class Node {
+    constructor(){
+        this.opacity = 1;
+        this.color = "black";
+    }
+
     copy(){
         if(this.isDummy()){
             return new Node();
@@ -45,6 +51,21 @@ class Node {
         return this;
     }
 
+    setFill(color){
+        this.fill = color;
+        return this;
+    }
+
+    setStroke(color){
+        this.stroke = color;
+        return this;
+    }
+
+    setOpacity(op){
+        this.opacity = op;
+        return this;
+    }
+
     isDummy(){
         return false;
     }
@@ -66,7 +87,7 @@ class Node {
      *    priority over earlier ones.
      */
     static merge(...nodes){
-        let root = new SseqNode();
+        let root = new Node();
         for ( var i = 0; i < nodes.length; i++ ) {
             if(nodes[i].isDummy && nodes[i].isDummy()){
                 continue;

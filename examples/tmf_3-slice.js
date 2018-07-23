@@ -10,7 +10,7 @@ sseq.yRange = [0, 40];
 sseq.initialxRange = [0, 20];
 sseq.initialyRange = [0, 16];
 
-Znode = new SseqNode();
+Znode = new Node();
 Znode.shape = Shapes.square;
 Znode.size = 8;
 

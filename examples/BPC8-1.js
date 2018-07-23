@@ -14,8 +14,8 @@ Groups.Z4 = new SseqNode();
 Groups.Z4.size = 8;
 Groups.Z4.fill = "white";
 
-Groups.Z2supp = Groups.Z4.copy();
-Groups.Z2supp.fill = "red";
+Groups.Z2sup = Groups.Z4.copy();
+Groups.Z2sup.fill = "red";
 
 Groups.Z2hit = Groups.Z4.copy();
 Groups.Z2hit.fill = "gray";
@@ -151,7 +151,7 @@ BPC4.onDifferentialAdded(d => {
     d.addInfoToSourceAndTarget();
     if(d.source.group == "Z4"){
         d.source.group = "Z2";
-        d.source.replace(Groups.Z2supp, (name) => "2\\," + name);
+        d.source.replace(Groups.Z2sup, (name) => "2\\," + name);
     } else if(d.source.group === "Z"){
         d.source.group = "2Z";
         d.source.replace(Groups.Zsup, (name) => "2\\," + name);

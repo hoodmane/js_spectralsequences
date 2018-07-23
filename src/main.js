@@ -28,5 +28,8 @@ window.d3 = require("d3");
 window.range = Sseqjs.range;
 window.monomialString = Sseqjs.monomialString;
 window.StringifyingMap = Sseqjs.StringifyingMap;
-
+window.product = Sseqjs.product;
+window.vectorSum = Sseqjs.vectorSum;
+window.vectorScale = Sseqjs.vectorScale;
+window.vectorLinearCombination = Sseqjs.vectorLinearCombination;
 

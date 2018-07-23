@@ -1,6 +1,19 @@
 let assert = require("assert");
 
+exports.infinity = 10000;
 
+exports.download = function(filename, text) {
+    var element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+    element.setAttribute('download', filename);
+
+    element.style.display = 'none';
+    document.body.appendChild(element);
+
+    element.click();
+
+    document.body.removeChild(element);
+}
 
 exports.getDummyConstantFunction = function(out) {
     return function () {
@@ -61,6 +74,14 @@ exports.checkArgumentsDefined = function(func, args){
     }
 }
 
+
+exports.getObjectWithFields = function(obj, fieldNames){
+    let out = new Object();
+    for(let field of fieldNames){
+        out[field] = obj[field];
+    }
+    return out;
+}
 
 /**
  * Map method get with default.

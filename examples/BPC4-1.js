@@ -1,7 +1,12 @@
 // Name: Slice SS $BP^{((C_4))}\langle 1\rangle$
 // Description: The slice spectral sequence for the $C_4$ fixed points of $BP^{((C_4))}\langle 1\rangle$.
 
+let SseqNode = Node;
+
+let max_diagonal = 200;
+
 let Groups = {};
+
 
 Groups.Z = new SseqNode();
 Groups.Z.fill = "white";
@@ -14,8 +19,8 @@ Groups.Z4 = new SseqNode();
 Groups.Z4.size = 8;
 Groups.Z4.fill = "white";
 
-Groups.Z2supp = Groups.Z4.copy();
-Groups.Z2supp.fill = "red";
+Groups.Z2sup = Groups.Z4.copy();
+Groups.Z2sup.fill = "red";
 
 Groups.Z2hit = Groups.Z4.copy();
 Groups.Z2hit.fill = "gray";
@@ -25,6 +30,14 @@ Groups.Zsup.fill = "red";
 
 Groups.Zsupsup = Groups.Z.copy();
 Groups.Zsupsup.fill = "black";
+
+function partitionList(list, part_size){
+    let out = [];
+    for(i = 0; i < list.length; i+=part_size){
+        out.push(list.slice(i,i+part_size).join(", "));
+    }
+    return out;
+}
 
 function subnomialString(vars, exponents, module_generator = ""){
     let out = [];
@@ -55,6 +68,7 @@ class sliceMonomial {
     constructor(d1, s1, as2, al, as){
         this.d1 = d1;
         this.s1 = s1;
+        this.d3 = 0;
         this.as2 = as2;
         this.al = al;
         this.as = as;
@@ -75,6 +89,13 @@ class sliceMonomial {
         this._induced = s1 > 0;
     }
 
+    copy(){
+        let out = Object.create(sliceMonomial);
+        out.__proto__ = sliceMonomial.prototype;
+        Object.assign(out, this);
+        return out;
+    }
+
     degree(){
         return [this.stem, this.filtration];
     }
@@ -93,13 +114,17 @@ class sliceMonomial {
 
     toString() {
         return subnomialString(
-            [["u","\\sigma_2"], ["u","\\lambda"], ["u", "\\sigma"],
-             ["a","\\sigma_2"], ["a","\\lambda"], ["a", "\\sigma"]],
-            [this.us2, this.ul, this.us,
-             this.as2, this.al, this.as],
-            monomialString(["\\overline{\\mathfrak{d}}_1", "\\overline{s}_1"],[this.d1,this.s1]));
+            [["u","\\lambda"], ["u", "\\sigma"], ["u","\\sigma_2"],
+                ["a","\\lambda"], ["a", "\\sigma"], ["a","\\sigma_2"]],
+            [this.ul, this.us, this.us2,
+                this.al, this.as, this.as2],
+            monomialString(["\\overline{\\mathfrak{d}}_3","\\overline{\\mathfrak{d}}_1", "\\overline{s}_1"],[this.d3, this.d1,this.s1]));
     }
-    
+
+    sliceName(){
+        return monomialString(["\\overline{\\mathfrak{d}}_3","\\overline{\\mathfrak{d}}_1", "\\overline{s}_1"],[this.d3, this.d1,this.s1]);
+    }
+
 }
 
 
@@ -119,18 +144,19 @@ let BPC4 = new Sseq();
 BPC4.addPageRangeToPageList([5,15]);
 BPC4.min_page_idx = 1;
 let s1max = 10;
-let d1max = 50;
+let max_x = Math.floor(16/9*max_diagonal/2);
+let d1max = Math.floor(max_x/2);
 
-BPC4.xRange = [0, 100];
-BPC4.yRange = [0, 50];
+BPC4.xRange = [0, max_x];
+BPC4.yRange = [0, max_diagonal];
 
 BPC4.initialxRange = [0, 20];
 BPC4.initialyRange = [0, 16];
 
 let differential_colors = {
     3 : "blue",
-    5 : "blue",
-    7 : "red",
+    5 : "#40E0D0", // turquoise -- cyan is too bright
+    7 : "magenta",
     11 : "green",
     13 : "orange"
 };
@@ -139,7 +165,7 @@ BPC4.onDifferentialAdded(d => {
     d.addInfoToSourceAndTarget();
     if(d.source.group == "Z4"){
         d.source.group = "Z2";
-        d.source.replace(Groups.Z2supp, (name) => "2\\," + name);
+        d.source.replace(Groups.Z2sup, (name) => "2\\," + name);
     } else if(d.source.group === "Z"){
         d.source.group = "2Z";
         d.source.replace(Groups.Zsup, (name) => "2\\," + name);
@@ -171,8 +197,8 @@ function addSlice(sseq, elt) {
         let sseq_class = sseq.addClass(...c.degree())
             .setName(c.toString())
             .setNode(Groups[c.group()]);
-        sseq_class.getNode().setColor(c.is_induced() ? "blue" : "black");
         sseq_class.group = c.group();
+        sseq_class.E2group = c.group();
         sseq_class.slice = c;
         if(s1 == 0){
             sseq_class.x_offset = 0;
@@ -184,7 +210,8 @@ function addSlice(sseq, elt) {
     return slice;
 }
 
-slices = BPC4.addSliceClasses({"\\overline{s}_1" : 2, "\\overline{\\mathfrak{d}}_1" : 4}, [["\\overline{\\mathfrak{d}}_1", 0, d1max],["\\overline{s}_1", 0, s1max]], addSlice);
+slices = BPC4.addSliceClasses({"s1" : {name : "\\overline{s}_1", degree: 2}, "d1" : {name : "\\overline{\\mathfrak{d}}_1", degree: 4}},
+    [["d1", 0, d1max],["s1", 0, 3]], addSlice);
 
 slices.addDifferential(3, [0, 1], (k, stem, filtration) => (stem - filtration) % 8 === 4);
 
@@ -203,31 +230,32 @@ for(let d1 = 0; d1 < d1max; d1 += 2){
     }
 }
 
+
 function addDifferential(page, source_slice, target_slice, stem, translation_multiple){
     let i = translation_multiple;
     slices.addDifferentialLeibniz(page, source_slice, stem, target_slice, [[i*2,0,i*4],[i*4,0,i*16]],[[0,Math.floor(d1max/(2*i))],[0,Math.floor(d1max/(4*i))]]);
 }
 
 
-slices.addDifferentialLeibniz(5, [2, 0], 4, [3,0], [[1,0,1],[4,0,8]], [[0,20],[0,10]]);
+slices.addDifferentialLeibniz(5, {"d1" : 2}, 4, {"d1" : 3}, [[1,0,1],[4,0,8]], [[0,d1max],[0,d1max/4]]);
 
-addDifferential(5, [2,0], [3,0], 8, 1);
-addDifferential(5, [3,0], [4,0], 9, 1);
-addDifferential(5, [3,0], [4,0], 11, 1);
-
-
-addDifferential(7, [2, 0], [3,1],  8, 1);
-addDifferential(7, [4, 0], [5,1], 16, 2);
-addDifferential(7, [10, 0],[11,1],36, 2);
+addDifferential(5, {"d1" : 2}, {"d1" : 3}, 8, 1);
+addDifferential(5, {"d1" : 3}, {"d1" : 4}, 9, 1);
+addDifferential(5, {"d1" : 3}, {"d1" : 4}, 11, 1);
 
 
-addDifferential(11, [3, 1], [6, 0], 11, 2);
-addDifferential(11, [9, 1], [12, 0], 31, 2);
+addDifferential(7, {"d1" : 2}, {"d1" : 3, "s1" : 1},  8, 1);
+addDifferential(7, {"d1" : 4}, {"d1" : 5, "s1" : 1}, 16, 2);
+addDifferential(7, {"d1" : 10},{"d1" : 11, "s1" : 1},36, 2);
 
-addDifferential(13, [5, 0], [8, 0], 17, 2);
-addDifferential(13, [6, 0], [9, 0], 18, 2);
-addDifferential(13, [8, 0], [11, 0], 30, 2);
-addDifferential(13, [11, 0],[14, 0], 37, 2);
+
+addDifferential(11, {"d1" : 3, "s1" : 1}, {"d1" : 6 }, 11, 2);
+addDifferential(11, {"d1" : 9, "s1" : 1}, {"d1" : 12}, 31, 2);
+
+addDifferential(13, {"d1" : 5}, {"d1" : 8}, 17, 2);
+addDifferential(13, {"d1" : 6}, {"d1" : 9}, 18, 2);
+addDifferential(13, {"d1" : 8}, {"d1" : 11}, 30, 2);
+addDifferential(13, {"d1" : 11},{"d1" : 14}, 37, 2);
 
 
 BPC4.display();

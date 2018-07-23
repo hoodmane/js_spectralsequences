@@ -19,7 +19,7 @@ classes = sseq.addPolynomialClasses(
       [["\\alpha", 0, 1], ["\\beta", 0, bmax], ["v", vmin, vmax]])
 
 
-Znode = new SseqNode();
+Znode = new Node();
 Znode.shape = Shapes.square;
 Znode.size = 8;
 
