@@ -2,6 +2,19 @@ let assert = require("assert");
 
 exports.infinity = 10000;
 
+exports.limited_logger = function(max_msgs){
+    let log_fn = function(msg){
+        if(log_fn.msgs_so_far < log_fn.max_msgs){
+            console.log(msg);
+            log_fn.msgs_so_far++;
+        }
+    }
+    log_fn.max_msgs = max_msgs;
+    log_fn.msgs_so_far = 0;
+    return log_fn;
+};
+
+
 exports.download = function(filename, text) {
     var element = document.createElement('a');
     element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
@@ -48,9 +61,10 @@ exports.checkAllCommandsDefined = function(dummy){
     let undefinedFields = Object.getOwnPropertyNames(dummy.prototype).filter((p) => !dummy.hasOwnProperty(p));
     if(undefinedFields.length > 0){
         let className = dummy.prototype.constructor.name;
-        let error = new assert.AssertionError({ message : `Not all fields of ${className} have been defined in ${className} dummy. The list of undefined fields is:\n${undefinedFields}` });
-        console.log(error.stack);
-        throw error;
+        console.log(`Not all fields of ${className} have been defined in ${className} dummy. The list of undefined fields is:\n${undefinedFields}`);
+        //let error = new assert.AssertionError({ message : `Not all fields of ${className} have been defined in ${className} dummy. The list of undefined fields is:\n${undefinedFields}` });
+        //console.log(error.stack);
+        //throw error;
     }
 }
 

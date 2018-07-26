@@ -5,7 +5,10 @@ if(MathJax && MathJax.Hub){
         jax: ["input/TeX","output/SVG"],
         extensions: ["toMathML.js", "AMSsymbols.js","color.js"],
         TeX: {
-            extensions: ["color.js"]
+            extensions: ["color.js"],
+            Macros : {
+                toda : ["\\langle #1\\rangle",1]
+            }
         },
         "HTML-CSS": {
           scale: 100

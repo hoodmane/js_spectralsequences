@@ -97,7 +97,6 @@ class Display {
         this.zoomDomElement = d3.select("#supermarginLayer");
         this.zoomDomElement.call(this.zoom).on("dblclick.zoom", null);
 
-
         this.nextPage = this.nextPage.bind(this);
         this.previousPage = this.previousPage.bind(this);
         Mousetrap.bind('left',  this.previousPage);
@@ -111,8 +110,21 @@ class Display {
                     console.log(this.mouseover_class);
                 }
             }
-        )
+        );
 
+        for(let handler of ["onclick", "oncontextmenu"]){
+            if(this.sseq.keyHandlers[handler]){
+                this.supermarginLayerDOM[handler] = (event) => {
+                    event.mouseover_class = this.mouseover_class;
+                    this.sseq.keyHandlers[handler].call(this.sseq, event);
+                };
+            }
+        }
+
+        this.supermarginLayerDOM.oncontextmenu = (event) => {
+            event.mouseover_class = this.mouseover_class;
+            this.sseq.keyHandlers["oncontextmenu"].call(this.sseq, event);
+        };
 
         for(let key of Object.getOwnPropertyNames(this.sseq.keyHandlers)){
             Mousetrap.bind(key, (event) => {
@@ -147,13 +159,13 @@ class Display {
         this.height = this.stage.height();
 
         // TODO: Allow programmatic control over margins.
-        this.leftMargin = 30;
+        this.leftMargin = 40;
         this.rightMargin = 5;
         this.topMargin = 20;
-        this.bottomMargin = 30;
+        this.bottomMargin = 60;
 
         for(let side of ["left", "right", "top", "bottom"]){
-            let field = side + "Margin"
+            let field = side + "Margin";
             if(this.sseq[field]){
                 this[field] = this.sseq[field];
             }
@@ -214,6 +226,7 @@ class Display {
         let context = d3.select("#" + layerName).node().getContext("2d");
         this[layerName] = layer;
         this[layerName + "Context"] = context;
+        this[layerName + "DOM"] = canvasDOMList[canvasDOMList.length - 1];
     }
 
     _clipLayer(context){
@@ -300,6 +313,9 @@ class Display {
             //pageNumText.text("∞");
         } else {
             //pageNumText.text(page);
+        }
+        if(this.sseq.pageChangeHandler){
+            this.sseq.pageChangeHandler(this.page);
         }
     }
 
@@ -569,7 +585,7 @@ class Display {
         let edges = this.sseq.getEdgesToDisplay();
         for (let i = 0; i < edges.length; i++) {
             let e = edges[i];
-            if(!e || e.invalid){ // TODO: should probably log some of the cases where we skip an edge...
+            if(!e || e.invalid || !e.visible){ // TODO: should probably log some of the cases where we skip an edge...
                 continue;
             }
             let source_shape = e.source.canvas_shape;
@@ -669,12 +685,15 @@ class Display {
         this.mouseover_class = shape.sseq_class;
         let c = shape.sseq_class;
         // Is the result cached?
-        MathJax.Hub.Queue(["Typeset", MathJax.Hub, "tooltip_div_dummy"]);
+        let tooltip = this.sseq.getClassTooltip(c, this.page).replace(/\n/g, "\n<hr>\n");
         if (c.tooltip_html) {
             this.tooltip_div_dummy.html(c.tooltip_html);
             this._setupTooltipDiv(shape);
-        } else {
             let tooltip = this.sseq.getClassTooltip(c, this.page).replace(/\n/g, "\n<hr>\n");
+            this.tooltip_div_dummy.html(c.tooltip);
+            MathJax.Hub.Queue(["Typeset", MathJax.Hub, "tooltip_div_dummy"]);
+            MathJax.Hub.Queue(() => this.copyTooltipHTMLFromDummyTooltip(shape,tooltip));
+        } else {
             if (MathJax && MathJax.Hub) {
                 this.tooltip_div_dummy.html(tooltip);
                 MathJax.Hub.Queue(["Typeset", MathJax.Hub, "tooltip_div_dummy"]);
@@ -692,24 +711,11 @@ class Display {
         }
     }
 
-    // _checkTooltipDiv(shape, tooltip){
-    //     if(this.tooltip_div_dummy.html().includes("\\textcolor")){
-    //          this.tooltip_div_dummy.html("\\(\\def\\textcolor#1{}\\)" + tooltip);
-    //          MathJax.Hub.Queue(["Typeset", MathJax.Hub, "tooltip_div_dummy"]);
-    //          MathJax.Hub.Queue(() => this._setupTooltipDiv(shape));
-    //     } else {
-    //         this._setupTooltipDiv(shape);
-    //     }
-    // }
-
     _setupTooltipDiv(shape) {
         let rect = this.tooltip_div.node().getBoundingClientRect();
         let tooltip_width = rect.width;
         let tooltip_height = rect.height;
-        if (!this.tooltip_div_dummy.html().includes("\\(")) {
-            // Cache the result of the MathJax so we can display this tooltip faster next time.
-            shape.sseq_class.tooltip_html = this.tooltip_div_dummy.html();
-        }
+        this.copyTooltipHTMLFromDummyTooltip(shape);
         this.tooltip_div.html(this.tooltip_div_dummy.html());
         this.tooltip_div.style("left", (shape.x() + 25) + "px")
             .style("top", (shape.y() - tooltip_height) + "px")
@@ -726,6 +732,13 @@ class Display {
         this.tooltip_div.transition()
             .duration(200)
             .style("opacity", .9);
+    }
+
+    copyTooltipHTMLFromDummyTooltip(shape) {
+        if (!this.tooltip_div_dummy.html().includes("\\(")) {
+            // Cache the result of the MathJax so we can display this tooltip faster next time.
+            shape.sseq_class.tooltip_html = this.tooltip_div_dummy.html();
+        }
     }
 
     _handleMouseout() {

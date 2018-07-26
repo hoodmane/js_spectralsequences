@@ -21,9 +21,12 @@ let infinity = Util.infinity;
  *  TODO: currently merge and copy ignore dummies. Is this the right behavior? Maybe they should throw errors?
  */
 class Node {
-    constructor(){
+    constructor(obj){
         this.opacity = 1;
         this.color = "black";
+        if(obj){
+            Object.assign(this, obj);
+        }
     }
 
     copy(){
@@ -131,12 +134,14 @@ class Node {
  *  If instead the d9 were surjective, then the class shouldn't be displayed at all after page 9. This would be
  *  represented as `page_list = [5, 9]` and `node_list = [ Znode, pZnode ]`.
  */
+let unique_id = 0;
 class SseqClass {
     /**
      * @param sseq The parent spectral sequence.
      * @package
      */
     constructor(sseq, degree){
+        this.sseq = sseq;
         this.degree = degree;
         this.projection = sseq.projection(this); // Needed by display
         this.x = this.projection[0];
@@ -144,11 +149,10 @@ class SseqClass {
         this.x_offset = false;
         this.y_offset = false;
         this.idx = 0; // Set by addClass.
+        this.unique_id = unique_id ++;
 
         this.edges = [];
         this.structlines = [];
-        this.outgoing_differentials = [];
-        this.incoming_differentials = [];
         this.name = "";
         this.last_page_name = "";
         this.extra_info = "";
@@ -181,8 +185,21 @@ class SseqClass {
         dummy.toString = dummy.getName;
         dummy.constructor = SseqClass.constructor;
 
+        dummy.update = chainableNoOp;
         dummy.replace = chainableNoOp;
         dummy.addExtraInfo = chainableNoOp;
+        dummy.isAlive = Util.getDummyConstantFunction(false);
+
+        for(let field of ["getEdges", "getDifferentials", "getIncomingDifferentials", "getOutgoingDifferentials",
+            "getStructlines", "getIncomingStructlines", "getOutgoingStructlines", "getProducts", "getDivisors",
+            "getExtensions" ]){
+            dummy[field] = Util.getDummyConstantFunction([])
+        }
+
+        dummy.getProductIfPresent = Util.getDummyConstantFunction(dummy);
+        dummy.getDivisorIfPresent = Util.getDummyConstantFunction(dummy);
+
+        dummy.getStringifyingMapKey = Util.getDummyInvalidOperation(dummy, "getStringifyingMapKey");
         Util.setPrivateMethodsToInvalidOperation(dummy);
         Util.setDummyMethods(dummy, p => p.startsWith("set"), () => chainableNoOp );
 
@@ -192,6 +209,10 @@ class SseqClass {
 
     isDummy(){
         return false;
+    }
+
+    update(){
+        this.sseq.updateClass(this);
     }
 
     /* Public methods: */
@@ -216,6 +237,13 @@ class SseqClass {
     setPage(page){
         this.page_list[this.page_list.length - 1] = page;
         return this;
+    }
+
+    isAlive(page){
+        if(!page){
+            page = infinity - 1;
+        }
+        return this.getPage() > page;
     }
 
 
@@ -270,8 +298,9 @@ class SseqClass {
      * @returns {SseqClass}
      */
     setStructlinePages(page){
-        for(let i = 0; i < this.structlines.length; i++){
-            let sl = this.structlines[i];
+        let structlines = this.getStructlines();
+        for(let i = 0; i < structlines.length; i++){
+            let sl = structlines[i];
             if(sl.page > page){
                 sl.page = page;
             }
@@ -310,6 +339,77 @@ class SseqClass {
         return this;
     }
 
+    setPermanentCycleInfo(str){
+        this.permanent_cycle_info = str;
+        this.addExtraInfo(this.permanent_cycle_info);
+    }
+
+    getEdges(){
+        return this.edges;
+    }
+
+    getDifferentials(){
+        return this.edges.filter(e => e.type === "Differential");
+    }
+
+    getOutgoingDifferentials(){
+        return this.edges.filter(e => e.type === "Differential" && this === e.source);
+    }
+
+    getIncomingDifferentials(){
+        return this.edges.filter(e => e.type === "Differential" && this === e.target);
+    }
+
+
+    getStructlines(){
+        return this.edges.filter(e => e.type === "Structline");
+    }
+
+    getOutgoingStructlines(){
+        return this.edges.filter(e => e.type === "Structline" && this === e.source);
+    }
+
+    getIncomingStructlines(){
+        return this.edges.filter(e => e.type === "Structline" && this === e.target);
+    }
+
+    getExtensions(){
+        return this.edges.filter(e => e.type === "Extension");
+    }
+
+    getProducts(variable){
+        let multiplications  = this.edges.filter(sl => sl.type === "Structline" && otherClass(sl, this).y > this.y);
+        if(variable){
+            multiplications = multiplications.filter(sl => sl.mult === variable);
+        }
+        return multiplications;
+    }
+
+    getDivisors(variable){
+        let divisors  = this.edges.filter(sl => sl.type === "Structline" && otherClass(sl,this).y < this.y);
+        if(variable){
+            divisors = divisors.filter(sl => sl.mult === variable);
+        }
+        return divisors;
+    }
+
+    getProductIfPresent(variable){
+        let products = this.getProducts(variable);
+        if(products.length === 1){
+            return products[0].otherClass(this);
+        } else {
+            return SseqClass.getDummy();
+        }
+    }
+
+    getDivisorIfPresent(variable){
+        let products = this.getDivisors(variable);
+        if(products.length === 1){
+            return products[0].otherClass(this);
+        } else {
+            return SseqClass.getDummy();
+        }
+    }
 
     toString(){
         return this.name;
@@ -369,15 +469,12 @@ class SseqClass {
     }
 
 
-
-
     /**
      * Add a structline to this class. Called by sseq.addStructline.
      * @param sl The
      * @package
      */
     _addStructline(sl){
-        this.structlines.push(sl);
         this.edges.push(sl);
     }
 
@@ -391,7 +488,6 @@ class SseqClass {
             //this.handleDoubledDifferential("supporting another" + differential.supportedMessage());
         }
         this.setPage(differential.page);
-        this.outgoing_differentials.push(differential);
         this.edges.push(differential);
     }
 
@@ -405,7 +501,6 @@ class SseqClass {
             //this.handleDoubledDifferential("receiving another" + differential.hitMessage());
         }
         this.setPage(differential.page);
-        this.incoming_differentials.push(differential);
         this.edges.push(differential);
     }
 

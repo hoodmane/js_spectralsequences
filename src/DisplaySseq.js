@@ -127,7 +127,7 @@ class DisplaySseq {
      */
     _getXOffset(c, page){
         if(c.x_offset !== false){
-            return c.x_offset;
+            return c.x_offset * this.offset_size;
         }
         let total_classes = this.num_classes_by_degree.get([c.x, c.y]);
         let idx = c.idx;
@@ -210,11 +210,16 @@ class DisplaySseq {
         e.page = infinity;
         e.page_min = 0;
         e._drawOnPageQ = () => true;
+        e.visible = true;
         return e;
     }
 
     addKeyHandler(key, fn){
         this.keyHandlers[key] = fn;
+    }
+
+    setPageChangeHandler(f){
+        this.pageChangeHandler = f;
     }
 
     /* */
@@ -239,6 +244,9 @@ class DisplaySseq {
             let en = DisplaySseq.newEdge();
             en.source = classes_by_id.get(e.sourceName); //
             en.target = classes_by_id.get(e.targetName);
+            if(e.type){
+                en.mult = e.type;
+            }
             edges.push(en);
         }
         let dss = new DisplaySseq();
@@ -251,7 +259,6 @@ class DisplaySseq {
 
     static async fromJSON(path){
         let response = await fetch(path);
-        console.log(response);
         let json = await response.text();
         let sseq = parse(json);
         Object.setPrototypeOf(sseq, DisplaySseq.prototype);
@@ -264,6 +271,7 @@ class DisplaySseq {
             let idx  = num_classes_by_degree.getOrElse([c.x, c.y], 0);
             num_classes_by_degree.set([c.x, c.y], idx + 1);
             for(let i = 0; i < c.node_list.length; i++){
+                c.node_list[i] = new Node(c.node_list[i]);
                 c.node_list[i].shape = Shapes[c.node_list[i].shape.name];
             }
         }
@@ -289,7 +297,14 @@ class DisplaySseq {
         for(let c of this.classes){
             c.tooltip_html = undefined;
         }
+        this.edges = this.edges.filter(e => !e.invalid && (e.constructor.name.startsWith("D") || e.mult));
+        let display_classes = this.display_classes;
+        let display_edges = this.display_edges;
+        this.display_classes = undefined;
+        this.display_edges = undefined;
         Util.download(filename, stringify(this));
+        this.display_classes = display_classes;
+        this.display_edges = display_edges;
     }
 
 

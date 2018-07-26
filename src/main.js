@@ -19,10 +19,14 @@ window.DisplaySseq = Sseqjs.DisplaySseq;
 window.SseqClass = Sseqjs.SseqClass;
 window.Node = Sseqjs.Node;
 window.Edge = Sseqjs.Edge;
-window.Differential = Sseqjs.Differential
+window.Differential = Sseqjs.Differential;
 window.Structline = Sseqjs.Structline;
 window.Extension = Sseqjs.Extension;
 window.Util = require("./Util.js");
+
+window.Flatted = require('flatted/cjs');
+
+window.tools = require("./ass_tools.js");
 
 window.d3 = require("d3");
 

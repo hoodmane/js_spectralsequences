@@ -10,6 +10,12 @@ class Edge {
      * @param {SseqClass} target
      */
     constructor(source, target){
+        // Make sure source has lower y coordinate than target.
+        if(source.y > target.y){
+            let temp = source;
+            source = target;
+            target = temp;
+        }
         this.source = source;
         this.target = target;
         this.source_name = this.source.last_page_name;
@@ -18,12 +24,50 @@ class Edge {
         this.page_min = 0;
         this.color = "#000";
         this.type = this.constructor.name;
+        this.visible = true;
     }
+
+    otherClass(c){
+        if(this.source === c){
+            return this.target;
+        } else if(this.target === c) {
+            return this.source;
+        } else {
+            // TODO: Error?
+            console.log("Invalid class");
+        }
+    }
+
 
     setMinPage(min_page){
         this.page_min = min_page;
         return this;
     }
+
+    isDummy(){
+        return false;
+    }
+
+    delete(){
+        if(this.source.page_list.indexOf(this.page) !== this.source.page_list.length - 1){
+            console.log("Cannot remove differential, source has done stuff since.");
+            return;
+        }
+        if(this.target.page_list.indexOf(this.page) !== this.target.page_list.length - 1){
+            console.log("Cannot remove differential, target has done stuff since.");
+            return;
+        }
+
+        this.invalid = true;
+        this.source.edges = this.source.edges.filter(e => !e.invalid);
+        this.target.edges = this.target.edges.filter(e => !e.invalid);
+        this.source.page_list[this.source.page_list.length - 1] = infinity;
+        this.target.page_list[this.target.page_list.length - 1] = infinity;
+        this.source.update();
+        this.target.update();
+        this.display_edge.invalid = true;
+    }
+
 
     static getDummy(){
         if(Edge._dummy){
@@ -32,9 +76,12 @@ class Edge {
         let dummy = Object.create(Edge);
         Edge._dummy = dummy;
 
+        dummy.isDummy = () => true;
         Util.setPrivateMethodsToInvalidOperation(dummy);
         dummy.setMinPage = Util.getDummyConstantFunction(dummy);
         dummy.constructor = Edge.constructor;
+        dummy.otherClass = Util.getDummyConstantFunction(SseqClass.getDummy());
+        dummy.delete = () => true;
 
         Util.checkAllCommandsDefined(dummy);
 
@@ -192,7 +239,21 @@ class Differential extends Edge {
     addInfoToSourceAndTarget(){
         this.source.addExtraInfo(this.toString(true,false));
         this.target.addExtraInfo(this.toString(false,true));
+        this.source.update();
+        this.target.update();
         return this;
+    }
+
+    leibniz(multiplications){
+        for(let variable of multiplications){
+            let source = this.source.getProductIfPresent(variable);
+            let target = this.target.getProductIfPresent(variable);
+            if(!source.isAlive() || !target.isAlive()){
+                continue;
+            }
+            sseq.addDifferential(source, target, this.page).leibniz(multiplications);
+        }
+
     }
 
     /**

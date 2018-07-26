@@ -18,14 +18,14 @@ var StringifyingMap = (function () {
         }
         this.catToString = catToString;
         this.m = new Map();
-        this.keys = new Map();
+        this.key_string_to_key_object = new Map();
     }
     StringifyingMap.prototype.set = function (k, v) {
         let key_string = this.catToString(k);
         if(key_string === undefined){
             throw new Error("Key encoding undefined.");
         }
-        this.keys.set(key_string, k);
+        this.key_string_to_key_object.set(key_string, k);
         let s = this.m.set(key_string, v);
         return s;
     };
@@ -37,7 +37,7 @@ var StringifyingMap = (function () {
         return this.m.get(this.catToString(k));
     };
     StringifyingMap.prototype.delete = function (k) {
-        this.keys.delete(this.catToString(k));
+        this.key_string_to_key_object.delete(this.catToString(k));
         return this.m.delete(this.catToString(k));
     };
     StringifyingMap.prototype.has = function (k) {
@@ -49,13 +49,17 @@ var StringifyingMap = (function () {
 
     StringifyingMap.prototype.getOrElse = function(key, value) {
       return this.has(key) ? this.get(key) : value;
-    }
+    };
     
     StringifyingMap.prototype[Symbol.iterator] = function*(){
         for(let k of this.m){
-            yield [this.keys.get(k[0]),k[1]];
+            yield [this.key_string_to_key_object.get(k[0]),k[1]];
         }
-    }
+    };
+
+    StringifyingMap.prototype.keys = function(){
+        return this.key_string_to_key_object.values();
+    };
     
     Object.defineProperty(StringifyingMap.prototype, "size", {
         get: function () {
