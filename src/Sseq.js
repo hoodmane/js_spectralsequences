@@ -116,7 +116,7 @@ class Sseq {
 
         this._edge_update_fields = [
             "page", "page_min", "color", "source_name", "target_name",
-            "_drawOnPageQ", "visible"
+            "_drawOnPageQ", "visible", "bend", "opacity", "dash", "lineWidth"
         ];
     }
 
@@ -168,6 +168,10 @@ class Sseq {
 
     getStructlines(){
         return this.structlines;
+    }
+
+    getDifferentials(){
+        return this.differentials;
     }
 
     getClassesInDegree(x, y){
@@ -498,6 +502,8 @@ class Sseq {
         for(let e of this.edges){
             this.updateEdge(e);
         }
+        this.display_sseq.update();
+
     }
 
     static getSseqFromDisplay(dss){

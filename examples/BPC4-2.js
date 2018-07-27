@@ -278,10 +278,11 @@ addBPC4Differential(13, {"d1" : 11},{"d1" : 14}, 37, 2);
 function getTruncationClasses(n){
     let out = [];
     for(let c of BPC4.classes){
-        if(c.x + c.y >= 4*n && c.incoming_differentials.length > 0){
-            for(let i = 0; i < c.incoming_differentials.length; i++){
-                let d = c.incoming_differentials[i];
-                if(d.source.x + d.source.y < 4*n && c.incoming_differentials[c.incoming_differentials.length - 1].page > 3){
+        let incoming_differentials = c.getIncomingDifferentials();
+        if(c.x + c.y >= 4*n && incoming_differentials.length > 0){
+            for(let i = 0; i < incoming_differentials.length; i++){
+                let d = incoming_differentials[i];
+                if(d.source.x + d.source.y < 4*n && incoming_differentials[incoming_differentials.length - 1].page > 3){
                     let node = c.getNode();
                     node.stroke = differential_colors[d.page];
                     node.color = differential_colors[d.page];
@@ -290,7 +291,7 @@ function getTruncationClasses(n){
                     c.name = c.slice.toString();
                     c.cut_length = d.page;
                     if(c.E2group === "Z4"){
-                        if(c.outgoing_differentials.length > 0){
+                        if(c.getOutgoingDifferentials().length > 0){
                             node.fill = "red";
                             c.name = "2\\," + c.name;
                             c.group = "Z2";
@@ -393,7 +394,7 @@ for(let c of BPC4.getSurvivingClasses()){
     nc.group = c.group;
     if(c.group === "4Z"){
         nc.name = "4\\," + nc.name;
-    } else if(c.group === "2Z" || c.outgoing_differentials.length > 0){
+    } else if(c.group === "2Z" || c.getOutgoingDifferentials().length > 0){
         nc.name = "2\\," + nc.name;
     }
     partitionList(c.slice.getSliceNames(), 5).forEach((s) => nc.addExtraInfo(`${s}`));

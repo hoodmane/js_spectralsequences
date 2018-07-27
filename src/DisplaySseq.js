@@ -275,6 +275,12 @@ class DisplaySseq {
                 c.node_list[i].shape = Shapes[c.node_list[i].shape.name];
             }
         }
+        for(let e of sseq.edges){
+            if(e.type === "Extension"){
+                e._drawOnPageQ = undefined;
+            }
+        }
+
         sseq.num_classes_by_degree = num_classes_by_degree;
         return sseq;
     }/**/
@@ -297,7 +303,7 @@ class DisplaySseq {
         for(let c of this.classes){
             c.tooltip_html = undefined;
         }
-        this.edges = this.edges.filter(e => !e.invalid && (e.constructor.name.startsWith("D") || e.mult));
+        this.edges = this.edges.filter(e => !e.invalid);
         let display_classes = this.display_classes;
         let display_edges = this.display_edges;
         this.display_classes = undefined;

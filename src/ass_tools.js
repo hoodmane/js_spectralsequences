@@ -1,6 +1,14 @@
 let Sseqjs = require("./Sseq.js");
 let Sseq = Sseqjs.Sseq;
 
+exports.getClassExpression = function(c){
+    let out = `(${c.x}, ${c.y})`;
+    if(c.name){
+        out += ` [${c.name}]`;
+    }
+    return out;
+}
+
 function variablePowerString(variable, power){
     if(power === 1){
         return variable;
@@ -196,7 +204,7 @@ exports.install_edit_handlers = function(dss, download_filename){
         if(event.mouseover_class){
             let c = event.mouseover_class;
             dss.temp_source_class = c;
-            display.status_div.html(`Adding differential. Source: ${getClassExpression(c)}`);
+            display.status_div.html(`Adding differential. Source: ${exports.getClassExpression(c)}`);
         }
     });
 
@@ -212,7 +220,7 @@ exports.install_edit_handlers = function(dss, download_filename){
                 return;
             }
             let length = t.y - s.y;
-            if(confirm(`Add d${length} differential from ${getClassExpression(s)} to ${getClassExpression(t)}`)){
+            if(confirm(`Add d${length} differential from ${exports.getClassExpression(s)} to ${exports.getClassExpression(t)}`)){
                 let d = sseq.addDifferential(sseq.display_class_to_real_class.get(s), sseq.display_class_to_real_class.get(t), length);
                 //d.color = differential_colors[d.page];
                 d.display_edge.color = d.color;
@@ -239,8 +247,7 @@ exports.install_edit_handlers = function(dss, download_filename){
         if(name || name === ""){
             real_class.name = name;
             real_class.setColor("black");
-            sseq.updateClass(real_class);
-            dss.update();
+            sseq.update();
         }
         c.tooltip_html = undefined;
         //add_g1_name_if_possible(real_class);
@@ -273,7 +280,7 @@ exports.addProductNames = function(sseq, variable){
                 break;
             }
             c.name = tools.multiply_monomial(variable, power, name);
-            sseq.updateClass(c);
+            sseq.update();
             power ++;
         }
     }
@@ -309,10 +316,10 @@ for(let c of sseq.classes.filter(c => c.name)){
             bic.name = c.name.replace(bpower_regex, `b^{${bpower + i}}`);
             bic.setColor("black");
             console.log(c.name + ", " + bic.name);
-            sseq.updateClass(bic);
         }
     }
 }
+sseq.update();
 
 for(let c of sseq.classes.filter(c => c.name)){
     if(c.name && a1power_regex.test(c.name)){
@@ -334,7 +341,8 @@ for(let c of sseq.classes.filter(c => c.name)){
             console.log(bic);
             bic.name = c.name.replace(a1power_regex, `a_1^{${a1power + i}}`);
             bic.setColor("black");
-            sseq.updateClass(bic);
         }
     }
-}*/
+}
+sseq.update();
+*/

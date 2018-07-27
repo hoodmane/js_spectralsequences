@@ -159,10 +159,15 @@ class Display {
         this.height = this.stage.height();
 
         // TODO: Allow programmatic control over margins.
+        // this.leftMargin = 40;
+        // this.rightMargin = 5;
+        // this.topMargin = 20;
+        // this.bottomMargin = 60;
         this.leftMargin = 40;
         this.rightMargin = 5;
-        this.topMargin = 20;
-        this.bottomMargin = 60;
+        this.topMargin = 40;
+        this.bottomMargin = 30;
+
 
         for(let side of ["left", "right", "top", "bottom"]){
             let field = side + "Margin";
@@ -593,18 +598,53 @@ class Display {
             if(!source_shape || ! target_shape){
                 continue;
             }
-            context.beginPath();
             if (!e.sourceOffset || (e.sourceOffset.x === 0 && e.sourceOffset.y === 0)) {
                 e.sourceOffset = {x: 0, y: 0};
                 e.targetOffset = {x: 0, y: 0};
                 //setTimeout(_setUpEdge(e),0);
             }
-            context.lineWidth = 1;
+            context.save();
             context.strokeStyle = e.color;
-            context.moveTo(source_shape.x() + e.sourceOffset.x, source_shape.y() + e.sourceOffset.y);
-            context.lineTo(target_shape.x() + e.targetOffset.x, target_shape.y() + e.targetOffset.y);
-            context.closePath();
+            if(e.lineWidth){
+                context.lineWidth = e.lineWidth;
+            }
+            if(e.opacity){
+                context.opacity = e.opacity;
+            }
+            if(e.dash){
+                context.setLineDash(e.dash)
+            }
+
+            let sourceX = source_shape.x() + e.sourceOffset.x;
+            let sourceY = source_shape.y() + e.sourceOffset.y;
+            let targetX = target_shape.x() + e.targetOffset.x;
+            let targetY = target_shape.y() + e.targetOffset.y;
+
+            context.beginPath();
+            if(e.bend ){//&& e.bend !== 0
+                let distance = Math.sqrt((targetX - sourceX)*(targetX - sourceX) + (targetY - sourceY)*(targetY - sourceY));
+                let looseness = 0.4;
+                if(e.looseness){
+                    looseness = e.looseness;
+                }
+                let angle = Math.atan((targetY - sourceY)/(targetX - sourceX));
+                let bendAngle = - e.bend * Math.PI/180;
+                let control1X = sourceX + Math.cos(angle + bendAngle) * looseness * distance;
+                let control1Y = sourceY + Math.sin(angle + bendAngle) * looseness * distance;
+                let control2X = targetX - Math.cos(angle - bendAngle) * looseness * distance;
+                let control2Y = targetY - Math.sin(angle - bendAngle) * looseness * distance;
+                context.moveTo(sourceX, sourceY);
+                context.bezierCurveTo(control1X, control1Y, control2X, control2Y, targetX, targetY);
+                // context.moveTo(sourceX, sourceY);
+                // context.lineTo(control1X, control1Y);
+                // context.lineTo(control2X, control2Y);
+                // context.lineTo(targetX, targetY);
+            } else {
+                context.moveTo(sourceX, sourceY);
+                context.lineTo(targetX, targetY);
+            }
             context.stroke();
+            context.restore();
         }
     }
 
