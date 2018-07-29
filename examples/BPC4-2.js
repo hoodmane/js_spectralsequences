@@ -572,10 +572,13 @@ dss.addKeyHandler('z',
     }
 );
 
+
+
 truncation_sseq.topMargin = 20;
 truncation_sseq.squareAspectRatio = true;
 
-truncation_sseq.display();
+let dss = truncation_sseq.display();
+//tools.install_edit_handlers(dss,"BPC4-2");
 window.truncation_sseq = truncation_sseq;
 
 

@@ -1,4 +1,4 @@
-"use strict"
+"use strict";
 
 let SseqClassjs = require("./SseqClass.js");
 let SseqClass = SseqClassjs.SseqClass;
@@ -19,10 +19,18 @@ default_node.shape = Shapes.circle;
 default_node.size = 6;
 
 /**
+ *  This class is supposed to implement a minimal interface for Display.js.
+ *  It could be streamlined a bit, but is close to doing that.
  *
+ *  To display a spectral sequence, we need a list of classes and a list of edges.
+ *  The classes have a bidegree and an offset, as well as a list of pages and nodes.
+ *  The edges have source and target classes and some fields like color, opacity, dash pattern, and bend that control the display.
+ *
+ *  The classes and edges handled by DisplaySseq are POJOs.
+ *  The DisplaySseq has to provide a list of classes and edges to be drawn in a given range on a given page.
+ *  It also has methods to answer any questions that the display has about the classes and edges that are not
+ *  answered by their fields (since they don't contain any methods).
  */
-
-
 class DisplaySseq {
 
     constructor(){
@@ -42,6 +50,16 @@ class DisplaySseq {
         this.default_node.size = 6;
         this.class_scale = 1;
         this.keyHandlers = {};
+        this.serializeSseqFields = [
+            "min_page_idx", "page_list", "xRange", "yRange", "initialxRange", "initialyRange",
+            "default_node", "class_scale", "offset_size", "serializeSseqFields", "serializeClassFields", "serializeEdgeFields"
+        ]; // classes and edges are dealt with separately.
+        this.serializeClassFields = [
+            "x", "y", "name", "extra_info", "unique_id", "idx", "x_offset", "y_offset", "page_list", "visible"
+        ]; // "node_list" is dealt with separately
+        this.serializeEdgeFields = [
+            "color", "bend", "dash", "lineWidth", "opacity", "page_min", "page", "type"
+        ]; // "source" and "target" are dealt with separately.
     }
 
     static getSerializeFields(){
@@ -49,7 +67,10 @@ class DisplaySseq {
     }
 
     /**
-     * This is an internal method used by display to calculate the set of features to be displayed on the current page.
+     * This is used by display to calculate the set of features to be displayed on the current page and view range.
+     * After calling this method, the classes and edges can be gotten from _getClassesToDisplay and _getEdgesToDisplay
+     * respectively.
+     *
      * @param page
      * @param xmin
      * @param xmax
@@ -68,13 +89,13 @@ class DisplaySseq {
         }
         this.display_classes = this.classes.filter(c => {
                 if(!c){ return false; }
-                c.in_range = DisplaySseq._inRangeQ(c,xmin, xmax, ymin, ymax);
+                c.in_range = DisplaySseq._classInRangeQ(c,xmin, xmax, ymin, ymax);
                 return c.in_range && DisplaySseq._drawClassOnPageQ(c,page);
         });
         this.display_edges = this.edges.filter(e =>
             e &&
             DisplaySseq._drawEdgeOnPageQ(e, pageRange)
-            && DisplaySseq._drawClassOnPageQ(e.source,page) && DisplaySseq._drawClassOnPageQ(e.target,page)
+            && DisplaySseq._drawClassOnPageQ(e.source, page) && DisplaySseq._drawClassOnPageQ(e.target, page)
             && ( e.source.in_range || e.target.in_range )
         );
 
@@ -89,7 +110,28 @@ class DisplaySseq {
         }
     }
 
-    static _drawClassOnPageQ(c,page){
+    /**
+     * For c a class, check if `xmin <= c.x <= xmax` and `ymin <= c.y <= ymax`
+     * @param c
+     * @param xmin
+     * @param xmax
+     * @param ymin
+     * @param ymax
+     * @returns {boolean}
+     * @private
+     */
+    static _classInRangeQ(c, xmin, xmax, ymin, ymax){
+        return xmin <= c.x && c.x <= xmax && ymin <= c.y && c.y <= ymax;
+    }
+
+    /**
+     * Check whether `page` is less than the maximum draw page for the `c`.
+     * @param c
+     * @param page
+     * @returns {boolean}
+     * @private
+     */
+    static _drawClassOnPageQ(c, page){
         if(c._drawOnPageQ){
             return c._drawOnPageQ(page);
         } else {
@@ -97,6 +139,14 @@ class DisplaySseq {
         }
     }
 
+    /**
+     * Check whether the edge should be drawn on the given page / pageRange. The behavior depends on whether the edge is a
+     * Differential, Structline, or Extension.
+     * @param edge
+     * @param pageRange
+     * @returns {boolean}
+     * @private
+     */
     static _drawEdgeOnPageQ(edge, pageRange){
         if(edge._drawOnPageQ){
             return edge._drawOnPageQ(pageRange);
@@ -115,9 +165,26 @@ class DisplaySseq {
         }
     }
 
-    static _inRangeQ(c, xmin, xmax, ymin, ymax){
-        return xmin <= c.x && c.x <= xmax && ymin <= c.y && c.y <= ymax;
+    /**
+     * Get list of classes to display calculated by _calculateDrawnElements. Used by display.
+     * @returns {Array}
+     * @package
+     */
+    _getClassesToDisplay(){
+        return this.display_classes;
     }
+
+    /**
+     * Get list of edges to display calculated by _calculateDrawnElements. Used by display.
+     * @returns {Array}
+     * @package
+     */
+    _getEdgesToDisplay(){
+        return this.display_edges;
+    }
+
+
+
 
     /**
      * If multiple classes are in the same (x,y) location, we offset their position a bit to avoid clashes.
@@ -155,13 +222,6 @@ class DisplaySseq {
         return out;
     }
 
-    getClassesToDisplay(){
-        return this.display_classes;
-    }
-
-    getEdgesToDisplay(){
-        return this.display_edges;
-    }
 
     getClassNode(c, page){
         return c.node_list[SseqClass.prototype._getPageIndex.call(c, page)];
@@ -188,7 +248,7 @@ class DisplaySseq {
     }
 
     static newClass(){
-        let c = {
+        return {
             x: 0,
             y: 0,
             idx: 0,
@@ -199,9 +259,8 @@ class DisplaySseq {
             page_list: [infinity],
             node_list: [default_node.copy()],
             visible: true,
-            _drawOnPageQ : () => true
+            _drawOnPageQ: () => true
         };
-        return c;
     }
 
     static newEdge(){
@@ -257,7 +316,7 @@ class DisplaySseq {
     }
     /**/
 
-    static async fromJSON(path){
+    static async fromJSONOld(path){
         let response = await fetch(path);
         let json = await response.text();
         let sseq = parse(json);
@@ -275,16 +334,49 @@ class DisplaySseq {
                 c.node_list[i].shape = Shapes[c.node_list[i].shape.name];
             }
         }
+        console.log(sseq.classes);
         for(let e of sseq.edges){
             if(e.type === "Extension"){
                 e._drawOnPageQ = undefined;
             }
         }
-
         sseq.num_classes_by_degree = num_classes_by_degree;
         return sseq;
     }/**/
 
+
+    static async fromJSON(path){
+        let response = await fetch(path);
+        let json = await response.text();
+        let sseq_obj = JSON.parse(json);
+        console.log(sseq_obj.edges);
+        let sseq = Object.assign(new DisplaySseq(), sseq_obj);
+        sseq.default_node = Object.assign(new Node(), sseq.default_node);
+        let num_classes_by_degree = new StringifyingMap();
+        let class_list_index_map = new Map();
+        for(let i = 0; i < sseq.classes.length; i++){
+            let c = sseq.classes[i];
+            class_list_index_map.set(i, c);
+            if(!c){
+                continue;
+            }
+            let idx  = num_classes_by_degree.getOrElse([c.x, c.y], 0);
+            num_classes_by_degree.set([c.x, c.y], idx + 1);
+            for(let i = 0; i < c.node_list.length; i++){
+                c.node_list[i] = new Node(sseq.master_node_list[c.node_list[i]]);
+                c.node_list[i].shape = Shapes[c.node_list[i].shape.name];
+            }
+        }
+        for(let e of sseq.edges){
+            if(e.type === "Extension"){
+                e._drawOnPageQ = undefined;
+            }
+            e.source = class_list_index_map.get(e.source);
+            e.target = class_list_index_map.get(e.target);
+        }
+        sseq.num_classes_by_degree = num_classes_by_degree;
+        return sseq;
+    }
 
 
     display(){
@@ -299,7 +391,56 @@ class DisplaySseq {
         }
     }
 
+    toJSON() {
+        let sseqToSerialize = {};
+        for(let field of this.serializeSseqFields){
+            sseqToSerialize[field] = this[field];
+        }
+        let node_map = new StringifyingMap((n) => JSON.stringify(n));
+        sseqToSerialize.master_node_list = [];
+        sseqToSerialize.classes = [];
+        sseqToSerialize.edges = [];
+        for(let c of this.classes){
+            let classToSerialize = {};
+            for(let field of this.serializeClassFields){
+                classToSerialize[field] = c[field];
+            }
+            classToSerialize.node_list = [];
+            for(let cur_node of c.node_list){
+                if(!node_map.has(cur_node)){
+                    node_map.set(cur_node, sseqToSerialize.master_node_list.length);
+                    sseqToSerialize.master_node_list.push(cur_node);
+                }
+                classToSerialize.node_list.push(node_map.get(cur_node));
+            }
+            c.list_index = sseqToSerialize.classes.length;
+            sseqToSerialize.classes.push(classToSerialize);
+        }
+        for(let edge of this.edges){
+            let edgeToSerialize = {};
+            for(let field of this.serializeEdgeFields){
+                edgeToSerialize[field] = edge[field];
+            }
+            edgeToSerialize.source = edge.source.list_index;
+            edgeToSerialize.target = edge.target.list_index;
+            sseqToSerialize.edges.push(edgeToSerialize);
+        }
+        console.log(sseqToSerialize)
+        return sseqToSerialize;
+    }
+
+
     download(filename){
+        this.serializeSseqFields = [
+            "min_page_idx", "page_list", "xRange", "yRange", "initialxRange", "initialyRange",
+            "default_node", "class_scale", "offset_size", "serializeSseqFields", "serializeClassFields", "serializeEdgeFields"
+        ]; // classes and edges are dealt with separately.
+        this.serializeClassFields = [
+            "x", "y", "name", "extra_info", "unique_id", "idx", "x_offset", "y_offset", "page_list", "visible", "permanent_cycle_info"
+        ]; // "node_list" is dealt with separately
+        this.serializeEdgeFields = [
+            "color", "bend", "dash", "lineWidth", "opacity", "page_min", "page", "type","mult"
+        ]; // "source" and "target" are dealt with separately.
         for(let c of this.classes){
             c.tooltip_html = undefined;
         }
@@ -308,7 +449,7 @@ class DisplaySseq {
         let display_edges = this.display_edges;
         this.display_classes = undefined;
         this.display_edges = undefined;
-        Util.download(filename, stringify(this));
+        Util.download(filename, JSON.stringify(this));
         this.display_classes = display_classes;
         this.display_edges = display_edges;
     }

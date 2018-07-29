@@ -111,7 +111,7 @@ class Sseq {
             "x", "y", "idx", "uid", "x_offset", "y_offset",
             "name", "extra_info", "page_list", "node_list",
             "visible",
-            "_inRangeQ", "_drawOnPageQ"
+            "_classInRangeQ", "_drawOnPageQ"
         ];
 
         this._edge_update_fields = [
@@ -595,7 +595,9 @@ class Sseq {
 
     display(){
         this.update();
-        this.getDisplaySseq().display();
+        let dss = this.getDisplaySseq();
+        dss.display();
+        return dss;
     }
 }
 

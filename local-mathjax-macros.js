@@ -7,7 +7,15 @@ if(MathJax && MathJax.Hub){
         TeX: {
             extensions: ["color.js"],
             Macros : {
-                toda : ["\\langle #1\\rangle",1]
+                toda : ["\\langle #1\\rangle",1],
+                tmf : "tm\\!f",
+                HF : "H\\F",
+                HZ : "H\\Z",
+                semidirect : "\rtimes",
+                F : "\\mathbb{F}",
+                Z : "\\mathbb{Z}",
+                Zbb : "\\mathbb{Z}",
+                CP : "\mathbb{CP}"
             }
         },
         "HTML-CSS": {

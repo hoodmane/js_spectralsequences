@@ -165,7 +165,7 @@ class Display {
         // this.bottomMargin = 60;
         this.leftMargin = 40;
         this.rightMargin = 5;
-        this.topMargin = 40;
+        this.topMargin = 30;
         this.bottomMargin = 30;
 
 
@@ -249,9 +249,6 @@ class Display {
         }
         this.sseq = ss;
         this.sseq.registerUpdateListener(this.updateBatch.bind(this));
-        if(ss.disp !== this){
-            ss.disp = this;
-        }
 
         // The sseq object contains the list of valid pages. Always includes at least 0 and infinity.
         if(this.sseq.initial_page_idx){
@@ -535,7 +532,7 @@ class Display {
         }
 
         this.classLayer.removeChildren();
-        for (let c of this.sseq.getClassesToDisplay()) {
+        for (let c of this.sseq._getClassesToDisplay()) {
             if(!c){ // TODO: should we log these cases?
                 continue;
             }
@@ -587,7 +584,7 @@ class Display {
         let context = this.edgeLayerContext;
         context.clearRect(0, 0, this.width, this.height);
 
-        let edges = this.sseq.getEdgesToDisplay();
+        let edges = this.sseq._getEdgesToDisplay();
         for (let i = 0; i < edges.length; i++) {
             let e = edges[i];
             if(!e || e.invalid || !e.visible){ // TODO: should probably log some of the cases where we skip an edge...
