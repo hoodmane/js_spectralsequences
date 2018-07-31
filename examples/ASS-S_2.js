@@ -56,7 +56,7 @@ DisplaySseq.fromJSON(file_name).catch((error) => console.log(error)).then((dss) 
 
     tools.install_edit_handlers(dss,"ASS-S_2");
 
-    dss.addKeyHandler("onclick", (event) => {
+    dss.addEventHandler("onclick", (event) => {
         if(!event.mouseover_class){
             return;
         }
@@ -77,7 +77,7 @@ DisplaySseq.fromJSON(file_name).catch((error) => console.log(error)).then((dss) 
         sseq.update();
     });
 
-    // dss.addKeyHandler("onclick", (event) => {
+    // dss.addEventHandler("onclick", (event) => {
     //     if(!event.mouseover_class){
     //         return;
     //     }
@@ -97,7 +97,7 @@ DisplaySseq.fromJSON(file_name).catch((error) => console.log(error)).then((dss) 
     //     c.tooltip_html = undefined;
     // });
 
-    // dss.addKeyHandler("onclick", (event) => {
+    // dss.addEventHandler("onclick", (event) => {
     //     if(!event.mouseover_class){
     //         return;
     //     }
@@ -116,7 +116,7 @@ DisplaySseq.fromJSON(file_name).catch((error) => console.log(error)).then((dss) 
 
     let ext_colors = {"2" : "orange", "\\eta" : "purple", "\\nu" : "brown"}
 
-    dss.addKeyHandler('e', (event) => {
+    dss.addEventHandler('e', (event) => {
         if(event.mouseover_class && dss.temp_source_class){
             let s = dss.temp_source_class;
             let t = event.mouseover_class;

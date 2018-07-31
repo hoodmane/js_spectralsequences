@@ -110,7 +110,7 @@ DisplaySseq.fromJSON(file_name)
         tools.install_edit_handlers(dss,"ASS-S_3");
 
 
-        dss.addKeyHandler("onclick", (event) => {
+        dss.addEventHandler("onclick", (event) => {
             if(!event.mouseover_class){
                 return;
             }
@@ -127,7 +127,7 @@ DisplaySseq.fromJSON(file_name)
             }
         });
 
-        dss.addKeyHandler("onclick", (event) => {
+        dss.addEventHandler("onclick", (event) => {
             if(!event.mouseover_class){
                 return;
             }
@@ -150,7 +150,7 @@ DisplaySseq.fromJSON(file_name)
 
         let ext_colors = {"3" : "orange", "\\alpha_1" : "purple", "\\beta_1" : "black", "<\\alpha,3,->" : "black", "<\\alpha,\\alpha,->" : "brown"};
 
-        dss.addKeyHandler('t', (event) => {
+        dss.addEventHandler('t', (event) => {
             if(event.mouseover_class && dss.temp_source_class){
                 let s = dss.temp_source_class;
                 let t = event.mouseover_class;
@@ -173,7 +173,7 @@ DisplaySseq.fromJSON(file_name)
         });
 
 
-        // dss.addKeyHandler("onclick", (event) => {
+        // dss.addEventHandler("onclick", (event) => {
         //     if(!event.mouseover_class){
         //         return;
         //     }
@@ -218,7 +218,7 @@ DisplaySseq.fromJSON(file_name)
         //     }
         // }
         //
-        // dss.addKeyHandler("onclick", (event) => {
+        // dss.addEventHandler("onclick", (event) => {
         //     if(!event.mouseover_class){
         //         return;
         //     }

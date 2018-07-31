@@ -378,7 +378,7 @@ class SseqClass {
     }
 
     getProducts(variable){
-        let multiplications  = this.edges.filter(sl => sl.type === "Structline" && otherClass(sl, this).y > this.y);
+        let multiplications  = this.edges.filter(sl => sl.type === "Structline" && sl.otherClass(this).y > this.y);
         if(variable){
             multiplications = multiplications.filter(sl => sl.mult === variable);
         }
@@ -386,7 +386,7 @@ class SseqClass {
     }
 
     getDivisors(variable){
-        let divisors  = this.edges.filter(sl => sl.type === "Structline" && otherClass(sl,this).y < this.y);
+        let divisors  = this.edges.filter(sl => sl.type === "Structline" && sl.otherClass(this).y < this.y);
         if(variable){
             divisors = divisors.filter(sl => sl.mult === variable);
         }

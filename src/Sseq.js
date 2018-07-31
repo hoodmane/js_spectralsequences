@@ -335,7 +335,6 @@ class Sseq {
         display_edge.source = edge.source.display_class;
         display_edge.target = edge.target.display_class;
         display_edge.type = edge.constructor.name;
-
         this.updateEdge(edge);
     }
 
@@ -344,6 +343,7 @@ class Sseq {
         c.display_class.tooltip = undefined;
     }
 
+    //
     updateEdge(edge){
        if(edge.isDummy()){
            return;
@@ -475,26 +475,6 @@ class Sseq {
 
 
 
-    /* For display: */
-
-
-    /**
-     * Get tooltip.
-     * @returns {string}
-     */
-    getTooltip(c){
-        let tooltip = "";
-        if(c.name !== ""){
-            tooltip = `\\(${c.name}\\) &mdash; `;
-        }
-        tooltip += `(${c.x}, ${c.y})`;
-        tooltip += c.extra_info;
-        return tooltip;
-    }
-
-
-
-
     update(){
         for(let c of this.classes){
             this.updateClass(c);
@@ -503,11 +483,11 @@ class Sseq {
             this.updateEdge(e);
         }
         this.display_sseq.update();
-
     }
 
     static getSseqFromDisplay(dss){
         let sseq = new Sseq();
+        dss.real_sseq = sseq;
         Object.assign(sseq, dss);
         sseq.num_classes_by_degree = new StringifyingMap();
         sseq.classes = [];
@@ -549,9 +529,13 @@ class Sseq {
                 case "Differential" :
                     real_edge = sseq.addDifferential(source, target, display_edge.page);
                     break;
+                case "Extension":
+                    real_edge = sseq.addExtension(source, target);
+                    break;
                 case "Structline" :
                 default:
                     real_edge = sseq.addStructline(source, target);
+                    break;
             }
             Object.assign(real_edge, display_edge);
             real_edge.source = source;
@@ -565,6 +549,7 @@ class Sseq {
 
     getDisplaySseq(){
         let dss = this.display_sseq;
+        dss.real_sseq = this;
         dss.min_page_idx = this.min_page_idx;
         dss.initial_page_idx = this.initial_page_idx;
         dss.page_list = this.page_list;

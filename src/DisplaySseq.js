@@ -49,7 +49,7 @@ class DisplaySseq {
         this.default_node.shape = Shapes.circle;
         this.default_node.size = 6;
         this.class_scale = 1;
-        this.keyHandlers = {};
+        this.eventHandlers = {};
         this.serializeSseqFields = [
             "min_page_idx", "page_list", "xRange", "yRange", "initialxRange", "initialyRange",
             "default_node", "class_scale", "offset_size", "serializeSseqFields", "serializeClassFields", "serializeEdgeFields"
@@ -60,10 +60,103 @@ class DisplaySseq {
         this.serializeEdgeFields = [
             "color", "bend", "dash", "lineWidth", "opacity", "page_min", "page", "type"
         ]; // "source" and "target" are dealt with separately.
+        this.page_change_handler = () => true;
     }
 
-    static getSerializeFields(){
-        return Object.getOwnPropertyNames(new DisplaySseq());
+    /**
+     * Make a new class POJO, with all of the necessary fields instantiated to boring defaults.
+     * At the very least, x, y, and idx should be overridden with real values.
+     * For internal use.
+     */
+    static newClass(){
+        return {
+            x: 0,
+            y: 0,
+            idx: 0,
+            x_offset: false,
+            y_offset: false,
+            name: "",
+            extra_info: "",
+            page_list: [infinity],
+            node_list: [default_node.copy()],
+            visible: true,
+            _drawOnPageQ: () => true
+        };
+    }
+
+    /**
+     * Make a new class POJO, with all of the necessary fields instantiated to boring defaults other than source and target.
+     * Before use, needs at least a source and a target and preferably a type.
+     * For internal use.
+     */
+    static newEdge(){
+        let e = {};
+        e.color = "black";
+        e.page = infinity;
+        e.page_min = 0;
+        e._drawOnPageQ = () => true;
+        e.visible = true;
+        return e;
+    }
+
+
+    /**
+     * Add an event handler. Currently, the event can be any Mousetrap key code, "onclick" or "oncontextmenu" (right click).
+     * @param key
+     * @param fn
+     */
+    addEventHandler(key, fn){
+        this.eventHandlers[key] = fn;
+    }
+
+    setPageChangeHandler(f){
+        this.page_change_handler = f;
+    }
+
+    pageChangeHandler(page){
+        this.page_change_handler(page);
+        if(this.real_sseq){
+            this.real_sseq.update();
+        }
+    }
+
+    /**
+     * If this spectral sequence is being displayed, tell the display to redraw. Use after changing the spectral sequence.
+     */
+    update(){
+        if(this.update_listener){
+            this.update_listener();
+        }
+    }
+
+    /**
+     * Display this spectral sequence. Gets overridden if you call `some_other_sseq.display()`.
+     */
+    display(){
+        if(typeof window === "undefined"){
+            console.log("Can only display in browser.");
+            return;
+        }
+        if(window.display){
+            window.display.setSseq(this);
+        } else {
+            window.display = new Display(this);
+        }
+    }
+
+
+    //
+    // Display Methods
+    //
+
+    /**
+     * If this spectral sequence is currently being displayed, this will called with a reference to display.update()
+     * so that this.update() will cause the display to update.
+     * @param f
+     * @package
+     */
+    _registerUpdateListener(f){
+        this.update_listener = f;
     }
 
     /**
@@ -81,6 +174,7 @@ class DisplaySseq {
     _calculateDrawnElements(page, xmin, xmax, ymin, ymax){
         Util.checkArgumentsDefined(DisplaySseq.prototype._calculateDrawnElements, arguments);
         let pageRange;
+        // TODO: clean up pageRange. Probably we should always pass pages as pairs?
         if(Array.isArray(page)){
             pageRange = page;
             page = page[0];
@@ -92,6 +186,11 @@ class DisplaySseq {
                 c.in_range = DisplaySseq._classInRangeQ(c,xmin, xmax, ymin, ymax);
                 return c.in_range && DisplaySseq._drawClassOnPageQ(c,page);
         });
+        // Display edges such that
+        // 1) e is a valid edge
+        // 2) e is supposed to be drawn on the current pageRange.
+        // 3) e.source and e.target are supposed to be drawn on the current pageRange
+        // 4) At least one of the source or target is in bounds.
         this.display_edges = this.edges.filter(e =>
             e &&
             DisplaySseq._drawEdgeOnPageQ(e, pageRange)
@@ -99,6 +198,9 @@ class DisplaySseq {
             && ( e.source.in_range || e.target.in_range )
         );
 
+        // We need to go back and make sure that for every edge we are planning to  draw, we draw both its source and
+        // target even if one of them is out of bounds. Check for out of bounds sources / targets and add them to the
+        // list of edges to draw.
         for(let i = 0; i < this.display_edges.length; i++){
             let e = this.display_edges[i];
             if(!e.source.in_range){
@@ -184,8 +286,6 @@ class DisplaySseq {
     }
 
 
-
-
     /**
      * If multiple classes are in the same (x,y) location, we offset their position a bit to avoid clashes.
      * Gets called by display code.
@@ -222,11 +322,22 @@ class DisplaySseq {
         return out;
     }
 
-
+    /**
+     * Gets the node to be drawn for the class on the given page. Used primarily by display.
+     * @param c
+     * @param page
+     * @returns {*}
+     */
     getClassNode(c, page){
         return c.node_list[SseqClass.prototype._getPageIndex.call(c, page)];
     }
 
+    /**
+     * Gets the tooltip for the current class on the given page (currently ignores the page).
+     * @param c
+     * @param page
+     * @returns {string}
+     */
     getClassTooltip(c, page){
         let tooltip = "";
         if(c.name !== ""){
@@ -237,51 +348,11 @@ class DisplaySseq {
         return tooltip;
     }
 
-    registerUpdateListener(f){
-        this.update_listener = f;
-    }
 
-    update(){
-        if(this.update_listener){
-            this.update_listener();
-        }
-    }
+    //
+    //  Serialization and Deserialization methods
+    //
 
-    static newClass(){
-        return {
-            x: 0,
-            y: 0,
-            idx: 0,
-            x_offset: false,
-            y_offset: false,
-            name: "",
-            extra_info: "",
-            page_list: [infinity],
-            node_list: [default_node.copy()],
-            visible: true,
-            _drawOnPageQ: () => true
-        };
-    }
-
-    static newEdge(){
-        let e = {};
-        e.color = "black";
-        e.page = infinity;
-        e.page_min = 0;
-        e._drawOnPageQ = () => true;
-        e.visible = true;
-        return e;
-    }
-
-    addKeyHandler(key, fn){
-        this.keyHandlers[key] = fn;
-    }
-
-    setPageChangeHandler(f){
-        this.pageChangeHandler = f;
-    }
-
-    /* */
     static async loadFromResolutionJSON(path){
         let response = await fetch(path);
         let json = await response.json();
@@ -314,7 +385,6 @@ class DisplaySseq {
         dss.edges = edges;
         return dss;
     }
-    /**/
 
     static async fromJSONOld(path){
         let response = await fetch(path);
@@ -345,15 +415,28 @@ class DisplaySseq {
     }/**/
 
 
+    /**
+     * Load spectral sequence from JSON. Returns a promise for a DisplaySseq
+     * @param path The file path / name of the JSON file to load.
+     * @returns {Promise<DisplaySseq>}
+     */
     static async fromJSON(path){
         let response = await fetch(path);
-        let json = await response.text();
-        let sseq_obj = JSON.parse(json);
-        console.log(sseq_obj.edges);
+        let sseq_obj = await response.json();
+        console.log(sseq_obj);
         let sseq = Object.assign(new DisplaySseq(), sseq_obj);
+        // To resuscitate, we need to fix:
+        //  1) The num_classes_by_degree map which is used for calculating offsets doesn't get serialized.
+        //     We remake it by counting the number of classes in each degree.
+        //  2) The node_list for each class has been replaced with a list of indices in the sseq.master_node_list.
+        //     Each integer in each class.node_list needs to be replaced with a real node copied from sseq.master_node_list.
+        //  3) The edges have their source and target class references replaced by indexes into the class list. Replace
+        //     these integers with references to the actual class.
+
+
         sseq.default_node = Object.assign(new Node(), sseq.default_node);
         let num_classes_by_degree = new StringifyingMap();
-        let class_list_index_map = new Map();
+        let class_list_index_map = new Map(); // For fixing edge source / target references
         for(let i = 0; i < sseq.classes.length; i++){
             let c = sseq.classes[i];
             class_list_index_map.set(i, c);
@@ -363,6 +446,7 @@ class DisplaySseq {
             let idx  = num_classes_by_degree.getOrElse([c.x, c.y], 0);
             num_classes_by_degree.set([c.x, c.y], idx + 1);
             for(let i = 0; i < c.node_list.length; i++){
+                // c.node_list[i] currently contains an integer, replace it with a node.
                 c.node_list[i] = new Node(sseq.master_node_list[c.node_list[i]]);
                 c.node_list[i].shape = Shapes[c.node_list[i].shape.name];
             }
@@ -371,6 +455,7 @@ class DisplaySseq {
             if(e.type === "Extension"){
                 e._drawOnPageQ = undefined;
             }
+            // e.source and e.target currently contain integers. Replace them with actual classes.
             e.source = class_list_index_map.get(e.source);
             e.target = class_list_index_map.get(e.target);
         }
@@ -378,34 +463,30 @@ class DisplaySseq {
         return sseq;
     }
 
-
-    display(){
-        if(typeof window === "undefined"){
-            console.log("Can only display in browser.");
-            return;
-        }
-        if(window.display){
-            window.display.setSseq(this);
-        } else {
-            window.display = new Display(this);
-        }
-    }
-
+    /**
+     *
+     */
     toJSON() {
         let sseqToSerialize = {};
+        // Copy fields listed in serializeSseqFields into our serializer object.
+        // TODO: What happens if extra fields contain references? Is this forbidden? Can we handle it somehow?
         for(let field of this.serializeSseqFields){
             sseqToSerialize[field] = this[field];
         }
+        // Make a map of each node that occurs at least once. We're going to replace the class.node_list with the indices
+        // of the node in the master_node_list.
         let node_map = new StringifyingMap((n) => JSON.stringify(n));
         sseqToSerialize.master_node_list = [];
         sseqToSerialize.classes = [];
         sseqToSerialize.edges = [];
         for(let c of this.classes){
             let classToSerialize = {};
+            // Copy fields that we serialize
             for(let field of this.serializeClassFields){
                 classToSerialize[field] = c[field];
             }
             classToSerialize.node_list = [];
+            // Replace node_list with list of master_node_list indices.
             for(let cur_node of c.node_list){
                 if(!node_map.has(cur_node)){
                     node_map.set(cur_node, sseqToSerialize.master_node_list.length);
@@ -418,40 +499,35 @@ class DisplaySseq {
         }
         for(let edge of this.edges){
             let edgeToSerialize = {};
+            // Copy fields that we serialize
             for(let field of this.serializeEdgeFields){
                 edgeToSerialize[field] = edge[field];
             }
+            // Replace source and target with list indices.
             edgeToSerialize.source = edge.source.list_index;
             edgeToSerialize.target = edge.target.list_index;
             sseqToSerialize.edges.push(edgeToSerialize);
         }
-        console.log(sseqToSerialize)
+        console.log(sseqToSerialize);
         return sseqToSerialize;
     }
 
 
     download(filename){
-        this.serializeSseqFields = [
-            "min_page_idx", "page_list", "xRange", "yRange", "initialxRange", "initialyRange",
-            "default_node", "class_scale", "offset_size", "serializeSseqFields", "serializeClassFields", "serializeEdgeFields"
-        ]; // classes and edges are dealt with separately.
-        this.serializeClassFields = [
-            "x", "y", "name", "extra_info", "unique_id", "idx", "x_offset", "y_offset", "page_list", "visible", "permanent_cycle_info"
-        ]; // "node_list" is dealt with separately
-        this.serializeEdgeFields = [
-            "color", "bend", "dash", "lineWidth", "opacity", "page_min", "page", "type","mult"
-        ]; // "source" and "target" are dealt with separately.
-        for(let c of this.classes){
-            c.tooltip_html = undefined;
+        // TODO: Remove this.
+        if(!this.serializeSseqFields) {
+            this.serializeSseqFields = [
+                "min_page_idx", "page_list", "xRange", "yRange", "initialxRange", "initialyRange",
+                "default_node", "class_scale", "offset_size", "serializeSseqFields", "serializeClassFields", "serializeEdgeFields"
+            ]; // classes and edges are dealt with separately.
+            this.serializeClassFields = [
+                "x", "y", "name", "extra_info", "unique_id", "idx", "x_offset", "y_offset", "page_list", "visible", "permanent_cycle_info"
+            ]; // "node_list" is dealt with separately
+            this.serializeEdgeFields = [
+                "color", "bend", "dash", "lineWidth", "opacity", "page_min", "page", "type", "mult"
+            ]; // "source" and "target" are dealt with separately.
         }
-        this.edges = this.edges.filter(e => !e.invalid);
-        let display_classes = this.display_classes;
-        let display_edges = this.display_edges;
-        this.display_classes = undefined;
-        this.display_edges = undefined;
         Util.download(filename, JSON.stringify(this));
-        this.display_classes = display_classes;
-        this.display_edges = display_edges;
     }
 
 

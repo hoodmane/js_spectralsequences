@@ -86,8 +86,6 @@ class Display {
             this.updateBatch();
         });
 
-        this.setSseq(ss, true);
-
         // This allows us to use the "update" method as an event handlers -- the "this" will still refer to this "this" rather
         // than the event being handled.
 
@@ -99,40 +97,7 @@ class Display {
 
         this.nextPage = this.nextPage.bind(this);
         this.previousPage = this.previousPage.bind(this);
-        Mousetrap.bind('left',  this.previousPage);
-        Mousetrap.bind('right', this.nextPage);
-
-        // TODO: ad hoc changes here:
-
-        Mousetrap.bind('x',
-            () => {
-                if(this.mouseover_class){
-                    console.log(this.mouseover_class);
-                }
-            }
-        );
-
-        for(let handler of ["onclick", "oncontextmenu"]){
-            if(this.sseq.keyHandlers[handler]){
-                this.supermarginLayerDOM[handler] = (event) => {
-                    event.mouseover_class = this.mouseover_class;
-                    this.sseq.keyHandlers[handler].call(this.sseq, event);
-                };
-            }
-        }
-
-        this.supermarginLayerDOM.oncontextmenu = (event) => {
-            event.mouseover_class = this.mouseover_class;
-            this.sseq.keyHandlers["oncontextmenu"].call(this.sseq, event);
-        };
-
-        for(let key of Object.getOwnPropertyNames(this.sseq.keyHandlers)){
-            Mousetrap.bind(key, (event) => {
-                event.mouseover_class = this.mouseover_class;
-                this.sseq.keyHandlers[key].call(this.sseq, event);
-            });
-        }
-
+        this.setSseq(ss, true);
         this.update();
     }
 
@@ -245,11 +210,12 @@ class Display {
      */
     setSseq(ss, resetScale = false){
         if(this.sseq){
-            this.sseq.registerUpdateListener(undefined);
+            this.sseq._registerUpdateListener(undefined);
+            this.supermarginLayerDOM.onclick = undefined;
+            this.supermarginLayerDOM.oncontextmenu = undefined;
+            Mousetrap.reset();
         }
         this.sseq = ss;
-        this.sseq.registerUpdateListener(this.updateBatch.bind(this));
-
         // The sseq object contains the list of valid pages. Always includes at least 0 and infinity.
         if(this.sseq.initial_page_idx){
             this.page_idx = this.sseq.initial_page_idx;
@@ -268,7 +234,39 @@ class Display {
             this._initializeCanvas();
         }
 
+        for(let handler of ["onclick", "oncontextmenu"]){
+            if(this.sseq.eventHandlers[handler]){
+                this.supermarginLayerDOM[handler] = (event) => {
+                    event.mouseover_class = this.mouseover_class;
+                    this.sseq.eventHandlers[handler].call(this.sseq, event);
+                };
+            }
+        }
+
+        Mousetrap.bind('left',  this.previousPage);
+        Mousetrap.bind('right', this.nextPage);
+        Mousetrap.bind('x',
+            () => {
+                if(this.mouseover_class){
+                    console.log(this.mouseover_class);
+                }
+            }
+        );
+
+        this.supermarginLayerDOM.oncontextmenu = (event) => {
+            event.mouseover_class = this.mouseover_class;
+            this.sseq.eventHandlers["oncontextmenu"].call(this.sseq, event);
+        };
+
+        for(let key of Object.getOwnPropertyNames(this.sseq.eventHandlers)){
+            Mousetrap.bind(key, (event) => {
+                event.mouseover_class = this.mouseover_class;
+                this.sseq.eventHandlers[key].call(this.sseq, event);
+            });
+        }
+
         this._addClasses();
+        this.sseq._registerUpdateListener(this.updateBatch.bind(this));
     }
 
     _initializeScale(){
@@ -364,7 +362,7 @@ class Display {
         this.transform = d3.zoomTransform(zoomDomElement.node());
         this.scale = this.transform.k;
         let scale = this.scale;
-        let xScale, yScale
+        let xScale, yScale;
         let sseq = this.sseq;
 
         xScale = this.transform.rescaleX(this.xScaleInit);

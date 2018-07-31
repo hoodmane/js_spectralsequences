@@ -182,25 +182,25 @@ exports.fixed_tower_xOffset = function(c,page){
 };
 
 exports.install_edit_handlers = function(dss, download_filename){
-    dss.addKeyHandler("q", (event) => {
+    dss.addEventHandler("q", (event) => {
         if(!event.mouseover_class){
             return;
         }
         sseq.incrementClassIndex(sseq.display_class_to_real_class.get(event.mouseover_class));
     });
 
-    dss.addKeyHandler("w", (event) => {
+    dss.addEventHandler("w", (event) => {
         if(!event.mouseover_class){
             return;
         }
         sseq.decrementClassIndex(sseq.display_class_to_real_class.get(event.mouseover_class));
     });
 
-    dss.addKeyHandler("d", (event) => {
+    dss.addEventHandler("d", (event) => {
         dss.download(download_filename + ".json");
     });
 
-    dss.addKeyHandler('s', (event) => {
+    dss.addEventHandler('s', (event) => {
         if(event.mouseover_class){
             let c = event.mouseover_class;
             dss.temp_source_class = c;
@@ -210,7 +210,7 @@ exports.install_edit_handlers = function(dss, download_filename){
 
 
 
-    dss.addKeyHandler('t', (event) => {
+    dss.addEventHandler('t', (event) => {
         if(event.mouseover_class && dss.temp_source_class){
             let s = dss.temp_source_class;
             let t = event.mouseover_class;
@@ -229,11 +229,11 @@ exports.install_edit_handlers = function(dss, download_filename){
         }
     });
 
-    // dss.addKeyHandler("onclick", (event) => {
+    // dss.addEventHandler("onclick", (event) => {
     //     console.log(event);
     // });
 
-    dss.addKeyHandler("onclick", (event) => {
+    dss.addEventHandler("onclick", (event) => {
         if(!event.mouseover_class){
             return;
         }
@@ -254,7 +254,7 @@ exports.install_edit_handlers = function(dss, download_filename){
     });
 
 
-    dss.addKeyHandler("p", (event) => {
+    dss.addEventHandler("p", (event) => {
         if(event.mouseover_class){
             event.mouseover_class.problem = true;
         }

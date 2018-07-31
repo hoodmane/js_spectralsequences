@@ -559,7 +559,7 @@ truncation_sseq.onDraw((display) => {
 
 let dss = truncation_sseq.getDisplaySseq();
 window.dss = dss;
-dss.addKeyHandler('z',
+dss.addEventHandler('z',
     () => {
         if(this.mouseover_class){
             if(this.last_class){
@@ -577,8 +577,8 @@ dss.addKeyHandler('z',
 truncation_sseq.topMargin = 20;
 truncation_sseq.squareAspectRatio = true;
 
-let dss = truncation_sseq.display();
 //tools.install_edit_handlers(dss,"BPC4-2");
-window.truncation_sseq = truncation_sseq;
+dss.display();
+window.sseq = truncation_sseq;
 
 

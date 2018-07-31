@@ -112,7 +112,7 @@ exports.Structline = Structline;
  */
 class Extension extends Edge {
     _drawOnPageQ(pageRange){
-        return pageRange[1] === infinity;
+        return pageRange[0] === infinity;
     }
 }
 exports.Extension = Extension;
