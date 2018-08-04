@@ -167,7 +167,7 @@ let d1max = Math.floor(max_x/2);
 BPC4.xRange = [0, max_x];
 BPC4.yRange = [0, max_y];
 
-BPC4.initialxRange = [0, 20];
+BPC4.initialxRange = [0, 40];
 BPC4.initialyRange = [0, 16];
 
 let differential_colors = {
@@ -227,9 +227,11 @@ function addSlice(sseq, elt) {
     return slice;
 }
 
+console.log("Making BPC4<1> E_2 page");
 slices = BPC4.addSliceClasses({"s1" : {name : "\\overline{s}_1", degree: 2}, "d1" : {name : "\\overline{\\mathfrak{d}}_1", degree: 4}},
     [["d1", 0, d1max],["s1", 0, 3]], addSlice);
 
+console.log("Adding BPC4<1> differentials");
 slices.addDifferential(3, [0, 1], (k, stem, filtration) => (stem - filtration) % 8 === 4);
 
 for(let c of BPC4.getSurvivingClasses(4)){
@@ -275,44 +277,6 @@ addBPC4Differential(13, {"d1" : 8}, {"d1" : 11}, 30, 2);
 addBPC4Differential(13, {"d1" : 11},{"d1" : 14}, 37, 2);
 
 
-function getTruncationClasses(n){
-    let out = [];
-    for(let c of BPC4.classes){
-        let incoming_differentials = c.getIncomingDifferentials();
-        if(c.x + c.y >= 4*n && incoming_differentials.length > 0){
-            for(let i = 0; i < incoming_differentials.length; i++){
-                let d = incoming_differentials[i];
-                if(d.source.x + d.source.y < 4*n && incoming_differentials[incoming_differentials.length - 1].page > 3){
-                    let node = c.getNode();
-                    node.stroke = differential_colors[d.page];
-                    node.color = differential_colors[d.page];
-                    c.slice.d1 -= n;
-                    c.slice.d3 = n/3;
-                    c.name = c.slice.toString();
-                    c.cut_length = d.page;
-                    if(c.E2group === "Z4"){
-                        if(c.getOutgoingDifferentials().length > 0){
-                            node.fill = "red";
-                            c.name = "2\\," + c.name;
-                            c.group = "Z2";
-                        } else {
-                            if(i > 0){
-                                node.fill = "grey";
-                                c.group = "Z2";
-                            } else {
-                                node.fill = "white";
-                                c.group = "Z4";
-                            }
-                        }
-                    }
-                    out.push(c);
-                    break;
-                }
-            }
-        }
-    }
-    return out;
-}
 
 
 
@@ -327,6 +291,7 @@ truncation_sseq.class_scale = 0.75;
 
 truncation_sseq.onDifferentialAdded(d => {
     d.addInfoToSourceAndTarget();
+//    console.log(d.source.group);
     if(d.source.group === "Z4"){
         d.source.group = "Z2";
         d.source.replace(Groups.Z2sup, (name) => "2\\," + name);
@@ -347,7 +312,7 @@ truncation_sseq.onDifferentialAdded(d => {
 
 
 //truncation_sseq.min_page_idx = BPC4.page_list.length - 1;
-
+console.log("Making BPC4<2> E_13 page");
 let surviving_classes = new StringifyingMap();
 let classes = new StringifyingMap();
 let induced_classes = new StringifyingMap();
@@ -403,15 +368,60 @@ for(let c of BPC4.getSurvivingClasses()){
 }
 
 
-let msgs = 0;
-for(let n = 0; n < max_diagonal; n += 3){
-    for(c of getTruncationClasses(n)){
-        let nc = truncation_sseq.addClass(c.x,c.y);
-        Util.assignFields(nc, c, ["name"]);
-        nc.setNode(c.getNode(c.cut_length - 1));
-        partitionList(c.slice.getSliceNames()).forEach((s) => nc.addExtraInfo(`\\(${s}\\)`));
-        nc.addToMap(classes);
+function getTruncationClasses(k){
+    let out = [];
+    for(let c of BPC4.classes){
+        let incoming_differentials = c.getIncomingDifferentials();
+        let n = Math.floor((c.x + c.y)/k);
+        if(incoming_differentials.length > 0){
+            for(let i = 0; i < incoming_differentials.length; i++){
+                let d = incoming_differentials[i];
+                if(d.source.x + d.source.y < k*n && incoming_differentials[incoming_differentials.length - 1].page > 3){
+                    let c2 = Object.assign(new SseqClass(BPC4, c.x, c.y), c);
+                    c2.cut_length = d.page;
+                    let node = c.getNode(c2.cut_length - 1).copy();
+                    c2.node_list = [node];
+                    c2.page_list = [infinity];
+                    node.stroke = differential_colors[d.page];
+                    node.color = differential_colors[d.page];
+                    c2.slice = c.slice.copy();
+                    c2.slice.d1 -= n;
+                    c2.slice.d3 = n/3;
+                    c2.name = c2.slice.toString();
+                    c2.E2group = c.E2group;
+                    if(c.E2group === "Z4"){
+                        if(c.getOutgoingDifferentials().length > 0){
+                            node.fill = "red";
+                            c2.name = "2\\," + c.name;
+                            c2.group = "Z2";
+                        } else {
+                            if(i > 0){
+                                node.fill = "grey";
+                                c2.group = "Z2";
+                            } else {
+                                node.fill = "white";
+                                c2.group = "Z4";
+                            }
+                        }
+                    } else {
+                        c2.group = c2.E2group;
+                    }
+                    out.push(c2);
+                    break;
+                }
+            }
+        }
     }
+    return out;
+}
+
+let msgs = 0;
+for(c of getTruncationClasses(12)){
+    let nc = truncation_sseq.addClass(c.x,c.y);
+    Util.assignFields(nc, c, ["name", "cut_length", "slice","group","E2group"]);
+    nc.setNode(c.getNode());
+    partitionList(c.slice.getSliceNames()).forEach((s) => nc.addExtraInfo(`\\(${s}\\)`));
+    nc.addToMap(classes);
 }
 
 
@@ -470,6 +480,7 @@ truncation_sseq.addClass(66,6).addToMap(classes)
 // d43 is missing
 // d51 is missing
 
+console.log("Adding BPC4<2> Differentials");
 addInducedClass = (degree) => truncation_sseq.addClass(degree[0],degree[1]).setColor("pink");
 
 // above line of slope 1:
@@ -572,12 +583,14 @@ dss.addEventHandler('z',
     }
 );
 
-
+dss.setPageChangeHandler((page) => {
+   dss.update();
+});
 
 truncation_sseq.topMargin = 20;
 truncation_sseq.squareAspectRatio = true;
 
-//tools.install_edit_handlers(dss,"BPC4-2");
+tools.install_edit_handlers(dss,"BPC4-2");
 dss.display();
 window.sseq = truncation_sseq;
 

@@ -4,6 +4,13 @@ let Shapes = {};
 
 Shapes.circle = {
     draw : function(context) {
+        // This conditional prevents the mysterious page change black fill bug,
+        // where the fill turns to black only when the page is changed and only for circles...
+        if(this.fill() !== true){
+            this.save_fill = this.fill();
+        } else if(this.fill() === true && this.save_fill){
+            this.fill(this.save_fill)
+        }
         context.beginPath();
         context.arc(0, 0, this.size(), 0, 2 * Math.PI, false);
         context.closePath();

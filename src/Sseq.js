@@ -82,6 +82,8 @@ class Sseq {
             `${e.type}(${e.page}) : (${e.source.x}, ${e.source.y}, ${e.source.unique_id}) => (${e.target.x}, ${e.target.y}, ${e.target.unique_id})`
         );
         this.total_classes = 0;
+        this.initialxRange = [0, 10];
+        this.initialyRange = [0, 10];
         this.classes_by_degree = new StringifyingMap();
         this.num_classes_by_degree = new StringifyingMap();
         this.classes_by_stem = new Map();

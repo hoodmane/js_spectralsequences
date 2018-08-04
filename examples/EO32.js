@@ -78,7 +78,7 @@ classes.addDifferential(9, [-1,0,5,22], k => {return mod(k[3], 3) === 2 && k[0] 
 
 function d17_33_callback(d){
     d.addInfoToSourceAndTarget();
-    if(d.source.incoming_differentials.length === 0){
+    if(d.source.getIncomingDifferentials().length === 0){
         if(mod(dot_mod_16(d.target.key),4) === 0){
             d.replaceSource(qZq);
         }
