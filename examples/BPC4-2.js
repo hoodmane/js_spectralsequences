@@ -132,7 +132,7 @@ class sliceMonomial {
 
     getSliceNames(){
         let slice_names = [];
-        for(let d3 = 0; d3 < this.d1/3; d3 ++){
+        for(let d3 = 0; d3 <= this.d1/3; d3 ++){
             let slice = this.copy();
             slice.d3 = d3;
             slice.d1 -= 3*d3;
@@ -289,6 +289,23 @@ truncation_sseq.initialxRange = [0, Math.floor(16/9*40)];
 truncation_sseq.initialyRange = [0, 40];
 truncation_sseq.class_scale = 0.75;
 
+let truncation_sseq_differential_colors = {
+    13 : "#34eef3",//"cyan",//
+    15 : "#ff00ff",//"magenta", //
+    19 : "#7fe900", // LimeGreen
+    21 : "blue",
+    23 : "orange",
+    27 : "#14e01b", // ForestGreen
+    29 : "red",
+    31 : "pink",
+    35 : "#ffb529", // Dandelion
+    43 : "#ff3b21",  // RedOrange
+    51 : "#22f19f",
+    53 : "#8000ff", // Plum
+    55 : "#0f75ff", // NavyBlue
+    59 : "#8c2700", // Raw Sienna
+    61 : "black"
+}
 truncation_sseq.onDifferentialAdded(d => {
     d.addInfoToSourceAndTarget();
 //    console.log(d.source.group);
@@ -307,7 +324,7 @@ truncation_sseq.onDifferentialAdded(d => {
         d.target.group = "Z2";
         d.target.replace(Groups.Z2hit);
     }
-    //d.color = differential_colors[d.page];
+    d.color = truncation_sseq_differential_colors[d.page];
 });
 
 
@@ -319,7 +336,7 @@ let induced_classes = new StringifyingMap();
 
 // Induced E2C2 classes, see top of page 38 in progress notes.
 function addInducedE2C2Classes() {
-    for (let diag = 7; diag < max_diagonal; diag++) {
+    for (let diag = 0; diag < max_diagonal; diag++) {
         let slice_names = [];
         let k = diag % 3;
         let two_i_plus_j = (diag - k) / 3;
@@ -327,24 +344,22 @@ function addInducedE2C2Classes() {
             let j = two_i_plus_j - 2 * i;
             slice_names.push(monomialString(["\\overline{\\mathfrak{d}}_3", "\\overline{s}_3", "\\overline{r}_1"], [i, j, k]));
         }
-        for (let i = 0; diag - i >= 7; i += 16) { // i += 8 for all induced classes, we're skipping half.
+        for (let i = 0; diag - i >= 1; i += 8) { // i += 8 for all induced classes, we're skipping half.
             let filtration = diag - i;
             let stem = diag + i;
             let c = truncation_sseq.addClass(stem, filtration);
+            c.slice_names = slice_names;
             partitionList(slice_names, 5).forEach((s) => c.addExtraInfo(`\\(${s}\\)`));
+            c.display_class.extra_info_page_map = new Map();
+            c.display_class.extra_info_page_map.set(0, c.extra_info);
+            c.display_class.extra_info_page_map.set(16, "\\(" + slice_names[slice_names.length-1] + "\\)");
             c.setColor("pink");
             c.addToMap(induced_classes);
         }
     }
-
     for (let s = 0; s < max_x; s += 8) { // add back in permanent cycles on skipped diagonals.
-        let c = truncation_sseq.addClass(s, 0).setColor("pink").addToMap(induced_classes);
-        if(s % 32 === 0){
-            c.setNode(Groups.Z).setGroup("Z");
-        } else {
-            c.setNode(Groups.Zsup).setGroup("2Z");
-        }
-        let i_max = (s % 16 === 0) ? 6 : 2;
+        let c = truncation_sseq.addClass(s, 0).setNode(Groups.Z).setColor("pink").addToMap(induced_classes);
+        let i_max = (s % 16 === 0) ? 0 : 2;
         for (let i = 1; i <= i_max; i++) {
             truncation_sseq.addClass(s + i, i).setColor("pink").addToMap(induced_classes);
         }
@@ -362,6 +377,7 @@ for(let c of BPC4.getSurvivingClasses()){
     } else if(c.group === "2Z" || c.getOutgoingDifferentials().length > 0){
         nc.name = "2\\," + nc.name;
     }
+    nc.slice = c.slice.copy();
     partitionList(c.slice.getSliceNames(), 5).forEach((s) => nc.addExtraInfo(`${s}`));
     nc.setNode(c.getNode());
     nc.addToMap(surviving_classes);
@@ -385,8 +401,8 @@ function getTruncationClasses(k){
                     node.stroke = differential_colors[d.page];
                     node.color = differential_colors[d.page];
                     c2.slice = c.slice.copy();
-                    c2.slice.d1 -= n;
-                    c2.slice.d3 = n/3;
+                    c2.slice.d1 -= 3*n;
+                    c2.slice.d3 = n;
                     c2.name = c2.slice.toString();
                     c2.E2group = c.E2group;
                     if(c.E2group === "Z4"){
@@ -415,16 +431,38 @@ function getTruncationClasses(k){
     return out;
 }
 
-let msgs = 0;
+
 for(c of getTruncationClasses(12)){
     let nc = truncation_sseq.addClass(c.x,c.y);
     Util.assignFields(nc, c, ["name", "cut_length", "slice","group","E2group"]);
     nc.setNode(c.getNode());
+    let sliceNames = nc.slice.getSliceNames();
+    nc.name = sliceNames[sliceNames.length-1];
+    nc.name = nc.slice.toString();
+    if(c.getNode().fill === "red"){
+        nc.name = "2\\," + nc.name;
+    }
     partitionList(c.slice.getSliceNames()).forEach((s) => nc.addExtraInfo(`\\(${s}\\)`));
     nc.addToMap(classes);
 }
 
 
+
+for(let v = 16; v < max_diagonal; v += 32){
+    for(let i = 0; i < max_diagonal; i++){
+        let d = truncation_sseq.addDifferential(induced_classes.get([v + i, i]), induced_classes.get([v + i - 1, i + 15]),15);
+        if(d.isDummy()){
+            break;
+        }
+        if(i === 0){
+            d.replaceSource(Groups.Zsup).source.setColor("pink");
+        } else if(i <= 6){
+            d.replaceSource(Groups.Z2).source.setColor("pink");
+        }
+        d.replaceTarget(Groups.Z2).target.setColor("pink");
+        d.color = "pink"
+    }
+}
 
 
 function addDifferential(page, source, offset_vectors, offset_vector_ranges, class_dict = classes, add_source = undefined, add_target = undefined){
@@ -455,22 +493,58 @@ function addDifferential(page, source, offset_vectors, offset_vector_ranges, cla
         } else {
             targetClass = class_dict.get(target_degree);
         }
-        let d = truncation_sseq.addDifferential(sourceClass, targetClass, page);
+        truncation_sseq.addDifferential(sourceClass, targetClass, page);
     }
 }
 
 
 // Add extra low filtration classes to be sources of differentials
-for(let v = 0; v < max_x; v += 32){
-    let c;
-    truncation_sseq.addClass(20 + v,4).addToMap(classes).setGroup("Z4")
-        .setNode(Groups.Z4).getNode().setStroke("blue");
-    truncation_sseq.addClass(53 + 2*v, 7).setColor("blue").addToMap(classes);
-    truncation_sseq.addClass(265 + 5*v, 11).setColor("blue").addToMap(classes); // Supports a d61.
+let coord_list =
+    [[33,3],[34,6,Groups.Z2sup],[35,1],[35,3],[36,4,Groups.Z2sup],[38,2,Groups.Z2sup],
+        [8,8,Groups.Z2hit],[9,11],[14,2,Groups.Z2sup],[16,0,Groups.Zsup],[19,1],[19,3],
+        [20,4, Groups.Z4], [21,7], [22,2,Groups.Z2sup], [22,10,Groups.Z2sup], [27,3], [28,12,Groups.Z2hit],
+        [32,0,Groups.Z]];
+
+let skip_coord_set = new StringifyingMap();
+for(let i=0; i<4; i++){
+    skip_coord_set.set([40+96*i,8],1);
+    skip_coord_set.set([60+96*i,12],1);
 }
 
-truncation_sseq.addClass(66,6).addToMap(classes)
-    .setNode(Groups.Z2sup).getNode().setStroke("blue");
+for(let v = 0; v < max_x; v += 32){
+
+    for(let coord of coord_list){
+        let x = coord[0] + v;
+        let y = coord[1];
+        if(skip_coord_set.has([x,y])){
+            continue;
+        }
+
+        let c = truncation_sseq.addClass(x,y).addToMap(classes);
+        let sc = surviving_classes.get([x,y]);
+        let slice_names = sc.slice.getSliceNames();
+        let max_d3_name = slice_names.pop();
+        sc.extra_info = "";
+        partitionList(slice_names, 5).forEach((s) => sc.addExtraInfo(`${s}`));
+        c.addExtraInfo(max_d3_name);
+        if(coord.length === 3){
+            c.setNode(coord[2]);
+        }
+        c.setColor("blue");
+    }
+    classes.get([20,4]).setGroup("Z4");
+
+
+
+
+    // truncation_sseq.addClass(20 + v,4).addToMap(classes).setGroup("Z4")
+    //     .setNode(Groups.Z4).getNode().setStroke("blue");
+    // truncation_sseq.addClass(53 + 2*v, 7).setColor("blue").addToMap(classes);
+    // truncation_sseq.addClass(265 + 5*v, 11).setColor("blue").addToMap(classes); // Supports a d61.
+}
+
+// truncation_sseq.addClass(66,6).addToMap(classes) // Also supports a d61...
+//     .setNode(Groups.Z2sup).getNode().setStroke("blue");
 
 
 
@@ -481,7 +555,27 @@ truncation_sseq.addClass(66,6).addToMap(classes)
 // d51 is missing
 
 console.log("Adding BPC4<2> Differentials");
-addInducedClass = (degree) => truncation_sseq.addClass(degree[0],degree[1]).setColor("pink");
+addInducedClass = (degree) => {
+    let new_class = truncation_sseq.addClass(degree[0],degree[1]).setColor("pink");
+    // Handle naming of new class -- it should be called d_3^{?} s_3^3 and we should take this slice out of the old list.
+    // First find the old class
+    let old_class = induced_classes.get([degree[0],degree[1]]);
+    let slice_names = old_class.slice_names;
+    // The entry of the form d_3^{?} s_3^3 should be the second to last (they are ordered in decreasing order of the power
+    // of s_3 and it decreases in steps of 2.
+    // If for some reason the second to last element isn't that, don't do anything (I'm not sure if this happens and if
+    // it does I have no idea why).
+    if(slice_names[slice_names.length - 2].includes("\\overline{s}_3^{3}")){
+        slice_names.splice(slice_names.length - 2, 1);
+    }
+    // Calculate which power of d_3 we want and set new name
+    let d3pow = Math.ceil((degree[0]+degree[1])/12)-2;
+    let slice_name = `\\overline{\\mathfrak{d}}_3^{${d3pow}} \\overline{s}_3^{3}`;
+    old_class.extra_info = "";
+    partitionList(slice_names, 5).forEach((s) => old_class.addExtraInfo(`\\(${s}\\)`));
+    new_class.name = slice_name;
+    return new_class;
+};
 
 // above line of slope 1:
 addDifferential(13, [[10,14], [24,24], [41,43]], [[3,9],[48,48]], [[0,30], [0,10]]);
@@ -489,39 +583,40 @@ addDifferential(13, [[10,14], [24,24], [41,43]], [[3,9],[48,48]], [[0,30], [0,10
 // below line of slope 1:
 addDifferential(13, [[20,4], [27,9],[37,23],[39,21]], [[24,24],[16,-16], [96,0]], [[0,10],[0,3],[0,10]]);
 
-truncation_sseq.initial_page_idx = 2;
 addDifferential(15, [20,4], [[12,12],[16,-16]],[[0,25],[0,20]]);
 addDifferential(15, [40,8], [[24,24],[32,-32]], [[0,15],[0,10]]);
 addDifferential(15, [28,12], [[24,24],[16,-16]], [[0,15],[0,10]], classes, undefined, addInducedClass);
-truncation_sseq.initial_page_idx = 3;
 
 addDifferential(19, [[27,11]], [[24,24], [8,-8]],[[0,20], [0,20]]);
 addDifferential(19, [34,14], [[12,12],[28,-4]], [[0,20],[0,10]], classes, undefined, addInducedClass);
 
 addDifferential(21, [[47,13]], [[24,24], [28,-4]],[[0,10], [0,10]]);
 
-addDifferential(23, [[48,16]], [[24,24],[32,-32]],[[0,10],[0,10]]);
+addDifferential(23, [[48,16]], [[24,24],[32,-32]],[[0,15],[0,10]]);
 
 
 addDifferential(27, [[43,19],[63,23]], [[24,24],[56,-8]],[[0,10],[0,10]]);
 
-
-
-for(let v = 0; v < max_x; v += 32){
-    truncation_sseq.addClass(32 + v,0).setNode(Groups.Z).setGroup("Z").setColor("blue").addToMap(classes);
-    truncation_sseq.addClass(32 + v + 1, 3).setColor("blue").addToMap(classes);
-    for(let l of [[34,6],[46,2], [54,10]]){
-        let c = truncation_sseq.addClass(v + l[0], l[1]).setNode(Groups.Z2sup).setColor("blue").addToMap(classes);
-    }
-}
-addDifferential(29, [[32,0],[33,3],[34,6],[41,11],[46,2],[49,19],[50,22], [54,10], [61,15]],[[24,24],[32,-32]], [[0,10],[0,10]]);
+addDifferential(29, [[32,0],[33,3],[34,6],[41,11],[46,2],[49,19],[50,22], [54,10], [61,15]],[[24,24],[32,-32]], [[0,20],[0,20]]);
 
 
 addDifferential(31, [[32,0]],[[1,1],[64,0]],[[0,max_diagonal],[0,10]], induced_classes);
+
+for(let v = 32; v < max_diagonal; v += 64){
+    if(!induced_classes.has([v,0])){
+        break;
+    }
+    induced_classes.get([v,0]).replace(Groups.Zsup).setColor("pink");
+    for(let i = 1; i < 16; i++){
+        induced_classes.get([v+i,i]).replace(Groups.Z2).setColor("pink");
+    }
+}
+
+
 addDifferential(31, [[40,8]],[[24,24],[56,-8]],[[0,10],[0,10]], classes,undefined, addInducedClass);
 addDifferential(31, [[80,16]],[[48,48],[56,-8]],[[0,10],[0,10]], classes,undefined, addInducedClass);
 
-addDifferential(35, [[55,7]],[[24,24],[32,-32]],[[0,10],[0,10]]);
+addDifferential(35, [[55,7]],[[24,24],[32,-32]],[[0,15],[0,10]]);
 
 addDifferential(43, [[ 55, 23 ]], [[48,48]], [[0,10]], classes, addInducedClass);
 
@@ -532,42 +627,62 @@ addDifferential(53, [[52,4],[69,23],[86,42]],[[48,48]],[[0,10]]);
 
 addDifferential(55, [[156,44]],[[48,48],[8,-56]],[[0,10],[0,10]]);
 
-truncation_sseq.addClass(251, 3).setColor("blue").addToMap(classes);
 addDifferential(59, [[83,27]],[[48,48],[8,-56]],[[0,10],[0,10]]);
 
-addDifferential(61, [[49,-13],[66,6]],[[48,48],[28,-20],[56,-8],[132,20]],[[0,10],[0,1],[0,1],[0,3]]);
-addDifferential(61, [153,27], [[24,24],[32,-32]],[[0,10],[0,10]])
+// addDifferential(61, [[49,-13],[66,6]],[[48,48],[28,-20],[56,-8],[132,20]],[[0,10],[0,1],[0,1],[0,3]]);
+// addDifferential(61, [153,27], [[24,24],[32,-32]],[[0,10],[0,10]])
+
+addDifferential(61,[66,6],[[48,48]],[[0,10]]);
+addDifferential(61,[97,35],[[48,48]],[[0,10]]);
+addDifferential(61,[125,15],[[48,48]],[[0,10]]);
+addDifferential(61,[142,34],[[48,48]],[[0,10]]);
+addDifferential(61,[153,27],[[48,48]],[[0,10]]);
+addDifferential(61,[170,46],[[48,48]],[[0,10]]);
+addDifferential(61,[181,7],[[48,48]],[[0,10]]);
+addDifferential(61,[198,26],[[48,48]],[[0,10]]);
+addDifferential(61,[209,19],[[48,48]],[[0,10]]);
+addDifferential(61,[226,38],[[48,48]],[[0,10]]);
+addDifferential(61,[[254,18],[265,11],[282,30],[285,47],[310,10],[321,3],[338,22],[341,39],[366,2],[394,14],[397,31]],[[48,48]],[[0,10]]);
+
 truncation_sseq.initial_page_idx = 1;
 
 truncation_sseq.onDraw((display) => {
     let context = display.edgeLayerContext;
+    context.clearRect(0, 0, this.width, this.height);
     context.save();
-    context.lineWidth = 1;
-    context.strokeStyle = "#333";
+    context.lineWidth = 0.3;
+    context.strokeStyle = "#818181";
     let xScale = display.xScale;
     let yScale = display.yScale;
-    context.beginPath();
     // Truncation lines
     for(let diag = 12; diag < max_diagonal; diag += 12){
         context.moveTo(xScale(diag + 2), yScale(-2));
         context.lineTo(xScale(-2), yScale(diag + 2 ));
     }
+    context.stroke();
+    context.restore();
+    context.save();
+    context.beginPath();
+    context.lineWidth = 1;
+    context.strokeStyle = "#9d9d9d";
     // vanishing lines
     for(let y of [3, 7,  15, 31, 61]){
         context.moveTo(xScale(-2), yScale(y));
         context.lineTo(xScale(max_diagonal), yScale(y));
     }
-
-    context.closePath();
+    context.moveTo(xScale(-1),yScale(-1));
+    context.lineTo(xScale(max_diagonal),yScale(max_diagonal));
+    context.moveTo(xScale(-1),yScale(-3));
+    context.lineTo(xScale(max_diagonal/3),yScale(max_diagonal));
     context.stroke();
     context.restore();
     context = display.supermarginLayerContext;
     // page number
-    context.clearRect(50,0,400,200)
+    context.clearRect(50,0,400,200);
     context.font = "15px Arial";
     context.fillText(`Page ${display.pageRange}`,100,12);
 });
-
+truncation_sseq.initial_page_idx = 0;
 let dss = truncation_sseq.getDisplaySseq();
 window.dss = dss;
 dss.addEventHandler('z',
@@ -583,6 +698,76 @@ dss.addEventHandler('z',
     }
 );
 
+tools.install_edit_handlers(dss,"BPC4-2");
+
+let added_differentials = [];
+
+dss.addEventHandler('s', (event) => {
+        if(event.mouseover_class){
+            let c = event.mouseover_class;
+            dss.temp_source_class = c;
+            display.status_div.html(`Adding differential. Source: ${tools.getClassExpression(c)}`);
+        }
+    }
+);
+
+dss.addEventHandler('t', (event) => {
+    if(event.mouseover_class && dss.temp_source_class){
+        let s = dss.temp_source_class;
+        let t = event.mouseover_class;
+        console.log(s);
+        console.log(t);
+        if(s.x !== t.x + 1){
+            return;
+        }
+        let length = t.y - s.y;
+        if(confirm(`Add d${length} differential from ${tools.getClassExpression(s)} to ${tools.getClassExpression(t)}`)){
+            let d = sseq.addDifferential(sseq.display_class_to_real_class.get(s), sseq.display_class_to_real_class.get(t), length);
+            //d.color = differential_colors[d.page];
+            d.display_edge.color = d.color;
+            d.leibniz_vectors = [];
+            dss.most_recent_differential = d;
+            dss.update();
+        }
+    }
+});
+
+dss.addEventHandler('l',  (event) => {
+    let d = dss.most_recent_differential;
+    if (event.mouseover_class && d) {
+        let c = event.mouseover_class;
+        let dx = c.x - dss.most_recent_differential.source.x;
+        let dy = c.y - dss.most_recent_differential.source.y;
+        if(confirm(`Leibniz along vector [${dx},${dy}]?`)){
+            d.leibniz_vectors.push([dx,dy]);
+        }
+    }
+});
+
+dss.addEventHandler("enter", (event) => {
+    if(dss.most_recent_differential){
+        let d = dss.most_recent_differential;
+        let offset_vectors = d.leibniz_vectors;
+        if(confirm(`Leibniz differential along ${JSON.stringify(d.leibniz_vectors)}?`)){
+            for(let exponent_vector of product(...d.leibniz_vectors.map( v => range(0,20)))){
+                let cur_source = [d.source.x, d.source.y];
+                let source_degree = vectorSum(cur_source, vectorLinearCombination(offset_vectors, exponent_vector));
+                let target_degree = vectorSum(source_degree, [-1,d.page]);
+                let sourceClass = classes.get(source_degree);
+                let targetClass = classes.get(target_degree);
+                truncation_sseq.addDifferential(sourceClass, targetClass, d.page);
+            }
+            added_differentials.push([d.page, [d.source.x,d.source.y], d.leibniz_vectors, d.leibniz_vectors.map( v => [0,10])]);
+            dss.most_recent_differential = undefined;
+            dss.update();
+        }
+    }
+});
+
+dss.addEventHandler("d", (event) => {
+    added_differentials.forEach((d) => console.log(`addDifferential(${JSON.stringify(d).slice(1,-1)})`));
+});
+
 dss.setPageChangeHandler((page) => {
    dss.update();
 });
@@ -590,7 +775,7 @@ dss.setPageChangeHandler((page) => {
 truncation_sseq.topMargin = 20;
 truncation_sseq.squareAspectRatio = true;
 
-tools.install_edit_handlers(dss,"BPC4-2");
+
 dss.display();
 window.sseq = truncation_sseq;
 

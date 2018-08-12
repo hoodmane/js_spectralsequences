@@ -108,8 +108,8 @@ class Display {
      */
     _initializeCanvas(){
         // Global constants for grid and setup
-        this.gridColor = "#555";
-        this.gridStrokeWidth = 0.5;
+        this.gridColor = "#c6c6c6";
+        this.gridStrokeWidth = 0.3;
         this.boxSize = 50; // TODO: Get rid of boxSize.
         this.TICK_STEP_LOG_BASE = 1.1; // Used for deciding when to change tick step.
 
@@ -131,7 +131,7 @@ class Display {
         this.leftMargin = 40;
         this.rightMargin = 5;
         this.topMargin = 30;
-        this.bottomMargin = 30;
+        this.bottomMargin = 60;
 
 
         for(let side of ["left", "right", "top", "bottom"]){

@@ -244,47 +244,6 @@ addDifferential(13, [8, 0], [11, 0], 30, 2);
 addDifferential(13, [11, 0],[14, 0], 37, 2);
 
 
-// The logic here gets the coloring of the following classes wrong:
-//  (40,8) should be white fill
-//  (32,16) should be red
-//
-function getTruncationClasses(n){
-    let out = [];
-    for(let c of BPC4.classes){
-        let incoming_differentials = c.getIncomingDifferentials();
-        if(c.x + c.y >= 4*n && incoming_differentials.length > 0){
-            for(let i = 0; i < incoming_differentials.length; i++){
-                let d = incoming_differentials[i];
-                if(d.source.x + d.source.y < 4*n && incoming_differentials[incoming_differentials.length - 1].page > 3){
-                    let node = c.getNode();
-                    node.stroke = differential_colors[d.page];
-                    node.color = differential_colors[d.page];
-                    c.slice.d1 -= n;
-                    c.slice.d3 = n/3;
-                    c.name = c.slice.toString();
-                    if(c.E2group === "Z4"){
-                        if(c.getOutgoingDifferentials().length > 0){
-                            node.fill = "red";
-                            c.name = "2\\," + c.name;
-                        } else {
-                            if(i > 0){
-                                node.fill = "grey";
-                            } else {
-                                node.fill = "white";
-                            }
-                        }
-                    }
-                    out.push(c);
-                    break;
-                }
-            }
-        }
-    }
-    return out;
-}
-
-
-
 
 let truncation_sseq = new Sseq();
 truncation_sseq.xRange = [0, 100];
@@ -317,21 +276,62 @@ for(let c of BPC4.getSurvivingClasses()){
 }
 
 
-for(let n = 0; n < 100; n += 1){
-    for(c of getTruncationClasses(n)){
-        let nc = truncation_sseq.addClass(c.x,c.y);
-        nc.name = c.name;
-        let idx = nc.idx;
-        Object.assign(nc, c);
-        let node;
-        node = c.node_list[c.node_list.length - 1].copy();
+function getTruncationClasses(k){
+    let out = [];
+    for(let c of BPC4.classes){
         let incoming_differentials = c.getIncomingDifferentials();
-        let dlength = incoming_differentials[incoming_differentials.length - 1].page;
-        nc.idx = idx;
-        nc.page_list = [infinity];
-        nc.node_list = [node];
+        let n = Math.floor((c.x + c.y)/k);
+        if(incoming_differentials.length > 0){
+            for(let i = 0; i < incoming_differentials.length; i++){
+                let d = incoming_differentials[i];
+                if(d.source.x + d.source.y < k*n && incoming_differentials[incoming_differentials.length - 1].page > 3){
+                    let c2 = Object.assign(new SseqClass(BPC4, c.x, c.y), c);
+                    c2.cut_length = d.page;
+                    let node = c.getNode(c2.cut_length - 1).copy();
+                    c2.node_list = [node];
+                    c2.page_list = [infinity];
+                    node.stroke = differential_colors[d.page];
+                    node.color = differential_colors[d.page];
+                    c2.slice = c.slice.copy();
+                    c2.slice.d1 -= n;
+                    c2.slice.d3 = n/3;
+                    c2.name = c2.slice.toString();
+                    c2.E2group = c.E2group;
+                    if(c.E2group === "Z4"){
+                        if(c.getOutgoingDifferentials().length > 0){
+                            node.fill = "red";
+                            c2.name = "2\\," + c.name;
+                            c2.group = "Z2";
+                        } else {
+                            if(i > 0){
+                                node.fill = "grey";
+                                c2.group = "Z2";
+                            } else {
+                                node.fill = "white";
+                                c2.group = "Z4";
+                            }
+                        }
+                    } else {
+                        c2.group = c2.E2group;
+                    }
+                    out.push(c2);
+                    break;
+                }
+            }
+        }
     }
+    return out;
 }
+
+let msgs = 0;
+for(c of getTruncationClasses(4)){
+    let nc = truncation_sseq.addClass(c.x,c.y);
+    Util.assignFields(nc, c, ["name", "cut_length", "slice","group","E2group"]);
+    nc.setNode(c.getNode());
+    //partitionList(c.slice.getSliceNames()).forEach((s) => nc.addExtraInfo(`\\(${s}\\)`));
+//    nc.addToMap(classes);
+}
+
 
 
 

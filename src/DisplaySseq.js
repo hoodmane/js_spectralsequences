@@ -344,7 +344,20 @@ class DisplaySseq {
             tooltip = `\\(${c.name}\\) &mdash; `;
         }
         tooltip += `(${c.x}, ${c.y})`;
-        tooltip += c.extra_info;
+        let extra_info;
+        if(!c.extra_info_page_map) {
+            extra_info = c.extra_info;
+        } else {
+            let lastkey;
+            for(let k of c.extra_info_page_map.keys()){
+                if(k > page){
+                    break;
+                }
+                lastkey = k;
+            }
+            extra_info = "\n" + c.extra_info_page_map.get(lastkey);
+        }
+        tooltip += extra_info;
         return tooltip;
     }
 
