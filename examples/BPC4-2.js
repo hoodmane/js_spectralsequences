@@ -1,5 +1,5 @@
-// Name: Slice SS $BP^{((C_4))}\langle 1\rangle$
-// Description: The slice spectral sequence for the $C_4$ fixed points of $BP^{((C_4))}\langle 1\rangle$.
+// Name: Slice SS $BP^{((C_4))}\langle 2\rangle$
+// Description: The slice spectral sequence for the $C_4$ fixed points of $BP^{((C_4))}\langle 2\rangle$.
 
 let Groups = {};
 let SseqNode = Node;

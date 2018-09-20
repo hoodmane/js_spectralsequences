@@ -1,5 +1,5 @@
 // Name: HFPSS $EO(3,1)$
-// Description: The homotopy fixed point spectral sequence for $E_4^{hC_3 \rtimes C_{16}}$.
+// Description: The homotopy fixed point spectral sequence for $E_2^{hC_3 \rtimes C_{4}}$ for $p=3$.
 
 let sseq = new Sseq();
 
