@@ -1,10 +1,12 @@
 "use strict";
 
+let Sseq = require("./Sseq.js");
 let SseqClassjs = require("./SseqClass.js");
 let SseqClass = SseqClassjs.SseqClass;
 let Node = SseqClassjs.Node;
 let Util = require("./Util.js");
 let Shapes = require("../src/Shape.js");
+let ExportToTex = require("./ExportToTex");
 let infinity = Util.infinity;
 
 const {parse, stringify} = require('flatted/cjs');
@@ -50,17 +52,10 @@ class DisplaySseq {
         this.default_node.size = 6;
         this.class_scale = 1;
         this.eventHandlers = {};
-        this.serializeSseqFields = [
-            "min_page_idx", "page_list", "xRange", "yRange", "initialxRange", "initialyRange",
-            "default_node", "class_scale", "offset_size", "serializeSseqFields", "serializeClassFields", "serializeEdgeFields"
-        ]; // classes and edges are dealt with separately.
-        this.serializeClassFields = [
-            "x", "y", "name", "extra_info", "unique_id", "idx", "x_offset", "y_offset", "page_list", "visible"
-        ]; // "node_list" is dealt with separately
-        this.serializeEdgeFields = [
-            "color", "bend", "dash", "lineWidth", "opacity", "page_min", "page", "type"
-        ]; // "source" and "target" are dealt with separately.
         this.page_change_handler = () => true;
+        this.serializeSseqFields = Sseq.serializeSseqFields;
+        this.serializeClassFields= Sseq.serializeClassFields;
+        this.serializeEdgeFields = Sseq.serializeEdgeFields;
     }
 
     /**
@@ -139,6 +134,7 @@ class DisplaySseq {
         }
         if(window.display){
             window.display.setSseq(this);
+            display.update();
         } else {
             window.display = new Display(this);
         }
@@ -436,7 +432,6 @@ class DisplaySseq {
     static async fromJSON(path){
         let response = await fetch(path);
         let sseq_obj = await response.json();
-        console.log(sseq_obj);
         let sseq = Object.assign(new DisplaySseq(), sseq_obj);
         // To resuscitate, we need to fix:
         //  1) The num_classes_by_degree map which is used for calculating offsets doesn't get serialized.
@@ -493,6 +488,9 @@ class DisplaySseq {
         sseqToSerialize.classes = [];
         sseqToSerialize.edges = [];
         for(let c of this.classes){
+            if(c.invalid){
+                continue;
+            }
             let classToSerialize = {};
             // Copy fields that we serialize
             for(let field of this.serializeClassFields){
@@ -511,6 +509,9 @@ class DisplaySseq {
             sseqToSerialize.classes.push(classToSerialize);
         }
         for(let edge of this.edges){
+            if(edge.invalid){
+                continue;
+            }
             let edgeToSerialize = {};
             // Copy fields that we serialize
             for(let field of this.serializeEdgeFields){
@@ -525,25 +526,9 @@ class DisplaySseq {
         return sseqToSerialize;
     }
 
-
-    download(filename){
-        // TODO: Remove this.
-        if(!this.serializeSseqFields) {
-            this.serializeSseqFields = [
-                "min_page_idx", "page_list", "xRange", "yRange", "initialxRange", "initialyRange",
-                "default_node", "class_scale", "offset_size", "serializeSseqFields", "serializeClassFields", "serializeEdgeFields"
-            ]; // classes and edges are dealt with separately.
-            this.serializeClassFields = [
-                "x", "y", "name", "extra_info", "unique_id", "idx", "x_offset", "y_offset", "page_list", "visible", "permanent_cycle_info"
-            ]; // "node_list" is dealt with separately
-            this.serializeEdgeFields = [
-                "color", "bend", "dash", "lineWidth", "opacity", "page_min", "page", "type", "mult"
-            ]; // "source" and "target" are dealt with separately.
-        }
-        Util.download(filename, JSON.stringify(this));
+    exportToTex(filename, page, xmin, xmax, ymin, ymax){
+        ExportToTex.DownloadSpectralSequenceTex(filename, this, page, xmin, xmax, ymin, ymax);
     }
-
-
 
 
 }

@@ -28,7 +28,7 @@ exports.multiply_monomial = function(variable, power, monomial){
     let old_power = Number.parseInt(matcher[2] || 1);
     let new_power = old_power + power;
     return monomial.replace(power_regex, `${variable}^{${new_power}}`);
-}
+};
 
 
 exports.straightenTowers = function(sseq){
@@ -115,7 +115,7 @@ exports.straightenTowers = function(sseq){
             }
         }
     }
-}
+};
 
 
 exports.minimizeCrossings = function(sseq){
@@ -197,7 +197,7 @@ exports.install_edit_handlers = function(dss, download_filename){
     });
 
     dss.addEventHandler("d", (event) => {
-        dss.download(download_filename + ".json");
+        dss.real_sseq.download(download_filename + ".json");
     });
 
     dss.addEventHandler('s', (event) => {
@@ -224,6 +224,19 @@ exports.install_edit_handlers = function(dss, download_filename){
                 let d = sseq.addDifferential(sseq.display_class_to_real_class.get(s), sseq.display_class_to_real_class.get(t), length);
                 //d.color = differential_colors[d.page];
                 d.display_edge.color = d.color;
+                dss.update();
+            }
+        }
+    });
+
+    dss.addEventHandler('n', (event) => {
+        if(event.mouseover_class && dss.temp_source_class){
+            let s = dss.temp_source_class;
+            let t = event.mouseover_class;
+            let source = sseq.display_class_to_real_class.get(s);
+            let target = sseq.display_class_to_real_class.get(t);
+            if(confirm(`Delete edges ${exports.getClassExpression(s)} to ${exports.getClassExpression(t)}`)){
+                source.getEdges().filter((e) => e.otherClass(source) === target).forEach(e => e.delete());
                 dss.update();
             }
         }

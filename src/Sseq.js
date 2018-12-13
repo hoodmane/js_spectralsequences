@@ -107,7 +107,7 @@ class Sseq {
         this.default_node.size = 6;
         this.projection = function(ssclass){
             return [ssclass.degree.x, ssclass.degree.y];
-        }
+        };
 
         this._class_update_fields = [
             "x", "y", "idx", "uid", "x_offset", "y_offset",
@@ -120,6 +120,9 @@ class Sseq {
             "page", "page_min", "color", "source_name", "target_name",
             "_drawOnPageQ", "visible", "bend", "opacity", "dash", "lineWidth"
         ];
+        this.serializeSseqFields = Sseq.serializeSseqFields;
+        this.serializeClassFields = Sseq.serializeClassFields;
+        this.serializeEdgeFields = Sseq.serializeEdgeFields;
     }
 
     set_shift(x, y){
@@ -166,6 +169,10 @@ class Sseq {
 
     getClasses(){
         return this.classes;
+    }
+
+    getEdges(){
+        return this.edges;
     }
 
     getStructlines(){
@@ -546,6 +553,7 @@ class Sseq {
             sseq.updateEdge(real_edge);
         }
         sseq.display_sseq = dss;
+        sseq.getDisplaySseq();
         return sseq;
     }
 
@@ -562,6 +570,9 @@ class Sseq {
         dss.on_draw = this.on_draw;
         dss.class_scale = this.class_scale;
         dss.num_classes_by_degree = this.num_classes_by_degree;
+        dss.serializeSseqFields = this.serializeSseqFields;
+        dss.serializeClassFields = this.serializeClassFields;
+        dss.serializeEdgeFields = this.serializeEdgeFields;
 
         if(this._getXOffset){
             dss._getXOffset = this._getXOffset;
@@ -579,6 +590,69 @@ class Sseq {
         return dss;
     }
 
+    addSseqFieldToSerialize(field){
+       if(Array.isArray(field)){
+           field.forEach( f => this.addSseqFieldToSerialize(f));
+           return;
+       }
+        if(!this.serializeSseqFields.includes(field)){
+            this.serializeSseqFields.push(field);
+            // Currently dss has a reference to the same array.
+            //this.display_sseq.serializeSseqFields = this.serializeSseqFields;
+        }
+    }
+
+    addClassFieldToSerialize(field){
+        if(Array.isArray(field)){
+            field.forEach( f => this.addClassFieldToSerialize(f));
+            return;
+        }
+        if(!this.serializeClassFields.includes(field)){
+            this.serializeClassFields.push(field);
+            // Currently dss has a reference to the same array.
+            //this.display_sseq.serializeSseqFields = this.serializeSseqFields;
+        }
+    }
+
+    addEdgeFieldToSerialize(field){
+        if(Array.isArray(field)){
+            field.forEach( f => this.addEdgeFieldToSerialize(f));
+            return;
+        }
+        if(!this.serializeEdgeFields.includes(field)){
+            this.serializeEdgeFields.push(field);
+            // Currently dss has a reference to the same array.
+            //this.display_sseq.serializeSseqFields = this.serializeSseqFields;
+        }
+    }
+
+    toJSON() {
+       for(let field of this.serializeSseqFields){
+           if(this[field]){
+               this.display_sseq[field] = this[field];
+           }
+       }
+
+       for(let c of this.getClasses()){
+           for(let field of this.serializeClassFields){
+               if(c[field]){
+                   c.display_class[field] = c[field];
+               }
+           }
+       }
+       for(let e of this.getEdges())    {
+            for(let field of this.serializeClassFields){
+                if(e[field]){
+                    e.display_edge[field] = e[field];
+                }
+            }
+        }
+       return this.getDisplaySseq().toJSON();
+    }
+
+    download(filename){
+        Util.download(filename, JSON.stringify(this));
+    }
 
     display(){
         this.update();
@@ -586,10 +660,33 @@ class Sseq {
         dss.display();
         return dss;
     }
+
+    deleteDuplicateEdges(){
+        for(let c of this.getClasses()){
+            let targets = [];
+            for(let e of c.getEdges()){
+                if(targets.includes(e.otherClass(c))){
+                    e.delete();
+                } else {
+                    targets.push(e.otherClass(c));
+                }
+            }
+        }
+    }
 }
 
-
+Sseq.serializeSseqFields = [
+    "min_page_idx", "page_list", "xRange", "yRange", "initialxRange", "initialyRange",
+    "default_node", "class_scale", "offset_size", "serializeSseqFields", "serializeClassFields", "serializeEdgeFields"
+]; // classes and edges are dealt with separately.
+Sseq.serializeClassFields = [
+    "x", "y", "name", "extra_info", "unique_id", "idx", "x_offset", "y_offset", "page_list", "visible"
+]; // "node_list" is dealt with separately
+Sseq.serializeEdgeFields = [
+    "color", "bend", "dash", "lineWidth", "opacity", "page_min", "page", "type"
+]; // "source" and "target" are dealt with separately.
 
 exports.Sseq = Sseq;
 //window.SseqNode = Node;
+
 

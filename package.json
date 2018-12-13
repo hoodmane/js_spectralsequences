@@ -3,7 +3,7 @@
   "author": "Hood Chatham <hood@mit.edu> (http://hoodchatham.com)",
   "description": "Interactive spectral sequence viewer and editor.",
   "version": "0.0.1",
-  "license": "UNLICENSED",
+  "license": "ISC",
   "repository": "github:hoodmane/js_spectralsequences",
   "private": true,
   "devDependencies": {
@@ -19,6 +19,6 @@
   },
   "scripts": {
     "start": "budo src/main.js:bundle.js --live -- --debug --standalone sseq_display",
-    "build": "browserify -g uglifyify src/main.js > bundle.js"
+    "build": "browserify -d -g uglifyify src/main.js > bundle.js"
   }
 }

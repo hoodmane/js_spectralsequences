@@ -49,20 +49,26 @@ class Edge {
     }
 
     delete(){
-        if(this.source.page_list.indexOf(this.page) !== this.source.page_list.length - 1){
-            console.log("Cannot remove differential, source has done stuff since.");
-            return;
-        }
-        if(this.target.page_list.indexOf(this.page) !== this.target.page_list.length - 1){
-            console.log("Cannot remove differential, target has done stuff since.");
-            return;
+        if(this.constructor === Differential) {
+            if (this.source.page_list.indexOf(this.page) !== -1 && this.source.page_list.indexOf(this.page) !== this.source.page_list.length - 1) {
+                console.log("Cannot remove differential, source has done stuff since.");
+                return;
+            }
+            if (this.target.page_list.indexOf(this.page) !== -1 && this.target.page_list.indexOf(this.page) !== this.target.page_list.length - 1) {
+                console.log("Cannot remove differential, target has done stuff since.");
+                return;
+            }
+            if (this.source.page_list.indexOf(this.page) !== -1){
+                this.source.page_list[this.source.page_list.length - 1] = infinity;
+            }
+            if (this.target.page_list.indexOf(this.page) !== -1){
+                this.target.page_list[this.target.page_list.length - 1] = infinity;
+            }
         }
 
         this.invalid = true;
         this.source.edges = this.source.edges.filter(e => !e.invalid);
         this.target.edges = this.target.edges.filter(e => !e.invalid);
-        this.source.page_list[this.source.page_list.length - 1] = infinity;
-        this.target.page_list[this.target.page_list.length - 1] = infinity;
         this.source.update();
         this.target.update();
         this.display_edge.invalid = true;

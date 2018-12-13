@@ -10,6 +10,7 @@ window.mod = function(n,d){
 }
 
 
+window.Util = require("./Util.js");
 window.Shapes = require("./Shape.js");
 window.Display = require("./display.js").Display;
 
@@ -22,11 +23,11 @@ window.Edge = Sseqjs.Edge;
 window.Differential = Sseqjs.Differential;
 window.Structline = Sseqjs.Structline;
 window.Extension = Sseqjs.Extension;
-window.Util = require("./Util.js");
 
 window.Flatted = require('flatted/cjs');
 
 window.tools = require("./ass_tools.js");
+
 
 window.d3 = require("d3");
 
