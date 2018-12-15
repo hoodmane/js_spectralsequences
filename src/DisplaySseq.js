@@ -395,43 +395,8 @@ class DisplaySseq {
         return dss;
     }
 
-    static async fromJSONOld(path){
-        let response = await fetch(path);
-        let json = await response.text();
-        let sseq = parse(json);
-        Object.setPrototypeOf(sseq, DisplaySseq.prototype);
-        sseq.default_node = Object.assign(new Node(), sseq.default_node);
-        let num_classes_by_degree = new StringifyingMap();
-        for(let c of sseq.classes){
-            if(!c){
-                continue;
-            }
-            let idx  = num_classes_by_degree.getOrElse([c.x, c.y], 0);
-            num_classes_by_degree.set([c.x, c.y], idx + 1);
-            for(let i = 0; i < c.node_list.length; i++){
-                c.node_list[i] = new Node(c.node_list[i]);
-                c.node_list[i].shape = Shapes[c.node_list[i].shape.name];
-            }
-        }
-        console.log(sseq.classes);
-        for(let e of sseq.edges){
-            if(e.type === "Extension"){
-                e._drawOnPageQ = undefined;
-            }
-        }
-        sseq.num_classes_by_degree = num_classes_by_degree;
-        return sseq;
-    }/**/
 
-
-    /**
-     * Load spectral sequence from JSON. Returns a promise for a DisplaySseq
-     * @param path The file path / name of the JSON file to load.
-     * @returns {Promise<DisplaySseq>}
-     */
-    static async fromJSON(path){
-        let response = await fetch(path);
-        let sseq_obj = await response.json();
+    static fromJSONObject(sseq_obj){
         let sseq = Object.assign(new DisplaySseq(), sseq_obj);
         // To resuscitate, we need to fix:
         //  1) The num_classes_by_degree map which is used for calculating offsets doesn't get serialized.
@@ -470,7 +435,8 @@ class DisplaySseq {
         sseq.num_classes_by_degree = num_classes_by_degree;
         return sseq;
     }
-
+    
+    
     /**
      *
      */

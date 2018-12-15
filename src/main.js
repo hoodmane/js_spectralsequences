@@ -7,12 +7,15 @@ window.infinity = 10000;
 
 window.mod = function(n,d){
     return (n % d + d)%d;
-}
+};
 
 
 window.Util = require("./Util.js");
+window.IO = require("./IO");
+window.sseqDatabase = IO.sseqDatabase;
 window.Shapes = require("./Shape.js");
 window.Display = require("./display.js").Display;
+
 
 let Sseqjs = require("./Sseq.js");
 window.Sseq = Sseqjs.Sseq;

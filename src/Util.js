@@ -16,7 +16,7 @@ exports.limited_logger = function(max_msgs){
 
 
 exports.download = function(filename, text) {
-    var element = document.createElement('a');
+    let element = document.createElement('a');
     element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
     element.setAttribute('download', filename);
 
@@ -26,7 +26,7 @@ exports.download = function(filename, text) {
     element.click();
 
     document.body.removeChild(element);
-}
+};
 
 exports.getDummyConstantFunction = function(out) {
     return function () {

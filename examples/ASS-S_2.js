@@ -23,8 +23,8 @@ if(new URL(document.location).hostname === "math.mit.edu"){
     UASS_full_file_name = "js_spectralsequences/" + UASS_full_file_name;
 }
 
-//DisplaySseq.fromJSON(UASS_full_file_name).catch((error) => console.log(error)).then((disp_uass) => {
-    DisplaySseq.fromJSON(file_name).catch((error) => console.log(error)).then((dss) => {
+//DisplaySseq.loadFromServer(UASS_full_file_name).catch((error) => console.log(error)).then((disp_uass) => {
+    Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) => {
         console.log(dss);
         dss.xRange = [0, 70];
         dss.yRange = [0, 40];

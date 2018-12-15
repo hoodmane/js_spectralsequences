@@ -45,6 +45,15 @@ class Node {
         return this;
     }
 
+    getSize(){
+        return this.size;
+    }
+
+    setSize(size){
+        this.size = size;
+        return this;
+    }
+
     getColor(){
         return this.color;
     }

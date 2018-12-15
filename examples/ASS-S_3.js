@@ -9,7 +9,7 @@ if(new URL(document.location).hostname === "math.mit.edu"){
     file_name = "js_spectralsequences/" + file_name;
 }
 
-DisplaySseq.fromJSON(file_name)
+Sseq.loadFromServer(file_name)
     .then((dss) => {
         dss.offset_size = 0.5;
         dss.class_scale = 0.7;

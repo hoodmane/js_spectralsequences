@@ -247,6 +247,7 @@ exports.install_edit_handlers = function(dss, download_filename){
     // });
 
     dss.addEventHandler("onclick", (event) => {
+        let sseq = dss.real_sseq;
         if(!event.mouseover_class){
             return;
         }
