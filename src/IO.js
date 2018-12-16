@@ -21,7 +21,16 @@ exports.saveToLocalStore = function(key, value){
 exports.loadFromLocalStore = async function(key){
     await sseqDatabase.open();
     let response = await sseqDatabase.fetchKey(key);
+    if(!response || !response.value){
+        return undefined;
+    }
     return JSON.parse(response.value);
+};
+
+exports.deleteFromLocalStore = async function(key){
+    await sseqDatabase.open();
+    await sseqDatabase.deleteKey(key);
+    return;
 };
 
 exports.loadFromServer = async function(path){
@@ -68,7 +77,6 @@ sseqDatabase.open = function() {
         request.onsuccess = function (e) {
             // Get a reference to the DB.
             datastore = e.target.result;
-
             // Execute the callback.
             resolve();
         };
@@ -81,7 +89,6 @@ sseqDatabase.open = function() {
 
 sseqDatabase.fetchAllKeys = function() {
     return new Promise(function(resolve, reject) {
-        console.log(datastore.keyPath);
         const transaction = datastore.transaction(['sseq'], 'readwrite');
         const objStore = transaction.objectStore('sseq');
 
@@ -92,7 +99,6 @@ sseqDatabase.fetchAllKeys = function() {
 
         transaction.oncomplete = function (e) {
             // Execute the callback function.
-            console.log("td", todos);
             resolve(todos);
         };
 
@@ -108,18 +114,16 @@ sseqDatabase.fetchAllKeys = function() {
             result.continue();
         };
 
-        cursorRequest.onerror = sseqDatabase.onerror;
+        cursorRequest.onerror = reject;
     });
 };
 
 sseqDatabase.fetchKey = function(key) {
     return new Promise(function(resolve, reject) {
         const transaction = datastore.transaction(['sseq'], 'readwrite');
-        console.log(transaction);
         const objStore = transaction.objectStore('sseq');
 
         const keyRange = IDBKeyRange.lowerBound(0);
-        console.log(key);
         const objectStoreRequest = objStore.index("key").get(key);
 
         objectStoreRequest.onsuccess = function (e) {
@@ -130,33 +134,29 @@ sseqDatabase.fetchKey = function(key) {
     });
 };
 
-
-
 sseqDatabase.createKey = function(key, value) {
     return new Promise(function(resolve, reject) {
         // Get a reference to the db.
         const db = datastore;
 
-        console.log(db);
         // Initiate a new transaction.
         const transaction = db.transaction(['sseq'], 'readwrite');
         // Get the datastore.
         const objStore = transaction.objectStore('sseq');
-        // Create a timestamp for the todo item.
+        // Create a timestamp for the item.
         const timestamp = new Date().getTime();
-        // Create an object for the todo item.
-        const todo = {
+        // Create an object for the item.
+        const item = {
             'key' : key,
             'value': value,
             'timestamp': timestamp
         };
         // Create the datastore request.
-        const request = objStore.put(todo);
+        const request = objStore.put(item);
         // Handle a successful datastore put.
         request.onsuccess = function (e) {
             // Execute the callback function.
-            console.log(todo);
-            resolve(todo);
+            resolve(item);
         };
 
         // Handle errors.
@@ -165,7 +165,7 @@ sseqDatabase.createKey = function(key, value) {
 };
 
 
-sseqDatabase.deleteTodo = function(id) {
+sseqDatabase.deleteKey = function(id) {
     return new Promise(function(resolve, reject) {
         const db = datastore;
         const transaction = db.transaction(['sseq'], 'readwrite');
@@ -177,9 +177,7 @@ sseqDatabase.deleteTodo = function(id) {
             resolve();
         };
 
-        request.onerror = function (e) {
-            console.log(e);
-        };
+        request.onerror = reject;
     });
 };
 
