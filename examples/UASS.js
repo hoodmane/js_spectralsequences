@@ -59,7 +59,6 @@ function setupDSS(dss, dss_list){
                     if(prods.length === 0){
                         break;
                     } else {
-                        console.log("hi");
                         n *= 2;
                         c = prods[0];
                     }

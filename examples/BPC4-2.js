@@ -775,6 +775,9 @@ dss.setPageChangeHandler((page) => {
 truncation_sseq.topMargin = 20;
 truncation_sseq.squareAspectRatio = true;
 
+dss.addEventHandler("p", () => {
+    BPC4.toSVG("BPC4-1.svg");
+});
 
 dss.display();
 window.sseq = truncation_sseq;

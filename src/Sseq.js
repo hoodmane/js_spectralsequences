@@ -704,6 +704,11 @@ class Sseq {
        return this.getDisplaySseq().toJSON();
     }
 
+    // TODO: add check that this spectral sequence is the one being displayed?
+    toSVG(filename){
+       IO.download(filename,display.toSVG());
+    }
+
     /**
      * Load spectral sequence from JSON. Returns a promise for a DisplaySseq
      * @param path The file path / name of the JSON file to load.

@@ -2,6 +2,12 @@
 let file_name = "EHP";
 let on_public_website = new URL(document.location).hostname === "math.mit.edu";
 
+window.node_map = {};
+node_map[2] = new Node().setFill("black").setSize(6);
+node_map[4] = new Node().setFill("white").setSize(6);
+node_map[8] = new Node().setFill("white").setShape(Shapes.circlen).setSize(12);
+node_map[16] = new Node().setFill("white").setShape(Shapes.circlen).setSize(12);
+node_map[32] = new Node().setFill("white").setShape(Shapes.circlen).setSize(12);
 
 
 file_name = `json/${file_name}.json`;
@@ -17,6 +23,13 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
     dss._getXOffset = tools.fixed_tower_xOffset.bind(dss);
     dss._getYOffset = (c) => c.y_offset || 0;
 
+    // TODO: why is the JSON parser turning the page list "[1,10000]" into "[1,1]" ?!
+    // This repairs the result of the problem without addressing the root cause.
+    for(let c of sseq.getClasses()){
+        if(c.page_list.length === 2 && c.page_list[0] === c.page_list[1]){
+            c.page_list[1] = 10000;
+        }
+    }
 
     function displayPage(pageRange) {
         if (pageRange === infinity) {
@@ -35,7 +48,6 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
     }
 
     sseq.onDraw((display) => {
-        console.log("1");
         let context = display.edgeLayerContext;
         context.clearRect(0, 0, this.width, this.height);
         context.save();
@@ -73,7 +85,6 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
         context.clearRect(50, 0, 400, 200);
         context.font = "15px Arial";
         context.fillText(`Page ${displayPage(display.pageRange)}`, 100, 15);
-        console.log("2");
     });
 
 
@@ -83,7 +94,41 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
     }
 
 
-    tools.install_edit_handlers(dss, "ASS-S_2");
+    tools.install_edit_handlers(dss, "EHP");
+
+    dss.addEventHandler('t', (event) => {
+        if(event.mouseover_class && dss.temp_source_class){
+            let s = dss.temp_source_class;
+            let t = event.mouseover_class;
+            console.log(s);
+            console.log(t);
+            if(s.x - t.x !== t.y - s.y + 1){
+                return;
+            }
+            let length = s.x - t.x;
+            if(confirm(`Add d${length} differential from ${tools.getClassExpression(s)} to ${tools.getClassExpression(t)}`)){
+                let d = sseq.addDifferential(sseq.display_class_to_real_class.get(s), sseq.display_class_to_real_class.get(t), length);
+                let sourceOrder = 1;
+                if(d.source.EinftyOrder !== 2){
+                    sourceOrder = prompt(`Kernel order?`, 1)
+                }
+                let targetOrder = 1;
+                if(d.target.EinftyOrder !== 2){
+                    targetOrder = prompt(`Cokernel order?`, 1)
+                }
+                d.target_name = targetOrder + d.target_name;
+                d.addInfoToSourceAndTarget();
+                if(sourceOrder > 1){
+                    d.replaceSource(node_map[sourceOrder]);
+                }
+                if(targetOrder > 1){
+                    d.replaceTarget(node_map[targetOrder]);
+                }
+                d.display_edge.color = d.color;
+                dss.update();
+            }
+        }
+    });
 
     dss.addEventHandler("onclick", (event) => {
         if (!event.mouseover_class) {
@@ -107,27 +152,6 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
     });
 
 
-
-    let ext_colors = {"2": "orange", "\\eta": "purple", "\\nu": "brown"}
-
-    dss.addEventHandler('e', (event) => {
-        if (event.mouseover_class && dss.temp_source_class) {
-            let s = dss.temp_source_class;
-            let t = event.mouseover_class;
-            let ext_type = {0: 2, 1: "\\eta", 3: "\\nu"}[t.x - s.x];
-            if (!ext_type) {
-                return;
-            }
-            if (confirm(`Add *${ext_type} extension from ${tools.getClassExpression(s)} to ${tools.getClassExpression(t)}`)) {
-                let d = sseq.addExtension(sseq.display_class_to_real_class.get(s), sseq.display_class_to_real_class.get(t));
-                d.color = ext_colors[ext_type];
-                d.mult = ext_type;
-                d.display_edge.mult = ext_type;
-                d.display_edge.color = d.color;
-                sseq.update();
-            }
-        }
-    });
 
     console.log(dss.classes[0]);
 

@@ -158,8 +158,6 @@ class Display {
 
         this.hitCtx = this.classLayer.getHitCanvas().context;
 
-        this.gridLayerContext.strokeStyle = this.gridColor;
-
         // This presumably is set up for the axes labels. Maybe should move it there?
         this.marginLayerContext.textBaseline = "middle";
         this.marginLayerContext.font = "15px Arial";
@@ -475,6 +473,7 @@ class Display {
         if(!context){
             context = this.gridLayerContext;
         }
+        context.strokeStyle = this.gridColor;
         context.clearRect(0, 0, this.width, this.height);
 
         context.beginPath();
@@ -783,6 +782,65 @@ class Display {
         this.tooltip_div.transition()
             .duration(500)
             .style("opacity", 0);
+    }
+
+    toSVG(){
+        let width = 1300;
+        let ctx = new C2S(this.width, this.height);
+        ctx.translate(10, 20);
+
+//        window.ctx = ctx;
+        ctx._fill = ctx.fill;
+        ctx._stroke = ctx.stroke;
+        ctx.fillStrokeShape = Konva.Context.prototype.fillStrokeShape;
+
+
+        ctx.save();
+        //this._clipLayer(ctx);
+        this._drawGrid(ctx);
+        ctx.restore();
+
+        ctx.save();
+        this._drawTicks(ctx);
+        ctx.restore();
+
+        ctx.save(); // clip
+        // this._clipLayer(ctx);
+        this._drawEdges(ctx);
+        ctx.restore();
+
+
+        ctx.save(); // clip
+        //this._clipLayer(ctx);
+        for (let c of this.sseq._getClassesToDisplay()) {
+            let s = c.canvas_shape;
+            ctx.save();
+            //ctx.transform(1,0,0,-1,50,50);
+            ctx.transform(...s.getAbsoluteTransform().m);
+            let node = this.sseq.getClassNode(c, display.page);
+            let o = {};
+            o.setAttrs = () => false;
+            this._updateClasses();
+            ctx.fillStyle = s.fill();
+            ctx.strokeStyle = s.stroke();
+            s.sceneFunc().call(s, ctx);
+            ctx.restore();
+        }
+        ctx.restore(); // restore unclipped
+
+
+        // draw axes
+        ctx.beginPath();
+        ctx.moveTo(this.leftMargin, this.topMargin);
+        ctx.lineTo(this.leftMargin, this.clipHeight);
+        ctx.lineTo(this.width - this.rightMargin, this.clipHeight);
+        ctx.stroke();
+
+            // if(this.sseq.on_draw){
+            //     this.sseq.on_draw(this);
+            // }
+
+        return ctx.getSerializedSvg(true);
     }
 }
 

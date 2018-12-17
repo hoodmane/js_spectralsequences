@@ -260,4 +260,7 @@ addDifferential(13, {"d1" : 11},{"d1" : 14}, 37, 2);
 
 let dss = BPC4.getDisplaySseq();
 //tools.install_edit_handlers(dss,"BPC4-1");
+dss.addEventHandler("p", () => {
+    BPC4.toSVG("BPC4-1.svg");
+});
 dss.display();
