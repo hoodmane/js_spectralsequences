@@ -659,9 +659,8 @@ class Sseq {
 
     static async loadFromDataStoreOrServer(path){
         let json;
-        try{
-            json = await IO.loadFromLocalStore(path)
-        } catch(e) {
+        json = await IO.loadFromLocalStore(path);
+        if(!json){
             json = await IO.loadFromServer(path);
         }
         let sseq = Sseq.fromJSONObject(json);

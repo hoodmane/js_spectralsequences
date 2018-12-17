@@ -34,7 +34,6 @@ function setNode(node) {
     if(node.opacity){
         this.opacity(node.opacity);
     }
-
 }
 
 
@@ -472,8 +471,10 @@ class Display {
         }
     }
 
-    _drawGrid() {
-        let context = this.gridLayerContext;
+    _drawGrid(context) {
+        if(!context){
+            context = this.gridLayerContext;
+        }
         context.clearRect(0, 0, this.width, this.height);
 
         context.beginPath();
@@ -481,7 +482,7 @@ class Display {
             context.moveTo(this.xScale(col), 0);
             context.lineTo(this.xScale(col), this.clipHeight);
         }
-        this.gridLayerContext.lineWidth = this.gridStrokeWidth;
+        context.lineWidth = this.gridStrokeWidth;
         context.stroke();
 
         context.beginPath();
@@ -489,14 +490,16 @@ class Display {
             context.moveTo(this.leftMargin, this.yScale(row));
             context.lineTo(this.width - this.rightMargin, this.yScale(row));
         }
-        this.gridLayerContext.lineWidth = this.gridStrokeWidth;
+        context.lineWidth = this.gridStrokeWidth;
         context.stroke();
     }
 
 
-    _drawTicks() {
-        let context = this.marginLayerContext;
-        context.clearRect(0, 0, this.width, this.height);
+    _drawTicks(context) {
+        if(!context){
+            context = this.marginLayerContext;
+            context.clearRect(0, 0, this.width, this.height);
+        }
         context.textAlign = "center";
         for (let i = Math.floor(this.xTicks[0]); i <= this.xTicks[this.xTicks.length - 1]; i += this.xTickStep) {
             context.fillText(i, this.xScale(i), this.clipHeight + 20);
@@ -517,8 +520,6 @@ class Display {
         let context = this.classLayerContext;
         context.clearRect(0, 0, this.width, this.height);
         context.save();
-
-
 
         let scale_size;
         if (this.scale < 1 / 2) {
@@ -578,10 +579,11 @@ class Display {
         this.classLayer.draw();
     }
 
-    _drawEdges(){
-        let context = this.edgeLayerContext;
-        context.clearRect(0, 0, this.width, this.height);
-
+    _drawEdges(context){
+        if(!context){
+            context = this.edgeLayerContext;
+            context.clearRect(0, 0, this.width, this.height);
+        }
         let edges = this.sseq._getEdgesToDisplay();
         for (let i = 0; i < edges.length; i++) {
             let e = edges[i];
