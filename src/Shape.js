@@ -56,7 +56,7 @@ Shapes.circlen = {
         context.fillStrokeShape(this);
         this.fill(save_fill);
     }
-}
+};
 
 Shapes.square = {
     draw : function(context) {

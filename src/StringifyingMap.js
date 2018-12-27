@@ -60,6 +60,10 @@ var StringifyingMap = (function () {
     StringifyingMap.prototype.keys = function(){
         return this.key_string_to_key_object.values();
     };
+
+    StringifyingMap.prototype.toJSON = function(){
+        return [...this];
+    }
     
     Object.defineProperty(StringifyingMap.prototype, "size", {
         get: function () {

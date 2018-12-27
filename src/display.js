@@ -537,7 +537,8 @@ class Display {
 
             let s = c.canvas_shape;
             if (!s) {
-                continue;
+                this._addClass(c);
+                s = c.canvas_shape;
             }
 
             let invalid_coords = ["x","y"].filter(v => isNaN(c[v]));
@@ -681,24 +682,28 @@ class Display {
     _addClasses() {
         this.classLayer.removeChildren();
         for (let c of this.sseq.classes) {
-            if(!c){ // TODO: should we log invalid classes?
-                continue;
-            }
-
-            if(! Number.isInteger(c.x) || !Number.isInteger(c.y)){
-                console.log("Class has invalid coordinates:\n" ); console.log(c);
-                continue;
-            }
-            c.canvas_shape = new Konva.Shape();
-            c.canvas_shape.sseq_class = c;
-            c.canvas_shape.on('mouseover', (event) => this._handleMouseover(event.currentTarget));
-
-            let self = this;
-            c.canvas_shape.on('mouseout', function () {
-                self._handleMouseout(this)
-            });
-            this.classLayer.add(c.canvas_shape);
+           this._addClass(c);
         }
+    }
+
+    _addClass(c){
+        if(!c){ // TODO: should we log invalid classes?
+            return;
+        }
+
+        if(! Number.isInteger(c.x) || !Number.isInteger(c.y)){
+            console.log("Class has invalid coordinates:\n" ); console.log(c);
+            return;
+        }
+        c.canvas_shape = new Konva.Shape();
+        c.canvas_shape.sseq_class = c;
+        c.canvas_shape.on('mouseover', (event) => this._handleMouseover(event.currentTarget));
+
+        let self = this;
+        c.canvas_shape.on('mouseout', function () {
+            self._handleMouseout(this)
+        });
+        this.classLayer.add(c.canvas_shape);
     }
 
     _setUpEdge(edge) {
@@ -730,13 +735,12 @@ class Display {
             MathJax.Hub.Queue(["Typeset", MathJax.Hub, "tooltip_div_dummy"]);
             MathJax.Hub.Queue(() => this.copyTooltipHTMLFromDummyTooltip(shape,tooltip));
         } else {
-            if (MathJax && MathJax.Hub) {
-                this.tooltip_div_dummy.html(tooltip);
+            this.tooltip_div_dummy.html(tooltip);
+            if(window.MathJax && MathJax.Hub) {
                 MathJax.Hub.Queue(["Typeset", MathJax.Hub, "tooltip_div_dummy"]);
                 MathJax.Hub.Queue(() => this._setupTooltipDiv(shape,tooltip));
             } else {
-                this.tooltip_div_dummy.html(tooltip);
-                this._setupTooltipDiv(this);
+                this._setupTooltipDiv(shape,tooltip);
             }
         }
         if(this.sseq.onmouseoverClass){

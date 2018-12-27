@@ -90,6 +90,7 @@ class Sseq {
         this.num_classes_by_degree = new StringifyingMap();
         this.classes_by_stem = new Map();
         this.classes = [];
+        this.class_tooltip_fields = ["extra_info"];
         this.structlines = [];
         this.differentials = [];
         this.edges = [];
@@ -111,16 +112,19 @@ class Sseq {
             return [ssclass.degree.x, ssclass.degree.y];
         };
 
+        this._sseq_update_fields = [""];
+
         this._class_update_fields = [
-            "x", "y", "idx", "uid", "x_offset", "y_offset",
+            "x", "y", "idx", "unique_id", "x_offset", "y_offset",
             "name", "extra_info", "page_list", "node_list",
-            "visible",
+            "visible", "class_tooltip_fields",
             "_classInRangeQ", "_drawOnPageQ"
         ];
 
         this._edge_update_fields = [
             "page", "page_min", "color", "source_name", "target_name",
-            "_drawOnPageQ", "visible", "bend", "opacity", "dash", "lineWidth"
+            "_drawOnPageQ", "visible", "bend", "opacity", "dash", "lineWidth",
+            "source_name", "target_name"
         ];
         this.serializeSseqFields = Sseq.serializeSseqFields;
         this.serializeClassFields = Sseq.serializeClassFields;
@@ -193,6 +197,13 @@ class Sseq {
         // }
     }
 
+    getClassesByName(name){
+        return this.classes.filter(c => c.name === name);
+        // if(this.classes_by_degree.has({x: x, y: y})) {
+        //     return this.classes_by_degree.get({x: x, y: y});
+        // }
+    }
+
     getOccupiedStems(){
         return Array.from(this.classes_by_degree.keys());
     }
@@ -234,6 +245,7 @@ class Sseq {
         this.display_sseq.classes[c.class_list_index] = c.display_class;
         this.updateClass(c);
         this.display_class_to_real_class.set(c.display_class, c);
+        this.display_sseq.update(); // Update the display if it exists.
         return c;
     }
 
@@ -281,6 +293,9 @@ class Sseq {
        if(typeof source === "number"){
            console.log("addDifferential a SseqClass in position 1, got a number. Probably the arguments are in the wrong order.")
            return Differential.getDummy();
+       }
+       if(typeof page !== "number"){
+           console.log(`Invalid page ${page} for differential.`);
        }
        // if(source.constructor != SseqClass.constructor){
        //     let err = new Error("addDifferential expected a SseqClass in position 1.");
@@ -339,6 +354,20 @@ class Sseq {
         return ext;
     }
 
+    addSumDifferential(source, targets, page){
+       let target_name = targets.map(t => t.name).join("+");
+       let differentialList = [];
+       for(let t of targets){
+           let d = this.addDifferential(source, t, page);
+           d.target_name = target_name;
+           differentialList.push(d);
+       }
+       for(let i = 0; i < differentialList.length - 1; i++){
+           differentialList[i].replaceTarget();
+       }
+       return differentialList;
+    }
+
 
     setupDisplayEdge(edge) {
         let display_edge = {};
@@ -348,10 +377,30 @@ class Sseq {
         display_edge.target = edge.target.display_class;
         display_edge.type = edge.constructor.name;
         this.updateEdge(edge);
+        this.display_sseq.update();
+    }
+
+    display(){
+        this.update();
+        let dss = this.getDisplaySseq();
+        dss.display();
+        return dss;
+    }
+
+    update(){
+        Util.assignFields(this.display_sseq, this, this._sseq_update_fields);
+        for(let c of this.classes){
+            this.updateClass(c);
+        }
+        for(let e of this.edges){
+            this.updateEdge(e);
+        }
+        this.display_sseq.update();
     }
 
     updateClass(c){
         Util.assignFields(c.display_class, c, this._class_update_fields);
+        Util.assignFields(c.display_class, c, this.class_tooltip_fields);
         c.display_class.tooltip = undefined;
     }
 
@@ -384,7 +433,7 @@ class Sseq {
     }
 
     incrementClassIndex(c){
-        let classes = this.getClassesInDegree(c.x,c.y);
+        let classes = this.getClassesInDegree(c.x, c.y);
         let idx = c.idx;
         if(idx === classes.length){
             return;
@@ -469,6 +518,10 @@ class Sseq {
        return new monomial_basis(this, var_degree_dict, var_spec_list, module_generators);
    }
 
+   deserializePolynomialClasses(serialized_basis){
+       return new monomial_basis(this, serialized_basis);
+   }
+
     addSliceClasses(var_degree_dict, var_spec_list, make_slice){
         if(!Array.isArray(var_spec_list)){
             throw "Second argument of addPolynomialClasses should be an array"
@@ -486,16 +539,6 @@ class Sseq {
     }
 
 
-
-    update(){
-        for(let c of this.classes){
-            this.updateClass(c);
-        }
-        for(let e of this.edges){
-            this.updateEdge(e);
-        }
-        this.display_sseq.update();
-    }
 
     static getSseqFromDisplay(dss){
         let sseq = new Sseq();
@@ -515,7 +558,7 @@ class Sseq {
                 continue;
             }
             let real_class = sseq.addClass(display_class.x,display_class.y);
-            display_class.unique_id = real_class.unique_id;
+            real_class.unique_id = display_class.unique_id;
             Object.assign(real_class,display_class);
             real_class.constructor = SseqClass.constructor;
             real_class.display_class = display_class;
@@ -576,6 +619,7 @@ class Sseq {
         dss.serializeSseqFields = this.serializeSseqFields;
         dss.serializeClassFields = this.serializeClassFields;
         dss.serializeEdgeFields = this.serializeEdgeFields;
+        dss.class_tooltip_fields = this.class_tooltip_fields;
 
         if(this._getXOffset){
             dss._getXOffset = this._getXOffset;
@@ -590,13 +634,6 @@ class Sseq {
             dss.onmouseoverClass = this.onmouseoverClass;
         }
 
-        return dss;
-    }
-
-    display(){
-        this.update();
-        let dss = this.getDisplaySseq();
-        dss.display();
         return dss;
     }
 
@@ -681,27 +718,32 @@ class Sseq {
 
 
     toJSON() {
-       for(let field of this.serializeSseqFields){
+       for(let field of this.serializeSseqFields) {
            if(this[field]){
                this.display_sseq[field] = this[field];
            }
        }
 
-       for(let c of this.getClasses()){
+       for(let c of this.getClasses()) {
            for(let field of this.serializeClassFields){
                if(c[field]){
                    c.display_class[field] = c[field];
                }
            }
        }
-       for(let e of this.getEdges())    {
+       for(let e of this.getEdges()) {
             for(let field of this.serializeClassFields){
                 if(e[field]){
                     e.display_edge[field] = e[field];
                 }
             }
-        }
-       return this.getDisplaySseq().toJSON();
+       }
+
+       let json = this.getDisplaySseq().toJSON();
+       for(let c of this.getClasses()) {
+           this.display_class_to_real_class.set(c.display_class, c);
+       }
+       return json;
     }
 
     // TODO: add check that this spectral sequence is the one being displayed?
@@ -759,13 +801,14 @@ class Sseq {
 
 Sseq.serializeSseqFields = [
     "min_page_idx", "page_list", "xRange", "yRange", "initialxRange", "initialyRange",
-    "default_node", "class_scale", "offset_size", "serializeSseqFields", "serializeClassFields", "serializeEdgeFields"
+    "default_node", "class_scale", "offset_size", "serializeSseqFields", "serializeClassFields", "serializeEdgeFields",
+    "class_tooltip_fields"
 ]; // classes and edges are dealt with separately.
 Sseq.serializeClassFields = [
     "x", "y", "name", "extra_info", "unique_id", "idx", "x_offset", "y_offset", "page_list", "visible"
 ]; // "node_list" is dealt with separately
 Sseq.serializeEdgeFields = [
-    "color", "bend", "dash", "lineWidth", "opacity", "page_min", "page", "type"
+    "color", "bend", "dash", "lineWidth", "opacity", "page_min", "page", "type", "mult"
 ]; // "source" and "target" are dealt with separately.
 
 exports.Sseq = Sseq;

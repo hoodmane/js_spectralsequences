@@ -9,16 +9,16 @@ let Shapes = require("../src/Shape.js");
 let ExportToTex = require("./ExportToTex");
 let infinity = Util.infinity;
 
-const {parse, stringify} = require('flatted/cjs');
 
-
-
-
-let default_node = new Node();
-default_node.fill = true;
-default_node.stroke = true;
-default_node.shape = Shapes.circle;
-default_node.size = 6;
+function ensureMath(str){
+    if(str.startsWith("\\(") || str.startsWith("$")){
+        return str;
+    }
+    if(!str){
+        return "";
+    }
+    return "$" + str + "$";
+}
 
 /**
  *  This class is supposed to implement a minimal interface for Display.js.
@@ -35,7 +35,7 @@ default_node.size = 6;
  */
 class DisplaySseq {
 
-    constructor(){
+    constructor() {
         this.classes = [];
         this.edges = [];
         this.min_page_idx = 0;
@@ -52,9 +52,10 @@ class DisplaySseq {
         this.default_node.size = 6;
         this.class_scale = 1;
         this.eventHandlers = {};
+        this.class_tooltip_fields = ["extra_info"];
         this.page_change_handler = () => true;
         this.serializeSseqFields = Sseq.serializeSseqFields;
-        this.serializeClassFields= Sseq.serializeClassFields;
+        this.serializeClassFields = Sseq.serializeClassFields;
         this.serializeEdgeFields = Sseq.serializeEdgeFields;
     }
 
@@ -63,7 +64,7 @@ class DisplaySseq {
      * At the very least, x, y, and idx should be overridden with real values.
      * For internal use.
      */
-    static newClass(){
+    static newClass() {
         return {
             x: 0,
             y: 0,
@@ -73,7 +74,7 @@ class DisplaySseq {
             name: "",
             extra_info: "",
             page_list: [infinity],
-            node_list: [default_node.copy()],
+            node_list: [this.default_node.copy()],
             visible: true,
             _drawOnPageQ: () => true
         };
@@ -84,7 +85,7 @@ class DisplaySseq {
      * Before use, needs at least a source and a target and preferably a type.
      * For internal use.
      */
-    static newEdge(){
+    static newEdge() {
         let e = {};
         e.color = "black";
         e.page = infinity;
@@ -100,17 +101,17 @@ class DisplaySseq {
      * @param key
      * @param fn
      */
-    addEventHandler(key, fn){
+    addEventHandler(key, fn) {
         this.eventHandlers[key] = fn;
     }
 
-    setPageChangeHandler(f){
+    setPageChangeHandler(f) {
         this.page_change_handler = f;
     }
 
-    pageChangeHandler(page){
+    pageChangeHandler(page) {
         this.page_change_handler(page);
-        if(this.real_sseq){
+        if (this.real_sseq) {
             this.real_sseq.update();
         }
     }
@@ -118,8 +119,8 @@ class DisplaySseq {
     /**
      * If this spectral sequence is being displayed, tell the display to redraw. Use after changing the spectral sequence.
      */
-    update(){
-        if(this.update_listener){
+    update() {
+        if (this.update_listener) {
             this.update_listener();
         }
     }
@@ -127,12 +128,12 @@ class DisplaySseq {
     /**
      * Display this spectral sequence. Gets overridden if you call `some_other_sseq.display()`.
      */
-    display(){
-        if(typeof window === "undefined"){
+    display() {
+        if (typeof window === "undefined") {
             console.log("Can only display in browser.");
             return;
         }
-        if(window.display){
+        if (window.display) {
             window.display.setSseq(this);
             display.update();
         } else {
@@ -151,7 +152,7 @@ class DisplaySseq {
      * @param f
      * @package
      */
-    _registerUpdateListener(f){
+    _registerUpdateListener(f) {
         this.update_listener = f;
     }
 
@@ -167,20 +168,22 @@ class DisplaySseq {
      * @param ymax
      * @package
      */
-    _calculateDrawnElements(page, xmin, xmax, ymin, ymax){
+    _calculateDrawnElements(page, xmin, xmax, ymin, ymax) {
         Util.checkArgumentsDefined(DisplaySseq.prototype._calculateDrawnElements, arguments);
         let pageRange;
         // TODO: clean up pageRange. Probably we should always pass pages as pairs?
-        if(Array.isArray(page)){
+        if (Array.isArray(page)) {
             pageRange = page;
             page = page[0];
         } else {
-            pageRange = [page,page];
+            pageRange = [page, page];
         }
         this.display_classes = this.classes.filter(c => {
-                if(!c){ return false; }
-                c.in_range = DisplaySseq._classInRangeQ(c,xmin, xmax, ymin, ymax);
-                return c.in_range && DisplaySseq._drawClassOnPageQ(c,page);
+            if (!c) {
+                return false;
+            }
+            c.in_range = DisplaySseq._classInRangeQ(c, xmin, xmax, ymin, ymax);
+            return c.in_range && DisplaySseq._drawClassOnPageQ(c, page);
         });
         // Display edges such that
         // 1) e is a valid edge
@@ -191,18 +194,18 @@ class DisplaySseq {
             e &&
             DisplaySseq._drawEdgeOnPageQ(e, pageRange)
             && DisplaySseq._drawClassOnPageQ(e.source, page) && DisplaySseq._drawClassOnPageQ(e.target, page)
-            && ( e.source.in_range || e.target.in_range )
+            && (e.source.in_range || e.target.in_range)
         );
 
         // We need to go back and make sure that for every edge we are planning to  draw, we draw both its source and
         // target even if one of them is out of bounds. Check for out of bounds sources / targets and add them to the
         // list of edges to draw.
-        for(let i = 0; i < this.display_edges.length; i++){
+        for (let i = 0; i < this.display_edges.length; i++) {
             let e = this.display_edges[i];
-            if(!e.source.in_range){
+            if (!e.source.in_range) {
                 this.display_classes.push(e.source);
             }
-            if(!e.target.in_range){
+            if (!e.target.in_range) {
                 this.display_classes.push(e.target);
             }
         }
@@ -218,7 +221,7 @@ class DisplaySseq {
      * @returns {boolean}
      * @private
      */
-    static _classInRangeQ(c, xmin, xmax, ymin, ymax){
+    static _classInRangeQ(c, xmin, xmax, ymin, ymax) {
         return xmin <= c.x && c.x <= xmax && ymin <= c.y && c.y <= ymax;
     }
 
@@ -229,8 +232,8 @@ class DisplaySseq {
      * @returns {boolean}
      * @private
      */
-    static _drawClassOnPageQ(c, page){
-        if(c._drawOnPageQ){
+    static _drawClassOnPageQ(c, page) {
+        if (c._drawOnPageQ) {
             return c._drawOnPageQ(page);
         } else {
             return SseqClass.prototype._drawOnPageQ.call(c, page);
@@ -245,11 +248,11 @@ class DisplaySseq {
      * @returns {boolean}
      * @private
      */
-    static _drawEdgeOnPageQ(edge, pageRange){
-        if(edge._drawOnPageQ){
+    static _drawEdgeOnPageQ(edge, pageRange) {
+        if (edge._drawOnPageQ) {
             return edge._drawOnPageQ(pageRange);
         } else {
-            switch(edge.type){
+            switch (edge.type) {
                 case "Differential":
                     return Differential.prototype._drawOnPageQ.call(edge, pageRange);
                 case "Extension":
@@ -268,7 +271,7 @@ class DisplaySseq {
      * @returns {Array}
      * @package
      */
-    _getClassesToDisplay(){
+    _getClassesToDisplay() {
         return this.display_classes;
     }
 
@@ -277,7 +280,7 @@ class DisplaySseq {
      * @returns {Array}
      * @package
      */
-    _getEdgesToDisplay(){
+    _getEdgesToDisplay() {
         return this.display_edges;
     }
 
@@ -288,15 +291,15 @@ class DisplaySseq {
      * @returns {number} The x offset
      * @package
      */
-    _getXOffset(c, page){
-        if(c.x_offset !== false){
+    _getXOffset(c, page) {
+        if (c.x_offset !== false) {
             return c.x_offset * this.offset_size;
         }
         let total_classes = this.num_classes_by_degree.get([c.x, c.y]);
         let idx = c.idx;
-        let out = (idx - (total_classes - 1)/2) * this.offset_size;
-        if(isNaN(out)){
-            console.log("Invalid offset for class:" ); console.log(c);
+        let out = (idx - (total_classes - 1) / 2) * this.offset_size;
+        if (isNaN(out)) {
+            console.log("Invalid offset for class:",c);
             return 0;
         }
         return out;
@@ -308,14 +311,13 @@ class DisplaySseq {
      * @returns {number} The y offset
      * @package
      */
-    _getYOffset(c, page){
-        if(c.x_offset !== false){
+    _getYOffset(c, page) {
+        if (c.x_offset !== false) {
             return c.y_offset;
         }
         let total_classes = this.num_classes_by_degree.get([c.x, c.y]);
         let idx = c.idx;
-        let out = - (idx - (total_classes - 1)/2) * this.offset_size;
-        return out;
+        return -(idx - (total_classes - 1) / 2) * this.offset_size;
     }
 
     /**
@@ -324,7 +326,7 @@ class DisplaySseq {
      * @param page
      * @returns {*}
      */
-    getClassNode(c, page){
+    getClassNode(c, page) {
         return c.node_list[SseqClass.prototype._getPageIndex.call(c, page)];
     }
 
@@ -334,28 +336,53 @@ class DisplaySseq {
      * @param page
      * @returns {string}
      */
-    getClassTooltip(c, page){
+    getClassTooltip(c, page) {
         let tooltip = "";
-        if(c.name !== ""){
+        if (c.name !== "") {
             tooltip = `\\(${c.name}\\) &mdash; `;
         }
         tooltip += `(${c.x}, ${c.y})`;
-        let extra_info;
-        if(!c.extra_info_page_map) {
-            extra_info = c.extra_info;
-        } else {
+
+        let extra_info = "";
+        for (let field of this.class_tooltip_fields) {
+            let value = c[field];
+            let str = DisplaySseq.toTooltipString(value, page);
+            if(str){
+                extra_info += "\n" + str;
+            }
+        }
+        extra_info = extra_info.split("\n").map( x => ensureMath(x)).join("\n");
+        tooltip += extra_info;
+        return tooltip;
+    }
+
+    static toTooltipString(obj, page) {
+        if (!obj) {
+            return false;
+        }
+
+        if(obj.constructor === String){
+            return obj;
+        }
+
+        if(obj.constructor === Array) {
+            return obj.map((x) => DisplaySseq.toTooltipString(x, page)).filter((x) => x).join("\n");
+        }
+
+        if(obj.constructor === Map){
             let lastkey;
-            for(let k of c.extra_info_page_map.keys()){
-                if(k > page){
+            for (let k of obj.keys()) {
+                if (k > page) {
                     break;
                 }
                 lastkey = k;
             }
-            extra_info = "\n" + c.extra_info_page_map.get(lastkey);
+            return DisplaySseq.toTooltipString(obj.get(lastkey));
         }
-        tooltip += extra_info;
-        return tooltip;
+
+        return false;
     }
+
 
 
     //
@@ -405,7 +432,6 @@ class DisplaySseq {
         //     Each integer in each class.node_list needs to be replaced with a real node copied from sseq.master_node_list.
         //  3) The edges have their source and target class references replaced by indexes into the class list. Replace
         //     these integers with references to the actual class.
-
 
         sseq.default_node = Object.assign(new Node(), sseq.default_node);
         let num_classes_by_degree = new StringifyingMap();
@@ -498,7 +524,5 @@ class DisplaySseq {
 
 
 }
-
-DisplaySseq.default_node = default_node;
 
 exports.DisplaySseq = DisplaySseq;

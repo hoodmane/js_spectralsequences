@@ -236,10 +236,15 @@ class monomial_basis {
     constructor(sseq, var_degree_dict, var_spec_list, module_generators_dict){
         this.sseq = sseq;
         this._tuples_to_classes = new StringifyingMap();
+        this._tuples_to_ids = new StringifyingMap();
         this._strings_to_classes = new Map();
         this._tuples_to_strings = new StringifyingMap();
         this._strings_to_tuples = new Map();
         this.length = 0;
+        if(!var_spec_list){
+            this._fromSerializedMonomialBasis(sseq, var_degree_dict);
+            return;
+        }
         this.var_degree_dict = var_degree_dict;
         this.var_spec_list = var_spec_list;
         this.module_generators_dict = module_generators_dict;
@@ -293,6 +298,36 @@ class monomial_basis {
         }
     }
 
+    _fromSerializedMonomialBasis(sseq, obj){
+        let classes_by_uid = new Map();
+        for(let c of sseq.getClasses()){
+            classes_by_uid.set(c.unique_id, c);
+        }
+        this.var_degree_dict = obj.var_degree_dict;
+        this.var_spec_list = obj.var_spec_list;
+        this.module_generators_dict = obj.module_generators_dict;
+        this.module_generators = Object.keys(obj.module_generators_dict);
+
+        let var_name_list = this.var_spec_list.map((l) => l[0]);
+
+        this._ring = new monomial_ring(var_name_list, var_name_list, this.var_degree_dict, this.module_generators_dict);
+
+        for(let kv of obj._tuples_to_ids ){
+            let k = kv[0];
+            let c = kv[1];
+            let elt = this._ring.getElementFromVector(k.exponent_vector, k._module_generator);
+            this._add_class(elt, classes_by_uid.get(c));
+        }
+    }
+
+    toJSON(){
+        let o = {};
+        o.var_degree_dict = this.var_degree_dict;
+        o.var_spec_list = this.var_spec_list;
+        o.module_generators_dict = this.module_generators_dict;
+        o._tuples_to_ids = this._tuples_to_ids;
+        return o;
+    }
 
     /**
      * Add a class to the basis.
@@ -309,6 +344,9 @@ class monomial_basis {
         this._strings_to_classes.set(name, the_class);
         this._tuples_to_strings.set(elt, name);
         this._strings_to_tuples.set(name, elt);
+        this._tuples_to_ids.set(elt, the_class.unique_id);
+        the_class.vector = elt;
+        the_class.vector.length = this.var_spec_list.length;
     }
 
 

@@ -165,6 +165,7 @@ class SseqClass {
         this.name = "";
         this.last_page_name = "";
         this.extra_info = "";
+        this.differential_strings = [];
         this.page_list = [infinity];
         this.node_list = [sseq.default_node.copy()];
         this.visible = true;
@@ -498,6 +499,7 @@ class SseqClass {
         }
         this.setPage(differential.page);
         this.edges.push(differential);
+        this._updateDifferentialStrings();
     }
 
     /**
@@ -511,8 +513,13 @@ class SseqClass {
         }
         this.setPage(differential.page);
         this.edges.push(differential);
+        this._updateDifferentialStrings();
     }
 
+    _updateDifferentialStrings(){
+        let differentials = this.getDifferentials().sort((a,b) => a.page > b.page);
+        this.differential_strings = differentials.map( d => d.toString(d.source === this, d.target === this));
+    }
 
 
     /**

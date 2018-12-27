@@ -50,11 +50,22 @@ class Edge {
 
     delete(){
         if(this.constructor === Differential) {
-            if (this.source.page_list.indexOf(this.page) !== -1 && this.source.page_list.indexOf(this.page) !== this.source.page_list.length - 1) {
+            if(this.target.page_list.length !== 1
+                && this.source.page_list.indexOf(this.page) === this.source.page_list.length - 2
+                && this.source.page_list[this.source.page_list.length-1] === infinity
+            ){
+                this.source.page_list.pop();
+            } else if (this.source.page_list.indexOf(this.page) !== -1 && this.source.page_list.indexOf(this.page) !== this.source.page_list.length - 1) {
                 console.log("Cannot remove differential, source has done stuff since.");
                 return;
             }
-            if (this.target.page_list.indexOf(this.page) !== -1 && this.target.page_list.indexOf(this.page) !== this.target.page_list.length - 1) {
+            if(this.target.page_list.length !== 1
+                && this.target.page_list.indexOf(this.page) === (this.target.page_list.length - 2)
+                && this.target.page_list[this.target.page_list.length-1] === infinity
+            ){
+                console.log(this.target.page_list);
+                this.target.page_list.pop();
+            } else if (this.target.page_list.indexOf(this.page) !== -1 && this.target.page_list.indexOf(this.page) !== this.target.page_list.length - 1) {
                 console.log("Cannot remove differential, target has done stuff since.");
                 return;
             }
@@ -110,7 +121,12 @@ exports.Edge = Edge;
 /**
  * The structline class is just a renamed version of Edge. So far no methods here...
  */
-class Structline extends Edge { }
+class Structline extends Edge {
+    setProduct(variable){
+        this.mult = variable;
+        return this;
+    }
+}
 exports.Structline = Structline;
 
 /**
@@ -119,6 +135,11 @@ exports.Structline = Structline;
 class Extension extends Edge {
     _drawOnPageQ(pageRange){
         return pageRange[0] === infinity;
+    }
+
+    setProduct(variable){
+        this.mult = variable;
+        return this;
     }
 }
 exports.Extension = Extension;
@@ -236,6 +257,18 @@ class Differential extends Edge {
 //        return "supported a differential on page %d hitting class %r" % (this.page, this.target);
 //    }
 
+
+    addInfoToSource(){
+        this.source.addExtraInfo(this.toString(true,false));
+        this.source.update();
+        return this;
+    }
+
+    addInfoToTarget(){
+        this.target.addExtraInfo(this.toString(false,true));
+        this.target.update();
+        return this;
+    }
 
     /**
      * Adds the name of this differntial to the extra_info for the source and target class (so that it gets displayed

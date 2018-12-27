@@ -5,17 +5,25 @@ exports.download = function(filename, text) {
 
     element.style.display = 'none';
     document.body.appendChild(element);
-
     element.click();
-
     document.body.removeChild(element);
 };
 
 
-exports.saveToLocalStore = function(key, value){
+exports.saveToLocalStore = function(key, value, collection){
     return sseqDatabase.open().catch((err) => console.log(err))
-        .then(() => sseqDatabase.createKey(key, JSON.stringify(value)))
+        .then(() => sseqDatabase.createKey(key, JSON.stringify(value), collection))
         .then(() => console.log("Successfully saved."));
+};
+
+function nextString(str){
+    return str.substring(0,str.length-1)+String.fromCharCode(str.charCodeAt(str.length-1)+1);
+}
+
+exports.loadKeysFromLocalStoreWithPrefix = async function(prefix){
+    let endStr = nextString(prefix);
+    await sseqDatabase.open();
+    return await sseqDatabase.fetchKeyRange(prefix, endStr);
 };
 
 exports.loadFromLocalStore = async function(key){
@@ -49,7 +57,7 @@ sseqDatabase.open = function() {
             return;
         }
         // Database version.
-        const version = 5;
+        const version = 6;
 
         // Open a connection to the datastore.
         const request = indexedDB.open('sseq', version);
@@ -70,7 +78,8 @@ sseqDatabase.open = function() {
                 keyPath: 'key'
             });
 
-            store.createIndex("key", "key");
+            store.createIndex("key", "key",  { unique: true });
+            store.createIndex("collection", "collection", { unique: false });
         };
 
         // Handle successful datastore access.
@@ -134,7 +143,70 @@ sseqDatabase.fetchKey = function(key) {
     });
 };
 
-sseqDatabase.createKey = function(key, value) {
+
+sseqDatabase.fetchKeyRange = function(min,max) {
+    return new Promise(function(resolve, reject) {
+        const transaction = datastore.transaction(['sseq'], 'readwrite');
+        const objStore = transaction.objectStore('sseq');
+
+        const keyRange = IDBKeyRange.bound(min, max, true, false);
+        const cursorRequest = objStore.openCursor(keyRange);
+
+        const todos = [];
+
+        transaction.oncomplete = function (e) {
+            // Execute the callback function.
+            resolve(todos);
+        };
+
+        cursorRequest.onsuccess = function (e) {
+            let result = e.target.result;
+
+            if (!!result === false) {
+                return;
+            }
+
+            todos.push(result.value);
+
+            result.continue();
+        };
+
+        cursorRequest.onerror = reject;
+    });
+};
+
+sseqDatabase.fetchCollection = function(collection) {
+    return new Promise(function(resolve, reject) {
+        const transaction = datastore.transaction(['sseq'], 'readwrite');
+        const objStore = transaction.objectStore('sseq');
+
+        console.log(collection);
+        const cursorRequest = objStore.index("collection").openCursor(collection);
+
+        const todos = [];
+
+        transaction.oncomplete = function (e) {
+            // Execute the callback function.
+            resolve(todos);
+        };
+
+        cursorRequest.onsuccess = function (e) {
+            let result = e.target.result;
+
+            if (!!result == false) {
+                return;
+            }
+
+            todos.push(result.value);
+
+            result.continue();
+        };
+
+        cursorRequest.onerror = reject;
+    });
+};
+
+sseqDatabase.createKey = function(key, value, collection) {
     return new Promise(function(resolve, reject) {
         // Get a reference to the db.
         const db = datastore;
@@ -149,6 +221,7 @@ sseqDatabase.createKey = function(key, value) {
         const item = {
             'key' : key,
             'value': value,
+            'collection' : collection,
             'timestamp': timestamp
         };
         // Create the datastore request.

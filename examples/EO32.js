@@ -43,7 +43,7 @@ Zmq.shape = Shapes.circle;
 
 classes = sseq.addPolynomialClasses(
     {  "h_1" : [3,1],  "a_2" : [9,1], "b" : [-26,2],  "v" : [6,0] },
-      [["h_1", 0, 1], ["a_2", 0, 1], ["b", 0, bmax], ["v", vmin, vmax]]);
+    [["h_1", 0, 1], ["a_2", 0, 1], ["b", 0, bmax], ["v", vmin, vmax]]);
 
 for(let kv of classes){
     let k = kv[0];

@@ -22,12 +22,17 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
     dss.offset_size = 0.2;
     dss._getXOffset = tools.fixed_tower_xOffset.bind(dss);
     dss._getYOffset = (c) => c.y_offset || 0;
+    sseq.addClassFieldToSerialize(["genealogy","genealogyString","Einfty_name"]);
+    sseq.addEdgeFieldToSerialize(["target_name", "source_name"]);
 
     // TODO: why is the JSON parser turning the page list "[1,10000]" into "[1,1]" ?!
     // This repairs the result of the problem without addressing the root cause.
+    window.problem_list = [];
     for(let c of sseq.getClasses()){
         if(c.page_list.length === 2 && c.page_list[0] === c.page_list[1]){
-            c.page_list[1] = 10000;
+            problem_list.push([c,c.page_list.slice()]);
+            let page = Math.max(...c.getDifferentials().map(d => d.page));
+            c.page_list[1] = page > 1 ? page : 10000;
         }
     }
 
@@ -52,33 +57,40 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
         context.clearRect(0, 0, this.width, this.height);
         context.save();
         context.lineWidth = 0.3;
-        context.strokeStyle = "#818181";
+        // Truncation lines
         let xScale = display.xScale;
         let yScale = display.yScale;
-        // Truncation lines
         for(let diag = 1; diag <= 40; diag ++){
+            context.strokeStyle = diag % 2 ?  "#008181" : "#810000"; //"#818181" : "#810081";
+            context.beginPath();
             context.moveTo(xScale(diag + 2), yScale(-2));
-            context.lineTo(xScale(-2), yScale(diag + 2 ));
+            context.lineTo(xScale(-2), yScale(diag + 2));
+            context.stroke();
         }
-        context.stroke();
-        //context.restore();
-        //context.save();
-        //context.strokeStyle = "#000";
-        //context.lineWidth = 1;
-
-        let x = -0.5;
-        let y = 0.5;
-        context.moveTo(xScale(x),yScale(y));
-        for(let i = 0; i < 10; i++){
-            y += 2;
-            context.lineTo(xScale(x),yScale(y));
-            x += 1;
-            context.lineTo(xScale(x),yScale(y));
-        }
-        context.stroke();
         context.restore();
 
+        context.save();
+        context.lineWidth = 0.3;
+        context.strokeStyle = "#818181";
+        let x = 0.5;
+        let y = -0.5;
+        context.moveTo(xScale(x),yScale(y));
+        for(let i = 0; i < 11; i++){
+            y += 2;
+            context.lineTo(xScale(x), yScale(y));
+            x += 1;
+            context.lineTo(xScale(x), yScale(y));
+        }
+        context.stroke();
 
+
+        // context.lineWidth = 0.7;
+        // context.strokeStyle = "black";
+        // context.beginPath();
+        // context.moveTo(xScale(19.5+2),yScale(-2));
+        // context.lineTo(xScale(-2),yScale(19.5 + 2));
+        // context.stroke();
+        context.restore();
 
         context = display.supermarginLayerContext;
         // page number
@@ -87,7 +99,6 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
         context.fillText(`Page ${displayPage(display.pageRange)}`, 100, 15);
     });
 
-
     if (on_public_website) {
         dss.display();
         return;
@@ -95,6 +106,41 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
 
 
     tools.install_edit_handlers(dss, "EHP");
+
+    let extensions = {
+        0 : "2",
+        1 : "eta",
+        3 : "nu"
+    };
+
+    let extension_colors = {
+        "2" : "blue",
+        "eta" : "black",
+        "nu" : "orange"
+    };
+
+    dss.addEventHandler('e', (event) => {
+        if (event.mouseover_class && dss.temp_source_class) {
+            let s = dss.temp_source_class;
+            let t = event.mouseover_class;
+            let sc = sseq.display_class_to_real_class.get(s);
+            let tc = sseq.display_class_to_real_class.get(t);
+            let degree = (tc.x + tc.y) - (sc.x + sc.y);
+            console.log(degree);
+            if(!extensions[degree]) {
+                return;
+            }
+            let ext_type = extensions[degree];
+            if (confirm(`Add *${ext_type} extension from ${tools.getClassExpression(s)} to ${tools.getClassExpression(t)}`)) {
+                let d = sseq.addExtension(sseq.display_class_to_real_class.get(s), sseq.display_class_to_real_class.get(t));
+                d.color = extension_colors[ext_type];
+                d.mult = ext_type;
+                d.display_edge.mult = ext_type;
+                d.display_edge.color = d.color;
+                sseq.update();
+            }
+        }
+    });
 
     dss.addEventHandler('t', (event) => {
         if(event.mouseover_class && dss.temp_source_class){
@@ -108,22 +154,22 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
             let length = s.x - t.x;
             if(confirm(`Add d${length} differential from ${tools.getClassExpression(s)} to ${tools.getClassExpression(t)}`)){
                 let d = sseq.addDifferential(sseq.display_class_to_real_class.get(s), sseq.display_class_to_real_class.get(t), length);
-                let sourceOrder = 1;
-                if(d.source.EinftyOrder !== 2){
-                    sourceOrder = prompt(`Kernel order?`, 1)
-                }
-                let targetOrder = 1;
-                if(d.target.EinftyOrder !== 2){
-                    targetOrder = prompt(`Cokernel order?`, 1)
-                }
-                d.target_name = targetOrder + d.target_name;
-                d.addInfoToSourceAndTarget();
-                if(sourceOrder > 1){
-                    d.replaceSource(node_map[sourceOrder]);
-                }
-                if(targetOrder > 1){
-                    d.replaceTarget(node_map[targetOrder]);
-                }
+                // let sourceOrder = 1;
+                // if(d.source.EinftyOrder !== 2){
+                //     sourceOrder = prompt(`Kernel order?`, 1)
+                // }
+                // let targetOrder = 1;
+                // if(d.target.EinftyOrder !== 2){
+                //     targetOrder = prompt(`Cokernel order?`, 1)
+                // }
+                //d.target_name = targetOrder + d.target_name;
+                // d.addInfoToSourceAndTarget();
+                // if(sourceOrder > 1){
+                //     d.replaceSource(node_map[sourceOrder]);
+                // }
+                // if(targetOrder > 1){
+                //     d.replaceTarget(node_map[targetOrder]);
+                // }
                 d.display_edge.color = d.color;
                 dss.update();
             }
@@ -132,22 +178,65 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
 
     dss.addEventHandler("onclick", (event) => {
         if (!event.mouseover_class) {
-            return;
+            return
         }
         let c = sseq.display_class_to_real_class.get(event.mouseover_class);
-        let x_offset = Number.parseFloat(prompt(`x nudge ${c.name}`));
-        if (x_offset) {
-            let old_x_offset = c.x_offset || (dss._getXOffset(c.display_class) / dss.offset_size);
-            c.x_offset = old_x_offset + x_offset;
-        }
+        if(confirm("Einfty or gen")) {
+            let name = prompt("Einfty name?");
+            if (name) {
+                c.Einfty_name = name;
+                c.addExtraInfo("$\\Rightarrow" + name + "$");
+                //c.getNode().setFill(true);
+                c.setColor("blue");
 
-        let y_offset = Number.parseFloat(prompt(`y nudge ${c.name}`));
-        if (y_offset) {
-            let old_y_offset = c.y_offset || (dss._getYOffset(c.display_class) / dss.offset_size);
-            c.y_offset = old_y_offset + y_offset;
+            }
+        } else {
+            let gen = prompt("genealogy?");
+            if (!gen) {
+                if (c.genealogy) {
+                    c.setColor("blue", 0);
+                }
+                return;
+            }
+            let gen2 = "[" + gen + "]";
+            let genObj;
+            try {
+                genObj = JSON.parse(gen2);
+            } catch (e) {
+
+            }
+
+            if (genObj) {
+                c.genealogy = genObj;
+                c.extra_info = "";
+                c.genealogyString = c.genealogy[0] + JSON.stringify(c.genealogy.slice(1));
+                c.setColor("orange", 0);
+            } else if (gen) {
+                c.genealogyString = gen;
+                c.setColor("orange", 0);
+            }
+            if(c.genealogyString){
+                let ei = c.extra_info.split("\n");
+                ei.splice(1,0,"$" + c.genealogyString + "$");
+                c.extra_info = ei.join("\n");
+            }
         }
-        console.log(c.x_offset);
-        console.log(c.y_offset);
+        c.update();
+
+        // let c = sseq.display_class_to_real_class.get(event.mouseover_class);
+        // let x_offset = Number.parseFloat(prompt(`x nudge ${c.name}`));
+        // if (x_offset) {
+        //     let old_x_offset = c.x_offset || (dss._getXOffset(c.display_class) / dss.offset_size);
+        //     c.x_offset = old_x_offset + x_offset;
+        // }
+        //
+        // let y_offset = Number.parseFloat(prompt(`y nudge ${c.name}`));
+        // if (y_offset) {
+        //     let old_y_offset = c.y_offset || (dss._getYOffset(c.display_class) / dss.offset_size);
+        //     c.y_offset = old_y_offset + y_offset;
+        // }
+        // console.log(c.x_offset);
+        // console.log(c.y_offset);
         sseq.update();
     });
 
@@ -158,3 +247,22 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
 
     dss.display();
 }).catch(err => console.log(err));
+
+
+
+// for(let c of classes){
+//     if(c.x + c.y > 19 || !c.genealogyString){
+//         continue
+//     }
+//     s = c.x+c.y;
+//     let ds = c.getDifferentials().filter( d => d.page > 1);
+//     if(ds.length > 0){
+//         let d = ds[0];
+//         if(d.source === c){
+//             continue;
+//         }
+//         stems[s].push(`${c.genealogyString}\leftarrow ${d.target.genealogyString}`);
+//     } else {
+//         stems[s].push(`${c.genealogyString}\Rightarrow ${c.Einfty_name})`);
+//   }
+// }
