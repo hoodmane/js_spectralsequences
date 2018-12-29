@@ -116,6 +116,37 @@ class DisplaySseq {
         }
     }
 
+    getPageDescriptor(pageRange) {
+        let basePage = 2;
+        if(this.page_list.includes(1)){
+            basePage = 1;
+        }
+        if (pageRange === infinity) {
+            return "Page ∞";
+        }
+        if (pageRange === 0) {
+            return `Page ${basePage} with all differentials`;
+        }
+        if (pageRange === 1 && basePage === 2) {
+            return `Page ${basePage} with no differentials`;
+        }
+        if (pageRange.length) {
+            if(pageRange[1] === infinity){
+                return `Page ${pageRange[0]} with all differentials`;
+            }
+            if(pageRange[1] === -1){
+                return `Page ${pageRange[0]} with no differentials`;
+            }
+
+            if(pageRange[0] === pageRange[1]){
+                return `Page ${pageRange[0]}`;
+            }
+
+            return `Pages ${pageRange[0]} – ${pageRange[1]}`.replace(infinity, "∞");
+        }
+        return `Page ${pageRange}`;
+    }
+
     /**
      * If this spectral sequence is being displayed, tell the display to redraw. Use after changing the spectral sequence.
      */

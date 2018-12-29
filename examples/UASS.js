@@ -87,14 +87,7 @@ function setupDSS(dss, dss_list){
         }
         return pageRange;
     }
-
-    dss.on_draw = (display) =>  {
-        let context = display.supermarginLayerContext;
-        // page number
-        context.clearRect(50,0,400,200);
-        context.font = "15px Arial";
-        context.fillText(`${displayNames[file_idx]}, Page ${displayPage(display.pageRange)}`,100,15);
-    };
+    
 
     dss.addEventHandler('+', (event) => {
         if(file_idx < max_file_idx){

@@ -7,7 +7,7 @@ exports.getClassExpression = function(c){
         out += ` [${c.name}]`;
     }
     return out;
-}
+};
 
 function variablePowerString(variable, power){
     if(power === 1){

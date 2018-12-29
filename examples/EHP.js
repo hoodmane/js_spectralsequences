@@ -20,10 +20,10 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
     window.dss = dss;
     window.sseq = Sseq.getSseqFromDisplay(dss);
     dss.offset_size = 0.2;
-    dss._getXOffset = tools.fixed_tower_xOffset.bind(dss);
     dss._getYOffset = (c) => c.y_offset || 0;
     sseq.addClassFieldToSerialize(["genealogy","genealogyString","Einfty_name"]);
     sseq.addEdgeFieldToSerialize(["target_name", "source_name"]);
+    sseq.addSseqFieldToSerialize("edgeLayerSVG");
 
     // TODO: why is the JSON parser turning the page list "[1,10000]" into "[1,1]" ?!
     // This repairs the result of the problem without addressing the root cause.
@@ -36,88 +36,6 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
         }
     }
 
-    function displayPage(pageRange) {
-        if (pageRange === infinity) {
-            return "∞";
-        }
-        if (pageRange === 0) {
-            return "2 with all differentials";
-        }
-        if (pageRange === 1) {
-            return "2 with no differentials";
-        }
-        if (pageRange.length) {
-            return `${pageRange[0]} – ${pageRange[1]}`.replace(infinity, "∞");
-        }
-        return pageRange;
-    }
-
-    sseq.onDraw((display) => {
-        let context = display.edgeLayerContext;
-        context.clearRect(0, 0, this.width, this.height);
-
-        // let xml = dss.edgeLayerContextSVG;
-        // // make it base64
-        // let svg64 = btoa(xml);
-        // let b64Start = 'data:image/svg+xml;base64,';
-        //
-        // // prepend a "header"
-        // let image64 = b64Start + svg64;
-        //
-        // // set it as the source of the img element
-        // let img = new Image();
-        // img.src = image64;
-        // console.log(display);
-        // context.drawImage(img,
-        //     display.xScale(-0.46),
-        //     display.yScale(20),
-        //     img.width,
-        //     display.height/(display.ymax - display.ymin) * (sseq.yRange[1] - sseq.yRange[0])
-        // );
-
-        //return;
-        context.save();
-        context.lineWidth = 0.3;
-        // Truncation lines
-        let xScale = display.xScale;
-        let yScale = display.yScale;
-        for(let diag = 1; diag <= 40; diag ++){
-            //context.strokeStyle = diag % 2 ?  "#008181" : "#810000"; //"#818181" : "#810081";
-            context.beginPath();
-            context.moveTo(xScale(diag + 2), yScale(-2));
-            context.lineTo(xScale(-2), yScale(diag + 2));
-            context.stroke();
-        }
-        context.restore();
-
-        context.save();
-        context.lineWidth = 0.3;
-        //context.strokeStyle = "#818181";
-        let x = 0.5;
-        let y = -0.5;
-        context.moveTo(xScale(x),yScale(y));
-        for(let i = 0; i < 11; i++){
-            y += 2;
-            context.lineTo(xScale(x), yScale(y));
-            x += 1;
-            context.lineTo(xScale(x), yScale(y));
-        }
-        context.stroke();
-        context.restore();
-
-        // context.lineWidth = 0.7;
-        // context.strokeStyle = "black";
-        // context.beginPath();
-        // context.moveTo(xScale(19.5+2),yScale(-2));
-        // context.lineTo(xScale(-2),yScale(19.5 + 2));
-        // context.stroke();
-
-        context = display.supermarginLayerContext;
-        // page number
-        context.clearRect(50, 0, 400, 200);
-        context.font = "15px Arial";
-        context.fillText(`Page ${displayPage(display.pageRange)}`, 100, 15);
-    });
 
     if (on_public_website) {
         dss.display();
@@ -242,36 +160,21 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
             }
         }
         c.update();
-
-        // let c = sseq.display_class_to_real_class.get(event.mouseover_class);
-        // let x_offset = Number.parseFloat(prompt(`x nudge ${c.name}`));
-        // if (x_offset) {
-        //     let old_x_offset = c.x_offset || (dss._getXOffset(c.display_class) / dss.offset_size);
-        //     c.x_offset = old_x_offset + x_offset;
-        // }
-        //
-        // let y_offset = Number.parseFloat(prompt(`y nudge ${c.name}`));
-        // if (y_offset) {
-        //     let old_y_offset = c.y_offset || (dss._getYOffset(c.display_class) / dss.offset_size);
-        //     c.y_offset = old_y_offset + y_offset;
-        // }
-        // console.log(c.x_offset);
-        // console.log(c.y_offset);
         sseq.update();
     });
 
 
 
-    console.log(dss.classes[0]);
-
-
     dss.display();
 
 /*    let context = new C2S(
-        display.width/(display.xmax - display.xmin) * (sseq.xRange[1] - sseq.xRange[0]),
-        display.height/(display.ymax - display.ymin) * (sseq.yRange[1] - sseq.yRange[0])
+        display.width/(display.xmaxFloat - display.xminFloat) * (sseq.xRange[1] - sseq.xRange[0] + 1),
+        display.height/(display.ymaxFloat - display.yminFloat) * (sseq.yRange[1] - sseq.yRange[0] + 1)
     );
-    context.translate(0, display.yScale(display.ymax) - display.yScale(sseq.yRange[1]));
+    context.translate(
+        - display.xScale(display.xminFloat) + display.xScale(sseq.xRange[0]) - display.leftMargin - display.xMinOffset,
+          display.yScale(display.ymaxFloat) - display.yScale(sseq.yRange[1] + 1)
+    );
 
     context.save();
     context.lineWidth = 0.3;
@@ -279,7 +182,7 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
     let xScale = display.xScale;
     let yScale = display.yScale;
     for(let diag = 1; diag <= 40; diag ++){
-        //context.strokeStyle = diag % 2 ?  "#008181" : "#810000"; //"#818181" : "#810081";
+        context.strokeStyle = diag % 2 ?  "#008181" : "#810000"; //"#818181" : "#810081";
         context.beginPath();
         context.moveTo(xScale(diag + 2), yScale(-2));
         context.lineTo(xScale(-2), yScale(diag + 2));
@@ -289,7 +192,7 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
 
     context.save();
     context.lineWidth = 0.3;
-    //context.strokeStyle = "#818181";
+    context.strokeStyle = "#818181";
     let x = 0.5;
     let y = -0.5;
     context.moveTo(xScale(x),yScale(y));
@@ -301,7 +204,7 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
     }
     context.stroke();
     context.restore();
-  // IO.download("lines.svg",context.getSerializedSvg(true));*/
+    //IO.download("lines.svg",context.getSerializedSvg(true));*/
 
 
 }).catch(err => console.log(err));

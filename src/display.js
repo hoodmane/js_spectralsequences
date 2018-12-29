@@ -37,6 +37,8 @@ function setNode(node) {
 }
 
 
+
+
 class Display {
 
     constructor(ss) {
@@ -72,6 +74,15 @@ class Display {
             .style("position", "absolute")
             .style("left", `20px`)
             .style("bottom",`20px`);
+
+        this.page_indicator_div = this.body.append("div")
+            .attr("id", "page_indicator")
+            .style("position", "absolute")
+            .style("left", "120px")
+            .style("top","10px")
+            .style("font-family","Arial")
+            .style("font-size","15px")
+            .html("test");
 
         this.tooltip_div       = tooltip_divs[0];
         this.tooltip_div_dummy = tooltip_divs[1];
@@ -139,8 +150,6 @@ class Display {
             }
         }
 
-
-
         // Set up clip.
         this.clipX = this.leftMargin;
         this.clipY = this.topMargin;
@@ -155,26 +164,12 @@ class Display {
         this._clipLayer(this.edgeLayerContext);
         this._clipLayer(this.classLayerContext);
 
+        // Draw axes
+        this._drawSupermarginLayer();
+
         this.hitCtx = this.classLayer.getHitCanvas().context;
-
-        // This presumably is set up for the axes labels. Maybe should move it there?
-        this.marginLayerContext.textBaseline = "middle";
-        this.marginLayerContext.font = "15px Arial";
-
-        // This makes the white square in the bottom left corner which prevents axes labels from appearing to the left
-        // or below the axes intercept.
-        this.supermarginLayerContext.fillStyle = "#FFF";
-        this.supermarginLayerContext.rect(0, this.clipHeight, this.leftMargin - 5, this.bottomMargin);
-        this.supermarginLayerContext.fill();
-        this.supermarginLayerContext.fillStyle = "#000";
-
-        // Draw the axes.
-        this.supermarginLayerContext.beginPath();
-        this.supermarginLayerContext.moveTo(this.leftMargin, this.topMargin);
-        this.supermarginLayerContext.lineTo(this.leftMargin, this.clipHeight);
-        this.supermarginLayerContext.lineTo(this.width - this.rightMargin, this.clipHeight);
-        this.supermarginLayerContext.stroke();
     }
+
 
     /**
      * Make a Konva layer, add it to the Konva stage, find the resulting canvas DOM element and get the context associated
@@ -305,11 +300,7 @@ class Display {
         } else {
             this.page = this.pageRange;
         }
-        if (this.page_idx === this.sseq.page_list.length - 1) {
-            //pageNumText.text("∞");
-        } else {
-            //pageNumText.text(page);
-        }
+        this.page_indicator_div.html(this.sseq.getPageDescriptor(this.pageRange));
         if(this.sseq.pageChangeHandler){
             this.sseq.pageChangeHandler(this.page);
         }
@@ -323,6 +314,7 @@ class Display {
     }
 
     update(batch = false) {
+        this._updateScale();
         this._updateScale();
         this._updateGridAndTickStep();
         this._updateSseq();
@@ -373,26 +365,32 @@ class Display {
         // which is less intuitive program flow than just continuing on in the current function.
         // In order to prevent this, temporarily unset the zoom handler.
         // TODO: See if we can make the behaviour here less jank.
+        let xMinOffset = scale > 1 ? 10 * scale : 10;
+        let xMaxOffset = xMinOffset;
+        let yMinOffset = scale > 1 ? 10 * scale : 10;
+        let yMaxOffset = yMinOffset;
+
+        this.xMinOffset = xMinOffset;
+        this.xMaxOffset = xMaxOffset;
+        this.yMinOffset = yMinOffset;
+        this.yMaxOffset = yMaxOffset;
+
         this.zoom.on("zoom", null);
         if (!this.old_scales_maxed) {
             if (sseq.xRange) {
-                let xMinOffset = scale > 1 ? 10 * scale : 10;
-                let xMaxOffset = xMinOffset;
                 if (xScale(sseq.xRange[0]) > this.leftMargin + xMinOffset) {
                     this.zoom.translateBy(zoomDomElement, (this.leftMargin + xMinOffset - xScale(sseq.xRange[0]) - 0.1) / scale, 0);
                 } else if (xScale(sseq.xRange[1]) < this.width - xMaxOffset) {
-                    this.zoom.translateBy(zoomDomElement, (this.width - xMaxOffset - xScale(sseq.xRange[1]) + 0.1) / scale, 0);
+                    this.zoom.translateBy(zoomDomElement, (this.width - xMaxOffset - xScale(sseq.xRange[1] + this.domainOffset) + 0.1) / scale, 0);
                 }
             }
 
             if (!sseq.fixY) {
                 if (sseq.yRange) {
-                    let yMinOffset = scale > 1 ? 10 * scale : 10;
-                    let yMaxOffset = yMinOffset;
                     if (yScale(sseq.yRange[0]) < this.clipHeight - yMinOffset) {
                         this.zoom.translateBy(zoomDomElement, 0, (this.clipHeight - yMinOffset - yScale(sseq.yRange[0]) - 0.1) / scale);
                     } else if (yScale(sseq.yRange[1]) > yMaxOffset) {
-                        this.zoom.translateBy(zoomDomElement, 0, (yMaxOffset - yScale(sseq.yRange[1]) + 0.1) / scale);
+                        this.zoom.translateBy(zoomDomElement, 0, (yMaxOffset - yScale(sseq.yRange[1] + this.domainOffset) + 0.1) / scale);
                     }
                 }
             }
@@ -415,12 +413,20 @@ class Display {
 
         if (sseq.xRange && (xmax - xmin) > sseq.xRange[1] - sseq.xRange[0]) {
             xScaleMaxed = true;
-            xScale.domain([sseq.xRange[0] - this.domainOffset, sseq.xRange[1] + this.domainOffset]);
+            xScale.domain([sseq.xRange[0], sseq.xRange[1]]);
+            xScale.domain([
+                sseq.xRange[0] - (xScale.invert(xMinOffset) - xScale.invert(0)),
+                sseq.xRange[1] + (xScale.invert(xMaxOffset) - xScale.invert(0)) + this.domainOffset
+            ]);
         }
 
         if (sseq.yRange && (ymax - ymin) > sseq.yRange[1] - sseq.yRange[0]) {
             yScaleMaxed = true;
-            yScale.domain([sseq.yRange[0] - this.domainOffset, sseq.yRange[1] + this.domainOffset]);
+            yScale.domain([sseq.yRange[0], sseq.yRange[1]]);
+            yScale.domain([
+                sseq.yRange[0] + (yScale.invert(yMinOffset) - yScale.invert(0)),
+                sseq.yRange[1] - (yScale.invert(yMaxOffset) - yScale.invert(0)) + this.domainOffset
+            ]);
         }
 
         if (xScaleMaxed && yScaleMaxed) {
@@ -442,10 +448,16 @@ class Display {
 
         this.transform = d3.zoomTransform(zoomDomElement.node());
         this.scale = this.transform.k;
-        this.xmin = Math.ceil(xScale.invert(this.leftMargin));
-        this.xmax = Math.floor(xScale.invert(this.width));
-        this.ymin = Math.ceil(yScale.invert(this.height - this.bottomMargin));
-        this.ymax = Math.floor(yScale.invert(0));
+
+        this.xminFloat = xScale.invert(this.leftMargin);
+        this.xmaxFloat = xScale.invert(this.width);
+        this.yminFloat = yScale.invert(this.height - this.bottomMargin);
+        this.ymaxFloat = yScale.invert(0);
+
+        this.xmin = Math.ceil(this.xminFloat);
+        this.xmax = Math.floor(this.xmaxFloat);
+        this.ymin = Math.ceil(this.yminFloat);
+        this.ymax = Math.floor(this.ymaxFloat);
 
         this.xScale = xScale;
         this.yScale = yScale;
@@ -497,6 +509,8 @@ class Display {
         if(!context){
             context = this.marginLayerContext;
             context.clearRect(0, 0, this.width, this.height);
+            context.textBaseline = "middle";
+            context.font = "15px Arial";
         }
         context.textAlign = "center";
         for (let i = Math.floor(this.xTicks[0]); i <= this.xTicks[this.xTicks.length - 1]; i += this.xTickStep) {
@@ -508,6 +522,27 @@ class Display {
             context.fillText(i, this.leftMargin - 10, this.yScale(i));
         }
     }
+
+    _drawSupermarginLayer(context){
+        if(!context){
+            context = this.supermarginLayerContext;
+        }
+        context.clearRect(0, 0, this.width, this.height);
+        // This makes the white square in the bottom left corner which prevents axes labels from appearing to the left
+        // or below the axes intercept.
+        context.fillStyle = "#FFF";
+        context.rect(0, this.clipHeight, this.leftMargin - 5, this.bottomMargin);
+        context.fill();
+        context.fillStyle = "#000";
+
+        // Draw the axes.
+        context.beginPath();
+        context.moveTo(this.leftMargin, this.topMargin);
+        context.lineTo(this.leftMargin, this.clipHeight);
+        context.lineTo(this.width - this.rightMargin, this.clipHeight);
+        context.stroke();
+    }
+
 
     _updateSseq(){
         this.sseq._calculateDrawnElements(this.pageRange, this.xmin, this.xmax, this.ymin, this.ymax);
@@ -568,6 +603,9 @@ class Display {
     _drawSseq() {
         this._drawClasses();
         this._drawEdges();
+        if(this.sseq.edgeLayerSVG){
+            this.drawSVG(this.edgeLayerContext, this.sseq.edgeLayerSVG);
+        }
         if(this.sseq.on_draw){
             this.sseq.on_draw(this);
         }
@@ -785,6 +823,26 @@ class Display {
         this.tooltip_div.transition()
             .duration(500)
             .style("opacity", 0);
+    }
+
+    drawSVG(context, xml){
+        // make it base64
+        let svg64 = btoa(xml);
+        let b64Start = 'data:image/svg+xml;base64,';
+
+        // prepend a "header"
+        let image64 = b64Start + svg64;
+
+        // set it as the source of the img element
+        let img = new Image();
+        img.src = image64;
+
+        context.drawImage(img,
+            this.xScale(this.sseq.xRange[0]) - this.xMinOffset,
+            this.yScale(this.sseq.yRange[1] + 1),
+            this.width  / (this.xmaxFloat - this.xminFloat) * (this.sseq.xRange[1] - this.sseq.xRange[0] + 1),
+            this.height / (this.ymaxFloat - this.yminFloat) * (this.sseq.yRange[1] - this.sseq.yRange[0] + 1)
+        );
     }
 
     toSVG(){

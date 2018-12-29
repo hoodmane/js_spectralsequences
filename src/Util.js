@@ -8,7 +8,7 @@ exports.limited_logger = function(max_msgs){
             console.log(msg);
             log_fn.msgs_so_far++;
         }
-    }
+    };
     log_fn.max_msgs = max_msgs;
     log_fn.msgs_so_far = 0;
     return log_fn;

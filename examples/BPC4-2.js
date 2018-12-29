@@ -646,6 +646,8 @@ addDifferential(61,[[254,18],[265,11],[282,30],[285,47],[310,10],[321,3],[338,22
 
 truncation_sseq.initial_page_idx = 1;
 
+truncation_sseq.page_list[0] = [13,10000];
+
 truncation_sseq.onDraw((display) => {
     let context = display.edgeLayerContext;
     context.clearRect(0, 0, this.width, this.height);
@@ -677,10 +679,6 @@ truncation_sseq.onDraw((display) => {
     context.stroke();
     context.restore();
     context = display.supermarginLayerContext;
-    // page number
-    context.clearRect(50,0,400,200);
-    context.font = "15px Arial";
-    context.fillText(`Page ${display.pageRange}`,100,12);
 });
 truncation_sseq.initial_page_idx = 0;
 let dss = truncation_sseq.getDisplaySseq();

@@ -34,7 +34,6 @@ if(new URL(document.location).hostname === "math.mit.edu"){
         dss._getXOffset = tools.fixed_tower_xOffset.bind(dss);
         dss._getYOffset = (c) => c.y_offset || 0;
 
-        console.log(dss.classes[0].lambda_monomial);
         // sseq.addClassFieldToSerialize("lambda_monomial");
         // console.log(disp_uass);
         // let uass = Sseq.getSseqFromDisplay(disp_uass);
@@ -82,29 +81,6 @@ if(new URL(document.location).hostname === "math.mit.edu"){
         //     }
         // }
 
-        function displayPage(pageRange) {
-            if (pageRange === infinity) {
-                return "∞";
-            }
-            if (pageRange === 0) {
-                return "2 with all differentials";
-            }
-            if (pageRange === 1) {
-                return "2 with no differentials";
-            }
-            if (pageRange.length) {
-                return `${pageRange[0]} – ${pageRange[1]}`.replace(infinity, "∞");
-            }
-            return pageRange;
-        }
-
-        dss.on_draw = (display) => {
-            let context = display.supermarginLayerContext;
-            // page number
-            context.clearRect(50, 0, 400, 200);
-            context.font = "15px Arial";
-            context.fillText(`Page ${displayPage(display.pageRange)}`, 100, 15);
-        };
 
         if (on_public_website) {
             dss.display();

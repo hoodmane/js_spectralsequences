@@ -26,8 +26,6 @@ Sseq.loadFromServer(file_name)
         window.sseq = sseq;
         sseq.addPageToPageList(1);
         sseq.addPageRangeToPageList([3,infinity]);
-
-
         dss.initial_page_idx = 1;
 
         dss.setPageChangeHandler((page) => {
@@ -50,30 +48,6 @@ Sseq.loadFromServer(file_name)
                 }
             }
         });
-
-        function displayPage(pageRange){
-            if(pageRange === infinity){
-                return "∞"
-            }
-            if(pageRange === 0){
-                return "2 with all differentials";
-            }
-            if(pageRange === 1){
-                return "2 with no differentials"
-            }
-            if(pageRange.length){
-                return `${pageRange[0]} – ${pageRange[1]}`.replace(infinity,"∞");
-            }
-            return pageRange;
-        }
-
-        dss.on_draw = (display) =>  {
-            let context = display.supermarginLayerContext;
-            // page number
-            context.clearRect(50,0,400,200);
-            context.font = "15px Arial";
-            context.fillText(`Page ${displayPage(display.pageRange)}`,100,15);
-        };
 
         if(on_public_website){
             dss.display();
