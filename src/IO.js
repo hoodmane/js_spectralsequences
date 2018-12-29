@@ -10,6 +10,39 @@ exports.download = function(filename, text) {
 };
 
 
+//function
+
+exports.upload = function() {
+    return new Promise((resolve,reject) => {
+        let element = document.createElement('input');
+        element.setAttribute('type', 'file');
+        element.setAttribute('multiple', '');
+
+        element.style.display = 'none';
+        let reader = new FileReader();
+        let fileList = [];
+        let i = 0;
+        element.onchange = function () {
+            // console.log(element);
+            reader.readAsText(element.files[0]);
+        };
+        reader.onloadend = function() {
+            fileList.push(reader.result);
+            i++;
+            if(i < element.files.length){
+                reader.readAsText(element.files[i]);
+            } else {
+                resolve(fileList);
+                document.body.removeChild(element);
+            }
+        };
+        document.body.appendChild(element);
+        element.click();
+    });
+};
+
+
+
 exports.saveToLocalStore = function(key, value, collection){
     return sseqDatabase.open().catch((err) => console.log(err))
         .then(() => sseqDatabase.createKey(key, JSON.stringify(value), collection))

@@ -139,6 +139,7 @@ class DisplaySseq {
         } else {
             window.display = new Display(this);
         }
+        return this;
     }
 
 
@@ -312,12 +313,17 @@ class DisplaySseq {
      * @package
      */
     _getYOffset(c, page) {
-        if (c.x_offset !== false) {
-            return c.y_offset;
+        if (c.y_offset !== false) {
+            return c.y_offset  * this.offset_size;
         }
         let total_classes = this.num_classes_by_degree.get([c.x, c.y]);
         let idx = c.idx;
-        return -(idx - (total_classes - 1) / 2) * this.offset_size;
+        let out = -(idx - (total_classes - 1) / 2) * this.offset_size;
+        if (isNaN(out)) {
+            console.log("Invalid offset for class:", c);
+            return 0;
+        }
+        return out;
     }
 
     /**
@@ -461,7 +467,7 @@ class DisplaySseq {
         sseq.num_classes_by_degree = num_classes_by_degree;
         return sseq;
     }
-    
+
     
     /**
      *

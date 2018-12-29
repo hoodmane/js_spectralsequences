@@ -55,13 +55,34 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
     sseq.onDraw((display) => {
         let context = display.edgeLayerContext;
         context.clearRect(0, 0, this.width, this.height);
+
+        // let xml = dss.edgeLayerContextSVG;
+        // // make it base64
+        // let svg64 = btoa(xml);
+        // let b64Start = 'data:image/svg+xml;base64,';
+        //
+        // // prepend a "header"
+        // let image64 = b64Start + svg64;
+        //
+        // // set it as the source of the img element
+        // let img = new Image();
+        // img.src = image64;
+        // console.log(display);
+        // context.drawImage(img,
+        //     display.xScale(-0.46),
+        //     display.yScale(20),
+        //     img.width,
+        //     display.height/(display.ymax - display.ymin) * (sseq.yRange[1] - sseq.yRange[0])
+        // );
+
+        //return;
         context.save();
         context.lineWidth = 0.3;
         // Truncation lines
         let xScale = display.xScale;
         let yScale = display.yScale;
         for(let diag = 1; diag <= 40; diag ++){
-            context.strokeStyle = diag % 2 ?  "#008181" : "#810000"; //"#818181" : "#810081";
+            //context.strokeStyle = diag % 2 ?  "#008181" : "#810000"; //"#818181" : "#810081";
             context.beginPath();
             context.moveTo(xScale(diag + 2), yScale(-2));
             context.lineTo(xScale(-2), yScale(diag + 2));
@@ -71,7 +92,7 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
 
         context.save();
         context.lineWidth = 0.3;
-        context.strokeStyle = "#818181";
+        //context.strokeStyle = "#818181";
         let x = 0.5;
         let y = -0.5;
         context.moveTo(xScale(x),yScale(y));
@@ -82,7 +103,7 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
             context.lineTo(xScale(x), yScale(y));
         }
         context.stroke();
-
+        context.restore();
 
         // context.lineWidth = 0.7;
         // context.strokeStyle = "black";
@@ -90,7 +111,6 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
         // context.moveTo(xScale(19.5+2),yScale(-2));
         // context.lineTo(xScale(-2),yScale(19.5 + 2));
         // context.stroke();
-        context.restore();
 
         context = display.supermarginLayerContext;
         // page number
@@ -246,7 +266,48 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
 
 
     dss.display();
+
+/*    let context = new C2S(
+        display.width/(display.xmax - display.xmin) * (sseq.xRange[1] - sseq.xRange[0]),
+        display.height/(display.ymax - display.ymin) * (sseq.yRange[1] - sseq.yRange[0])
+    );
+    context.translate(0, display.yScale(display.ymax) - display.yScale(sseq.yRange[1]));
+
+    context.save();
+    context.lineWidth = 0.3;
+// Truncation lines
+    let xScale = display.xScale;
+    let yScale = display.yScale;
+    for(let diag = 1; diag <= 40; diag ++){
+        //context.strokeStyle = diag % 2 ?  "#008181" : "#810000"; //"#818181" : "#810081";
+        context.beginPath();
+        context.moveTo(xScale(diag + 2), yScale(-2));
+        context.lineTo(xScale(-2), yScale(diag + 2));
+        context.stroke();
+    }
+    context.restore();
+
+    context.save();
+    context.lineWidth = 0.3;
+    //context.strokeStyle = "#818181";
+    let x = 0.5;
+    let y = -0.5;
+    context.moveTo(xScale(x),yScale(y));
+    for(let i = 0; i < 11; i++){
+        y += 2;
+        context.lineTo(xScale(x), yScale(y));
+        x += 1;
+        context.lineTo(xScale(x), yScale(y));
+    }
+    context.stroke();
+    context.restore();
+  // IO.download("lines.svg",context.getSerializedSvg(true));*/
+
+
 }).catch(err => console.log(err));
+
+
+
 
 
 

@@ -109,7 +109,6 @@ class Display {
         // Global constants for grid and setup
         this.gridColor = "#c6c6c6";
         this.gridStrokeWidth = 0.3;
-        this.boxSize = 50; // TODO: Get rid of boxSize.
         this.TICK_STEP_LOG_BASE = 1.1; // Used for deciding when to change tick step.
 
         const boundingRectangle = document.getElementById("main").getBoundingClientRect();
@@ -789,7 +788,6 @@ class Display {
     }
 
     toSVG(){
-        let width = 1300;
         let ctx = new C2S(this.width, this.height);
         ctx.translate(10, 20);
 

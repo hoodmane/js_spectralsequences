@@ -690,6 +690,12 @@ class Sseq {
         IO.download(filename, JSON.stringify(this));
     }
 
+    static upload(){
+       return IO.upload().then(json => {
+           return DisplaySseq.fromJSONObject(JSON.parse(json));
+       });
+    }
+
     saveToLocalStore(key){
         return IO.saveToLocalStore(key, this);
     }
@@ -700,20 +706,20 @@ class Sseq {
         if(!json){
             json = await IO.loadFromServer(path);
         }
-        let sseq = Sseq.fromJSONObject(json);
+        let sseq = DisplaySseq.fromJSONObject(json);
         sseq.path = path;
         return sseq;
     }
 
     static async loadFromServer(path){
        let json = await IO.loadFromServer(path);
-       return Sseq.fromJSONObject(json);
+       return DisplaySseq.fromJSONObject(json);
     }
 
     static async loadFromLocalStore(key){
        let json = await IO.loadFromLocalStore(key);
        console.log(json);
-       return Sseq.fromJSONObject(json);
+       return DisplaySseq.fromJSONObject(json);
     }
 
 
@@ -749,52 +755,6 @@ class Sseq {
     // TODO: add check that this spectral sequence is the one being displayed?
     toSVG(filename){
        IO.download(filename,display.toSVG());
-    }
-
-    /**
-     * Load spectral sequence from JSON. Returns a promise for a DisplaySseq
-     * @param path The file path / name of the JSON file to load.
-     * @returns {Promise<DisplaySseq>}
-     */
-    static fromJSONObject(sseq_obj){
-        console.log(sseq_obj);
-        let sseq = Object.assign(new DisplaySseq(), sseq_obj);
-        // To resuscitate, we need to fix:
-        //  1) The num_classes_by_degree map which is used for calculating offsets doesn't get serialized.
-        //     We remake it by counting the number of classes in each degree.
-        //  2) The node_list for each class has been replaced with a list of indices in the sseq.master_node_list.
-        //     Each integer in each class.node_list needs to be replaced with a real node copied from sseq.master_node_list.
-        //  3) The edges have their source and target class references replaced by indexes into the class list. Replace
-        //     these integers with references to the actual class.
-
-
-        sseq.default_node = Object.assign(new Node(), sseq.default_node);
-        let num_classes_by_degree = new StringifyingMap();
-        let class_list_index_map = new Map(); // For fixing edge source / target references
-        for(let i = 0; i < sseq.classes.length; i++){
-            let c = sseq.classes[i];
-            class_list_index_map.set(i, c);
-            if(!c){
-                continue;
-            }
-            let idx  = num_classes_by_degree.getOrElse([c.x, c.y], 0);
-            num_classes_by_degree.set([c.x, c.y], idx + 1);
-            for(let i = 0; i < c.node_list.length; i++){
-                // c.node_list[i] currently contains an integer, replace it with a node.
-                c.node_list[i] = new Node(sseq.master_node_list[c.node_list[i]]);
-                c.node_list[i].shape = Shapes[c.node_list[i].shape.name];
-            }
-        }
-        for(let e of sseq.edges){
-            if(e.type === "Extension"){
-                e._drawOnPageQ = undefined;
-            }
-            // e.source and e.target currently contain integers. Replace them with actual classes.
-            e.source = class_list_index_map.get(e.source);
-            e.target = class_list_index_map.get(e.target);
-        }
-        sseq.num_classes_by_degree = num_classes_by_degree;
-        return sseq;
     }
 
 }
