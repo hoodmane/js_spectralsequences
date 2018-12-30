@@ -43,3 +43,12 @@ window.vectorSum = Sseqjs.vectorSum;
 window.vectorScale = Sseqjs.vectorScale;
 window.vectorLinearCombination = Sseqjs.vectorLinearCombination;
 
+window.on_public_website = new URL(document.location).hostname === "math.mit.edu";
+
+window.getJSONFilename = function(file_name){
+    file_name = `json/${file_name}.json`;
+    if(on_public_website){
+        file_name = "js_spectralsequences/" + file_name;
+    }
+    return file_name;
+}

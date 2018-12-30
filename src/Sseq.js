@@ -559,7 +559,8 @@ class Sseq {
             }
             let real_class = sseq.addClass(display_class.x,display_class.y);
             real_class.unique_id = display_class.unique_id;
-            Object.assign(real_class,display_class);
+            Object.assign(real_class, display_class);
+
             real_class.constructor = SseqClass.constructor;
             real_class.display_class = display_class;
             sseq.display_class_to_real_class.set(display_class, real_class);
@@ -582,7 +583,13 @@ class Sseq {
             let target = sseq.display_class_to_real_class.get(display_edge.target);
             switch(display_edge.type){
                 case "Differential" :
+                    // Save and restore page_list of source and target to make sure adding the differential doesn't change
+                    // it (the effect of this differential should already be taken into account in page_list).
+                    let source_page_list = source.page_list.slice();
+                    let target_page_list = target.page_list.slice();
                     real_edge = sseq.addDifferential(source, target, display_edge.page);
+                    source.page_list = source_page_list;
+                    target.page_list = target_page_list;
                     break;
                 case "Extension":
                     real_edge = sseq.addExtension(source, target);
@@ -768,7 +775,8 @@ Sseq.serializeClassFields = [
     "x", "y", "name", "extra_info", "unique_id", "idx", "x_offset", "y_offset", "page_list", "visible"
 ]; // "node_list" is dealt with separately
 Sseq.serializeEdgeFields = [
-    "color", "bend", "dash", "lineWidth", "opacity", "page_min", "page", "type", "mult"
+    "color", "bend", "dash", "lineWidth", "opacity", "page_min", "page", "type", "mult",
+    "source_name", "target_name"
 ]; // "source" and "target" are dealt with separately.
 
 exports.Sseq = Sseq;

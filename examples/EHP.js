@@ -1,6 +1,5 @@
 
-let file_name = "EHP";
-let on_public_website = new URL(document.location).hostname === "math.mit.edu";
+let file_name = getJSONFilename("EHP");
 
 window.node_map = {};
 node_map[2] = new Node().setFill("black").setSize(6);
@@ -10,38 +9,17 @@ node_map[16] = new Node().setFill("white").setShape(Shapes.circlen).setSize(12);
 node_map[32] = new Node().setFill("white").setShape(Shapes.circlen).setSize(12);
 
 
-file_name = `json/${file_name}.json`;
-if(new URL(document.location).hostname === "math.mit.edu"){
-    file_name = "js_spectralsequences/" + file_name;
-}
-
-console.log(file_name);
 Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) => {
     window.dss = dss;
     window.sseq = Sseq.getSseqFromDisplay(dss);
-    dss.offset_size = 0.2;
-    dss._getYOffset = (c) => c.y_offset || 0;
-    sseq.addClassFieldToSerialize(["genealogy","genealogyString","Einfty_name"]);
-    sseq.addEdgeFieldToSerialize(["target_name", "source_name"]);
-    sseq.addSseqFieldToSerialize("edgeLayerSVG");
 
-    // TODO: why is the JSON parser turning the page list "[1,10000]" into "[1,1]" ?!
-    // This repairs the result of the problem without addressing the root cause.
-    window.problem_list = [];
-    for(let c of sseq.getClasses()){
-        if(c.page_list.length === 2 && c.page_list[0] === c.page_list[1]){
-            problem_list.push([c,c.page_list.slice()]);
-            let page = Math.max(...c.getDifferentials().map(d => d.page));
-            c.page_list[1] = page > 1 ? page : 10000;
-        }
-    }
+    dss._getYOffset = (c) => c.y_offset || 0;
 
 
     if (on_public_website) {
         dss.display();
         return;
     }
-
 
     tools.install_edit_handlers(dss, "EHP");
 
@@ -164,9 +142,15 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
     });
 
 
-
     dss.display();
+}).catch(err => console.log(err));
 
+
+
+
+
+
+// Draws the SVG for the antidiagonal lines and metastable range overlay.
 /*    let context = new C2S(
         display.width/(display.xmaxFloat - display.xminFloat) * (sseq.xRange[1] - sseq.xRange[0] + 1),
         display.height/(display.ymaxFloat - display.yminFloat) * (sseq.yRange[1] - sseq.yRange[0] + 1)
@@ -207,12 +191,9 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
     //IO.download("lines.svg",context.getSerializedSvg(true));*/
 
 
-}).catch(err => console.log(err));
 
 
-
-
-
+// Makes a table
 
 // for(let c of classes){
 //     if(c.x + c.y > 19 || !c.genealogyString){

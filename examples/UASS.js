@@ -5,8 +5,6 @@
 "use strict";
 
 
-let on_public_website = new URL(document.location).hostname === "math.mit.edu";
-
 let file_names = [];
 let displayNames = [];
 
@@ -17,12 +15,7 @@ for(let n = 3; n <= 25; n += 2){
 file_names.push("ASS-S_2");
 displayNames.push("Stable");
 
-let full_file_names = file_names.map(name => `json/${name}.json`);
-
-if(new URL(document.location).hostname === "math.mit.edu"){
-    full_file_names = full_file_names.map(name => "js_spectralsequences/" + name);
-}
-
+let full_file_names = file_names.map(getJSONFilename);
 
 
 let file_idx = 0;
@@ -72,22 +65,6 @@ function setupDSS(dss, dss_list){
 
 
 
-    function displayPage(pageRange){
-        if(pageRange === infinity){
-            return "∞";
-        }
-        if(pageRange === 0){
-            return "2 with all differentials";
-        }
-        if(pageRange === 1){
-            return "2 with no differentials";
-        }
-        if(pageRange.length){
-            return `${pageRange[0]} – ${pageRange[1]}`.replace(infinity,"∞");
-        }
-        return pageRange;
-    }
-    
 
     dss.addEventHandler('+', (event) => {
         if(file_idx < max_file_idx){
@@ -118,7 +95,7 @@ function setupDSS(dss, dss_list){
 
     tools.install_edit_handlers(dss, file_names[file_idx]);
 
-    let ext_colors = {"2": "orange", "\\eta": "purple", "\\nu": "brown"}
+    let ext_colors = {"2": "orange", "\\eta": "purple", "\\nu": "brown"};
 
     for (let c of sseq.getClasses()) {
         if (c.lambda_tag) {
@@ -152,7 +129,6 @@ function setupDSS(dss, dss_list){
 
 let ready_DSS_list = new Array(dss_promises.length);
 
-
 function switchToSseq(index){
     if(!ready_DSS_list[index]){
         dss_promises[index].then((dss) => {
@@ -167,8 +143,3 @@ function switchToSseq(index){
 }
 
 switchToSseq(0);
-
-// Promise.all(dss_promises).catch((error) => console.log(error)).then((dss_list) => {
-//     switchToSseq(file_idx,dss_list);
-// });
-
