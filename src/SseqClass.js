@@ -257,6 +257,7 @@ class SseqClass {
     }
 
 
+
     /**
      * Get the node that controls the display of the class on the given page.
      * @param page
@@ -313,6 +314,7 @@ class SseqClass {
             let sl = structlines[i];
             if(sl.page > page){
                 sl.page = page;
+                this.sseq.updateEdge(sl);
             }
         }
         return this;
@@ -457,7 +459,7 @@ class SseqClass {
             }
         }
         if(page_idx === undefined){
-            throw "Page too large.";
+            console.log(new Error("Page too large. This probably shouldn't happen."));
         }
         this._last_page = page;
         this._last_page_idx = page_idx;

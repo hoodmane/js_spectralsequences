@@ -32,6 +32,25 @@ exports.multiply_monomial = function(variable, power, monomial){
 
 
 exports.straightenTowers = function(sseq){
+    exports.markTowers(sseq);
+    for(let x = 1; x < xmax; x++) {
+        if(!sseq.longest_tower_map.has(x)){
+            continue;
+        }
+        let longest_tower = sseq.longest_tower_map.get(x);
+        if (longest_tower.length > 3) {
+            for (let c = longest_tower.base; c; c = c.h0mult[0]) {
+                c.x_offset = 0;
+                sseq.updateClass(c);
+                for (let oc of sseq.getClassesInDegree(c.x, c.y)) {
+                    oc.display_class.has_fixed_class = true;
+                }
+            }
+        }
+    }
+};
+
+exports.markTowers = function(sseq){
     let column_maps = new Map();
     for(let c of sseq.classes){
         c.h0div = [];
@@ -105,16 +124,10 @@ exports.straightenTowers = function(sseq){
                 }
             }
         }
-        if(longest_tower.length > 3){
-            for(let c = longest_tower.base; c ; c = c.h0mult[0]){
-                c.x_offset = 0;
-                sseq.updateClass(c);
-                for(let oc of sseq.getClassesInDegree(c.x,c.y)){
-                    oc.display_class.has_fixed_class = true;
-                }
-            }
-        }
+        longest_tower_map.set(x, longest_tower);
     }
+    sseq.columns = columns;
+    sseq.longest_tower_map = longest_tower_map;
 };
 
 
@@ -333,7 +346,7 @@ for(let c of sseq.classes.filter(c => c.name)){
         }
     }
 }
-sseq.update();
+sseq.updateAll();
 
 for(let c of sseq.classes.filter(c => c.name)){
     if(c.name && a1power_regex.test(c.name)){
@@ -358,5 +371,5 @@ for(let c of sseq.classes.filter(c => c.name)){
         }
     }
 }
-sseq.update();
+sseq.updateAll();
 */

@@ -44,47 +44,47 @@ class Edge {
         return this;
     }
 
+    setColor(color){
+        if(!color){
+            return this;
+        }
+        this.color = color;
+        return this;
+    }
+
+    setBend(bend){
+        if(!bend){
+            return this;
+        }
+        this.bend = bend;
+        return this;
+    }
+
+
     isDummy(){
         return false;
     }
 
+    // TODO: Should these methods even be here? I guess so....
     delete(){
-        if(this.constructor === Differential) {
-            if(this.target.page_list.length !== 1
-                && this.source.page_list.indexOf(this.page) === this.source.page_list.length - 2
-                && this.source.page_list[this.source.page_list.length-1] === infinity
-            ){
-                this.source.page_list.pop();
-            } else if (this.source.page_list.indexOf(this.page) !== -1 && this.source.page_list.indexOf(this.page) !== this.source.page_list.length - 1) {
-                console.log("Cannot remove differential, source has done stuff since.");
-                return;
-            }
-            if(this.target.page_list.length !== 1
-                && this.target.page_list.indexOf(this.page) === (this.target.page_list.length - 2)
-                && this.target.page_list[this.target.page_list.length-1] === infinity
-            ){
-                console.log(this.target.page_list);
-                this.target.page_list.pop();
-            } else if (this.target.page_list.indexOf(this.page) !== -1 && this.target.page_list.indexOf(this.page) !== this.target.page_list.length - 1) {
-                console.log("Cannot remove differential, target has done stuff since.");
-                return;
-            }
-            if (this.source.page_list.indexOf(this.page) !== -1){
-                this.source.page_list[this.source.page_list.length - 1] = infinity;
-            }
-            if (this.target.page_list.indexOf(this.page) !== -1){
-                this.target.page_list[this.target.page_list.length - 1] = infinity;
-            }
-        }
-
         this.invalid = true;
+        this.display_edge.invalid = true;
         this.source.edges = this.source.edges.filter(e => !e.invalid);
         this.target.edges = this.target.edges.filter(e => !e.invalid);
         this.source.update();
         this.target.update();
-        this.display_edge.invalid = true;
+        // this.source.sseq.update();
     }
 
+    revive(){
+        this.invalid = false;
+        this.display_edge.invalid = false;
+        this.source.edges.push(this);
+        this.target.edges.push(this);
+        this.source.update();
+        this.target.update();
+        // this.source.sseq.update();
+    }
 
     static getDummy(){
         if(Edge._dummy){
@@ -173,6 +173,45 @@ class Differential extends Edge {
         return dummy;
     }
 
+    delete(){
+        let pop_pagelists = [];
+        if(this.source.page_list.length !== 1
+            && this.source.page_list.indexOf(this.page) === this.source.page_list.length - 2
+            && this.source.page_list[this.source.page_list.length-1] === infinity
+        ){
+            pop_pagelists.push(() => this.source.page_list.pop());
+        } else if (this.source.page_list.indexOf(this.page) !== -1 && this.source.page_list.indexOf(this.page) !== this.source.page_list.length - 1) {
+            console.log("Cannot remove differential, source has done stuff since.");
+            return;
+        }
+        if(this.target.page_list.length !== 1
+            && this.target.page_list.indexOf(this.page) === (this.target.page_list.length - 2)
+            && this.target.page_list[this.target.page_list.length-1] === infinity
+        ){
+
+            pop_pagelists.push(() => this.target.page_list.pop());
+        } else if (this.target.page_list.indexOf(this.page) !== -1 && this.target.page_list.indexOf(this.page) !== this.target.page_list.length - 1) {
+            console.log("Cannot remove differential, target has done stuff since.");
+            return;
+        }
+        this.revive_source_page_list = this.source.page_list.slice();
+        this.revive_target_page_list = this.target.page_list.slice();
+        pop_pagelists.forEach(f => f());
+        if (this.source.page_list.indexOf(this.page) !== -1){
+            this.source.page_list[this.source.page_list.length - 1] = infinity;
+        }
+        if (this.target.page_list.indexOf(this.page) !== -1){
+            this.target.page_list[this.target.page_list.length - 1] = infinity;
+        }
+        Edge.prototype.delete.call(this);
+    }
+
+    revive(){
+        this.source.page_list = this.revive_source_page_list.slice();
+        this.target.page_list = this.revive_target_page_list.slice();
+        Edge.prototype.revive.call(this);
+    }
+
     /**
      * @override
      * @param min_page
@@ -199,7 +238,7 @@ class Differential extends Edge {
      * @returns {Differential} Chainable
      */
     replaceSource(node, lastPageName){
-        this.setKernel(node,lastPageName);
+        this.setKernel(node, lastPageName);
         return this;
     }
 
@@ -321,9 +360,9 @@ class Differential extends Edge {
      * @returns {Differential} chainable
      */
     setStructlinePages(){
-        this.source.setStructlinePages(this.page);
-        this.target.setStructlinePages(this.page);
-        return this;
+        let res1 = this.source.setStructlinePages(this.page);
+        let res2 = this.target.setStructlinePages(this.page);
+        return res1.concat(res2);
     }
 
     toString(highlight_source, highlight_target){

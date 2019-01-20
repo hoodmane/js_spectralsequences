@@ -117,7 +117,7 @@ function setupDSS(dss, dss_list){
                 d.mult = ext_type;
                 d.display_edge.mult = ext_type;
                 d.display_edge.color = d.color;
-                sseq.update();
+                sseq.updateAll();
             }
         }
     });

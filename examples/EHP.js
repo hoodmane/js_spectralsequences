@@ -53,7 +53,7 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
                 d.mult = ext_type;
                 d.display_edge.mult = ext_type;
                 d.display_edge.color = d.color;
-                sseq.update();
+                sseq.updateAll();
             }
         }
     });
@@ -138,7 +138,7 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
             }
         }
         c.update();
-        sseq.update();
+        sseq.updateAll();
     });
 
 
@@ -152,8 +152,8 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
 
 // Draws the SVG for the antidiagonal lines and metastable range overlay.
 /*    let context = new C2S(
-        display.width/(display.xmaxFloat - display.xminFloat) * (sseq.xRange[1] - sseq.xRange[0] + 1),
-        display.height/(display.ymaxFloat - display.yminFloat) * (sseq.yRange[1] - sseq.yRange[0] + 1)
+        display.canvasWidth/(display.xmaxFloat - display.xminFloat) * (sseq.xRange[1] - sseq.xRange[0] + 1),
+        display.canvasHeight/(display.ymaxFloat - display.yminFloat) * (sseq.yRange[1] - sseq.yRange[0] + 1)
     );
     context.translate(
         - display.xScale(display.xminFloat) + display.xScale(sseq.xRange[0]) - display.leftMargin - display.xMinOffset,

@@ -15,7 +15,7 @@ let monomial_basis = monomial_basisjs.monomial_basis;
 let slice_basis = monomial_basisjs.slice_basis;
 let Util = require("./Util.js");
 let infinity = Util.infinity;
-let IO = require("./IO");
+let IO = require("./SaveLoad");
 let sseqDatabase = IO.sseqDatabase;
 
 exports.DisplaySseq = DisplaySseq;
@@ -81,7 +81,7 @@ class Sseq {
         this.display_sseq = new DisplaySseq();
         this.display_class_to_real_class = new StringifyingMap((c) => `${c.x}, ${c.y}, ${c.unique_id}`);
         this.display_edge_to_real_edge = new StringifyingMap((e) =>
-            `${e.type}(${e.page}) : (${e.source.x}, ${e.source.y}, ${e.source.unique_id}) => (${e.target.x}, ${e.target.y}, ${e.target.unique_id})`
+            `${e.type} : (${e.source.x}, ${e.source.y}, ${e.source.unique_id}) => (${e.target.x}, ${e.target.y}, ${e.target.unique_id})`
         );
         this.total_classes = 0;
         this.initialxRange = [0, 10];
@@ -108,17 +108,20 @@ class Sseq {
         this.default_node.stroke = true;
         this.default_node.shape = Shapes.circle;
         this.default_node.size = 6;
-        this.projection = function(ssclass){
-            return [ssclass.degree.x, ssclass.degree.y];
-        };
+        this.projection = (ssclass) => [ssclass.degree.x, ssclass.degree.y];
+        this.stem_degree = (ssclass) => ssclass.degree.x;
+        this.filtration_degree = (ssclass) => ssclass.degree.y;
+        // The list of valid products, styled {name, stem, filtration, optional color}
+        this.products = [];
+        this.selectedClasses = [];
 
         this._sseq_update_fields = [""];
 
         this._class_update_fields = [
             "x", "y", "idx", "unique_id", "x_offset", "y_offset",
-            "name", "extra_info", "page_list", "node_list",
+            "name", "save_name", "extra_info", "page_list", "node_list",
             "visible", "class_tooltip_fields",
-            "_classInRangeQ", "_drawOnPageQ"
+            "_classInRangeQ", "_drawOnPageQ", "selected", "invalid"
         ];
 
         this._edge_update_fields = [
@@ -190,6 +193,43 @@ class Sseq {
         return this.differentials;
     }
 
+    getSelection(){
+
+    }
+
+    clearSelection(){
+        for(let c of this.classes){
+            c.selected = false;
+        }
+        this.updateAll();
+        return this;
+    }
+
+    selectClass(c, selectOrUnselect = true){
+        if(!c){
+            return this;
+        }
+        c.selected = selectOrUnselect;
+        this.updateClass(c);
+        return this;
+    }
+
+    unselectClass(c){
+        this.selectClass(c, false);
+    }
+
+    unselectAll(){
+        for(let c of this.getClasses()){
+            c.selected = false;
+        }
+        this.updateAll();
+    }
+
+    getPotentialTargets(c){
+        let x = c.x - 1;
+        return sseq.getClasses().filter(cl => cl.x === x);
+    }
+
     getClassesInDegree(x, y){
         return this.classes.filter(c => c.x === x && c.y === y);
         // if(this.classes_by_degree.has({x: x, y: y})) {
@@ -220,6 +260,9 @@ class Sseq {
      * @returns {SseqClass} The new class
      */
     addClass(x, y){
+        if(x === undefined){
+            return SseqClass.getDummy();
+        }
         let degree;
         if(y === undefined){
             degree = x;
@@ -247,6 +290,44 @@ class Sseq {
         this.display_class_to_real_class.set(c.display_class, c);
         this.display_sseq.update(); // Update the display if it exists.
         return c;
+    }
+
+    deleteClass(c){
+        if(!c || c.invalid){
+            return;
+        }
+        c.invalid = true;
+        c.display_class.invalid = true;
+        let idx  = this.num_classes_by_degree.get([c.x, c.y]);
+        this.num_classes_by_degree.set([c.x, c.y], idx - 1);
+        this.total_classes --;
+        this.classes.splice( this.classes.indexOf(c), 1 );
+        this.updateClass(c);
+        this.display_sseq.update();
+        return c;
+    }
+
+    reviveClass(c){
+        if(!c || !c.invalid){
+            return;
+        }
+        c.invalid = false;
+        c.display_class.invalid = false;
+        let idx  = this.num_classes_by_degree.get([c.x, c.y]);
+        this.num_classes_by_degree.set([c.x, c.y], idx + 1);
+        this.total_classes ++;
+        this.classes.push(c);
+        this.updateClass(c);
+        this.display_sseq.update();
+        return c;
+    }
+
+    deleteEdge(e){
+        e.delete();
+    }
+
+    reviveEdge(e){
+        e.revive();
     }
 
 
@@ -354,6 +435,13 @@ class Sseq {
         return ext;
     }
 
+    /**
+     * This doesn't work very well right now...
+     * @param source
+     * @param targets
+     * @param page
+     * @returns {Array}
+     */
     addSumDifferential(source, targets, page){
        let target_name = targets.map(t => t.name).join("+");
        let differentialList = [];
@@ -368,6 +456,92 @@ class Sseq {
        return differentialList;
     }
 
+    getClassString(c){
+        let name = c.name ? `[${c.name}]` : "";
+       return `(${c.x}, ${c.y})${name}`;
+    }
+
+
+    /**
+     * Makes a query to determine if the user wants to add a differential.
+     */
+    getDifferentialQuery(source, target, page){
+        if(page === undefined){
+            return `Add differential from ${this.getClassString(source)} to ${this.getClassString(target)}?`;
+        }
+        return `Add d${page} differential from ${this.getClassString(source)} to ${this.getClassString(target)}?`;
+    }
+
+    /**
+     * Makes a query to determine if the user wants to add a Structline.
+     */
+    getStructlineQuery(source, target, name){
+        name = name ? " *" + name : "";
+        return `Add${name} structline from ${this.getClassString(source)} to ${this.getClassString(target)}?`;
+    }
+
+    getExtensionQuery(source, target, name){
+        name = name ? " *" + name : "";
+        return `Add${name} extension from ${this.getClassString(source)} to ${this.getClassString(target)}?`;
+    }
+
+
+    // Returns either falsey or a pair [description of edge to add, callback to add edge].
+    // The idea is to query to user with description and run the callback if they agree.
+    getPossibleEdgesToAdd(c1, c2){
+       if(this.stem_degree(c1) > this.stem_degree(c2)){
+           let temp = c2;
+           c2 = c1;
+           c1 = temp;
+       }
+       // So s1 <= s2.
+       let s1 = this.stem_degree(c1);
+       let s2 = this.stem_degree(c2);
+       let f1 = this.filtration_degree(c1);
+       let f2 = this.filtration_degree(c2)
+       let ds = s2 - s1;
+       let df = f2 - f1;
+       // Differentials
+       if(ds === 1){
+           if(df < 0){
+               return {
+                   query : this.getDifferentialQuery(c2, c1, -df),
+                   callback : () => this.addDifferential(c2, c1, -df)
+               };
+           }
+       }
+
+       for(let prod of this.products){
+            if(prod.stem === ds && prod.filtration === df){
+                return {
+                    query: this.getStructlineQuery(c1, c2, prod.name),
+                    callback: () => this.addStructline(c1, c2).setProduct(prod.name).setColor(prod.color)
+                }
+            }
+           if(prod.stem === -ds && prod.filtration === df){
+               return {
+                   query : this.getStructlineQuery(c2, c1, prod.name),
+                   callback : () => this.addStructline(c2, c1).setProduct(prod.name).setColor(prod.color)
+               }
+           }
+       }
+
+        for(let prod of this.products){
+            if(prod.stem === ds && prod.filtration < df){
+                return {
+                    query: this.getExtensionQuery(c1, c2, prod.name),
+                    callback: () => this.addExtension(c1, c2).setProduct(prod.name).setColor(prod.color)
+                }
+            }
+            if(prod.stem === -ds && prod.filtration < df){
+                return {
+                    query : this.getExtensionQuery(c2, c1, prod.name),
+                    callback : () => this.addExtension(c2, c1).setProduct(prod.name).setColor(prod.color)
+                }
+            }
+        }
+        return false;
+    }
 
     setupDisplayEdge(edge) {
         let display_edge = {};
@@ -376,18 +550,23 @@ class Sseq {
         display_edge.source = edge.source.display_class;
         display_edge.target = edge.target.display_class;
         display_edge.type = edge.constructor.name;
+        this.display_edge_to_real_edge.set(edge.display_edge, edge);
         this.updateEdge(edge);
-        this.display_sseq.update();
+        //this.display_sseq.update();
     }
 
     display(){
-        this.update();
         let dss = this.getDisplaySseq();
+        this.updateAll();
         dss.display();
         return dss;
     }
 
     update(){
+        this.display_sseq.update();
+    }
+
+    updateAll(){
         Util.assignFields(this.display_sseq, this, this._sseq_update_fields);
         for(let c of this.classes){
             this.updateClass(c);
@@ -411,7 +590,7 @@ class Sseq {
        }
        let display_edge = edge.display_edge;
        Util.assignFields(display_edge, edge, this._edge_update_fields);
-       //this.display_sseq.update();
+       //this.display_sseq.updateAll();
     }
 
     decrementClassIndex(c){
@@ -424,9 +603,9 @@ class Sseq {
            if(c2.idx === idx - 1){
                c.idx --;
                c2.idx ++;
-               this.updateClass(c);
-               this.updateClass(c2);
-               this.display_sseq.update();
+               // this.updateClass(c);
+               // this.updateClass(c2);
+               // this.display_sseq.updateAll();
                return;
            }
        }
@@ -442,9 +621,9 @@ class Sseq {
             if(c2.idx === idx + 1){
                 c.idx ++;
                 c2.idx --;
-                this.updateClass(c);
-                this.updateClass(c2);
-                this.display_sseq.update();
+                // this.updateClass(c);
+                // this.updateClass(c2);
+                // this.display_sseq.updateAll();
                 return;
             }
         }
@@ -701,6 +880,23 @@ class Sseq {
        return IO.upload().then(json => {
            return DisplaySseq.fromJSONObject(JSON.parse(json));
        });
+    }
+
+    save(){
+        if(!this.save_name){
+            this.saveAs();
+        } else {
+            this.saveToLocalStore(name);
+
+        }
+    }
+
+    saveAs(){
+        let name = prompt("Save as:", this.save_name || "");
+        if(name){
+            this.save_name = name;
+            this.saveToLocalStore(name);
+        }
     }
 
     saveToLocalStore(key){

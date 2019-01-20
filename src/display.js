@@ -6,6 +6,8 @@ let Konva = require("konva");
 
 document.documentElement.style.overflow = 'hidden'; // prevent scrollbars
 
+const gridGo = "go";
+const gridChess = "chess";
 
 Konva.Factory.addGetterSetter(Konva.Shape, 'size');
 Konva.Shape.prototype.setNode = setNode;
@@ -44,6 +46,8 @@ class Display {
     constructor(ss) {
         // Drawing elements
         this.body = d3.select("body");
+        this.container = d3.select("#main");
+        this.container.style("overflow", "hidden")
 
         this.xScaleInit = d3.scaleLinear();
         this.yScaleInit = d3.scaleLinear();
@@ -60,9 +64,10 @@ class Display {
         this._makeLayer("classLayer");
         this._makeLayer("marginLayer");
         this._makeLayer("supermarginLayer");
+        this.eventHandlerLayer = this.supermarginLayerDOM;
 
         let tooltip_divs = ["tooltip_div", "tooltip_div_dummy"].map(id =>
-            this.body.append("div")
+            this.container.append("div")
                 .attr("id", id)
                 .attr("class", "tooltip")
                 .style("opacity", 0)
@@ -75,7 +80,7 @@ class Display {
             .style("left", `20px`)
             .style("bottom",`20px`);
 
-        this.page_indicator_div = this.body.append("div")
+        this.page_indicator_div = this.container.append("div")
             .attr("id", "page_indicator")
             .style("position", "absolute")
             .style("left", "120px")
@@ -91,12 +96,9 @@ class Display {
         // TODO: improve window resize handling. Currently the way that the domain changes is suboptimal.
         // I think the best would be to maintain the x and y range by scaling.
         this._initializeCanvas.bind(this);
-        window.addEventListener("resize", () => {
-            this._initializeCanvas();
-            this.updateBatch();
-        });
+        window.addEventListener("resize",  () => this.resize());
 
-        // This allows us to use the "update" method as an event handlers -- the "this" will still refer to this "this" rather
+        // This allows us to use the "updateAll" method as an event handlers -- the "this" will still refer to this "this" rather
         // than the event being handled.
 
         this.zoom = d3.zoom().scaleExtent([0, 4]);
@@ -107,8 +109,28 @@ class Display {
 
         this.nextPage = this.nextPage.bind(this);
         this.previousPage = this.previousPage.bind(this);
+        this.gridStyle = gridGo;
         this.setSseq(ss, true);
         this.update();
+    }
+
+    /**
+     *
+     * @param width Optional width. Default to 97% of width of bounding element.
+     * @param height Optional height. Default to 97% of height of bounding element.
+     */
+    resize(width, height){
+        let oldxmin = this.xminFloat;
+        let oldymin = this.yminFloat;
+        // This fixes the scale, but leaves a
+        this._initializeCanvas(width, height);
+        this._updateScale();
+        let dx = this.xminFloat - oldxmin;
+        let dy = this.yminFloat - oldymin;
+        this.zoom.on("zoom", null);
+        this.zoom.translateBy(this.zoomDomElement, this.dxScale(dx), this.dyScale(dy));
+        this.zoom.on("zoom", this.updateBatch);
+        this.updateBatch();
     }
 
     /**
@@ -116,21 +138,21 @@ class Display {
      * margins or setup code to the canvases.
      * @private
      */
-    _initializeCanvas(){
+    _initializeCanvas(width, height){
         // Global constants for grid and setup
         this.gridColor = "#c6c6c6";
         this.gridStrokeWidth = 0.3;
         this.TICK_STEP_LOG_BASE = 1.1; // Used for deciding when to change tick step.
 
         const boundingRectangle = document.getElementById("main").getBoundingClientRect();
-        const canvasWidth = boundingRectangle.width;
-        const canvasHeight = boundingRectangle.height;
+        const canvasWidth = width || 0.99*boundingRectangle.width;
+        const canvasHeight = height || 0.97*boundingRectangle.height;
 
         this.stage.clear();
         this.stage.width(canvasWidth).height(canvasHeight);
 
-        this.width = this.stage.width();
-        this.height = this.stage.height();
+        this.canvasWidth = this.stage.width();
+        this.canvasHeight = this.stage.height();
 
         // TODO: Allow programmatic control over margins.
         // this.leftMargin = 40;
@@ -142,6 +164,12 @@ class Display {
         this.topMargin = 30;
         this.bottomMargin = 60;
 
+        this.clipWidth = this.canvasWidth - this.rightMargin;
+        this.clipHeight = this.canvasHeight - this.bottomMargin;
+
+        this.plotWidth = this.canvasWidth - this.leftMargin - this.rightMargin;
+        this.plotHeight = this.canvasHeight - this.bottomMargin - this.topMargin;
+
 
         for(let side of ["left", "right", "top", "bottom"]){
             let field = side + "Margin";
@@ -150,16 +178,12 @@ class Display {
             }
         }
 
-        // Set up clip.
-        this.clipX = this.leftMargin;
-        this.clipY = this.topMargin;
-        this.clipWidth = this.width - this.rightMargin;
-        this.clipHeight = this.height - this.bottomMargin;
 
-        this.xScaleInit = this.xScaleInit.range([this.leftMargin, this.width - this.rightMargin]);
-        this.yScaleInit = this.yScaleInit.range([this.height - this.bottomMargin, this.topMargin]);
+        this.xScaleInit = this.xScaleInit.range([this.leftMargin, this.canvasWidth - this.rightMargin]);
+        this.yScaleInit = this.yScaleInit.range([this.canvasHeight - this.bottomMargin, this.topMargin]);
 
-        this.classLayerContext.clearRect(0, 0, this.width, this.height);
+
+        this.classLayerContext.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
         this._clipLayer(this.gridLayerContext);
         this._clipLayer(this.edgeLayerContext);
         this._clipLayer(this.classLayerContext);
@@ -191,7 +215,7 @@ class Display {
     }
 
     _clipLayer(context){
-        context.rect(this.clipX, this.clipY, this.clipWidth - this.clipX, this.clipHeight - this.clipY);
+        context.rect(this.leftMargin, this.topMargin, this.plotWidth, this.plotHeight);
         context.clip();
     }
 
@@ -201,9 +225,9 @@ class Display {
      */
     setSseq(ss, resetScale = false){
         if(this.sseq){
-            this.sseq._registerUpdateListener(undefined);
-            this.supermarginLayerDOM.onclick = undefined;
-            this.supermarginLayerDOM.oncontextmenu = undefined;
+            this.sseq._removeUpdateListener("display");
+            this.eventHandlerLayer.onclick = undefined;
+            this.eventHandlerLayer.oncontextmenu = undefined;
             Mousetrap.reset();
         }
         this.sseq = ss;
@@ -225,15 +249,11 @@ class Display {
             this._initializeCanvas();
         }
 
-        for(let handler of ["onclick", "oncontextmenu"]){
-            if(this.sseq.eventHandlers[handler]){
-                this.supermarginLayerDOM[handler] = (event) => {
-                    event.mouseover_class = this.mouseover_class;
-                    this.sseq.eventHandlers[handler].call(this.sseq, event);
-                };
-            }
+        if(ss.gridStyle){
+            this.gridStyle = ss.gridStyle;
         }
 
+        this._updateEventHandlers();
         Mousetrap.bind('left',  this.previousPage);
         Mousetrap.bind('right', this.nextPage);
         Mousetrap.bind('x',
@@ -244,20 +264,39 @@ class Display {
             }
         );
 
-        this.supermarginLayerDOM.oncontextmenu = (event) => {
-            event.mouseover_class = this.mouseover_class;
-            this.sseq.eventHandlers["oncontextmenu"].call(this.sseq, event);
-        };
-
-        for(let key of Object.getOwnPropertyNames(this.sseq.eventHandlers)){
-            Mousetrap.bind(key, (event) => {
-                event.mouseover_class = this.mouseover_class;
-                this.sseq.eventHandlers[key].call(this.sseq, event);
-            });
-        }
-
         this._addClasses();
-        this.sseq._registerUpdateListener(this.updateBatch.bind(this));
+        this.sseq._registerUpdateListener("display",() => setTimeout(this.updateBatch.bind(this)));
+    }
+
+    addEventHandler(type, listener){
+        let wrapper = (event) => {
+            event.mouseover_class = this.mouseover_class;
+            event.selectedX = this.selectedX;
+            event.selectedY = this.selectedY;
+            listener(event);
+        };
+        if(["onclick", "oncontextmenu"].includes(type)){
+            this.eventHandlerLayer[type] = wrapper;
+        } else {
+            Mousetrap.bind(type, wrapper);
+        }
+    }
+
+    removeEventHandler(type){
+        if(["onclick", "oncontextmenu"].includes(type)){
+            this.eventHandlerLayer[type] = () => false;
+        } else {
+            Mousetrap.unbind(type);
+        }
+    }
+
+    _updateEventHandlers(){
+        for(let key of Object.getOwnPropertyNames(this.sseq.eventHandlers)){
+            if(!this.sseq.eventHandlers[key] || !this.sseq.eventHandlers[key].constructor === Function){
+                continue;
+            }
+            this.addEventHandler(key, this.sseq.eventHandlers[key].bind(this.sseq));
+        }
     }
 
     _initializeScale(){
@@ -307,22 +346,32 @@ class Display {
     }
 
     /**
-     * The main update routine.
+     * The main updateAll routine.
      */
     updateBatch(){
         this.update(true);
     }
 
     update(batch = false) {
-        this._updateScale();
-        this._updateScale();
-        this._updateGridAndTickStep();
-        this._updateSseq();
-
         let drawFunc = () => {
+            this._updateScale();
+            this._updateGridAndTickStep();
+            this._updateSseq();
             this._drawGrid();
             this._drawTicks();
             this._drawSseq();
+            if (d3.event) {
+                // The Konvas stage tracks the pointer position using _setPointerPosition.
+                // d3 zoom doesn't allow the events it handles to bubble, so Konvas fails to track pointer position.
+                // We have to manually tell Konvas to updateAll the pointer position using the event.
+                this.stage._setPointerPosition(d3.event.sourceEvent);
+            }
+
+            // If there is a tooltip being displayed and the zoom event has modified the canvas so that the cursor is no
+            // longer over the object the tooltip is attached to, hide the tooltip.
+            if (this.stage.getPointerPosition() === undefined || this.stage.getIntersection(this.stage.getPointerPosition()) === null) {
+                this._handleMouseout();
+            }
         };
         if(batch){
             requestAnimationFrame(drawFunc);
@@ -330,21 +379,12 @@ class Display {
             drawFunc();
         }
 
-
-        if (d3.event) {
-            // The Konvas stage tracks the pointer position using _setPointerPosition.
-            // d3 zoom doesn't allow the events it handles to bubble, so Konvas fails to track pointer position.
-            // We have to manually tell Konvas to update the pointer position using the event.
-            this.stage._setPointerPosition(d3.event.sourceEvent);
-        }
-
-        // If there is a tooltip being displayed and the zoom event has modified the canvas so that the cursor is no
-        // longer over the object the tooltip is attached to, hide the tooltip.
-        if (this.stage.getPointerPosition() === undefined || this.stage.getIntersection(this.stage.getPointerPosition()) === null) {
-            this._handleMouseout();
-        }
     }
 
+    /**
+     *
+     * @private
+     */
     _updateScale(){
         let zoomDomElement = this.zoomDomElement;
         this.transform = d3.zoomTransform(zoomDomElement.node());
@@ -360,11 +400,6 @@ class Display {
             yScale = this.yScaleInit;
         }
 
-        // We have to call zoom.translateBy when the user hits the boundary of the pan region
-        // to adjust the zoom transform. However, this causes the zoom handler (this function) to be called a second time,
-        // which is less intuitive program flow than just continuing on in the current function.
-        // In order to prevent this, temporarily unset the zoom handler.
-        // TODO: See if we can make the behaviour here less jank.
         let xMinOffset = scale > 1 ? 10 * scale : 10;
         let xMaxOffset = xMinOffset;
         let yMinOffset = scale > 1 ? 10 * scale : 10;
@@ -375,13 +410,18 @@ class Display {
         this.yMinOffset = yMinOffset;
         this.yMaxOffset = yMaxOffset;
 
+        // We have to call zoom.translateBy when the user hits the boundary of the pan region
+        // to adjust the zoom transform. However, this causes the zoom handler (this function) to be called a second time,
+        // which is less intuitive program flow than just continuing on in the current function.
+        // In order to prevent this, temporarily unset the zoom handler.
+        // TODO: See if we can make the behaviour here less jank.
         this.zoom.on("zoom", null);
         if (!this.old_scales_maxed) {
             if (sseq.xRange) {
                 if (xScale(sseq.xRange[0]) > this.leftMargin + xMinOffset) {
                     this.zoom.translateBy(zoomDomElement, (this.leftMargin + xMinOffset - xScale(sseq.xRange[0]) - 0.1) / scale, 0);
-                } else if (xScale(sseq.xRange[1]) < this.width - xMaxOffset) {
-                    this.zoom.translateBy(zoomDomElement, (this.width - xMaxOffset - xScale(sseq.xRange[1] + this.domainOffset) + 0.1) / scale, 0);
+                } else if (xScale(sseq.xRange[1]) < this.canvasWidth - xMaxOffset) {
+                    this.zoom.translateBy(zoomDomElement, (this.canvasWidth - xMaxOffset - xScale(sseq.xRange[1] + this.domainOffset) + 0.1) / scale, 0);
                 }
             }
 
@@ -404,8 +444,8 @@ class Display {
         }
 
         let xmin = Math.ceil(xScale.invert(this.leftMargin));
-        let xmax = Math.floor(xScale.invert(this.width));
-        let ymin = Math.ceil(yScale.invert(this.height - this.bottomMargin));
+        let xmax = Math.floor(xScale.invert(this.canvasWidth));
+        let ymin = Math.ceil(yScale.invert(this.canvasHeight - this.bottomMargin));
         let ymax = Math.floor(yScale.invert(0));
 
 
@@ -450,8 +490,8 @@ class Display {
         this.scale = this.transform.k;
 
         this.xminFloat = xScale.invert(this.leftMargin);
-        this.xmaxFloat = xScale.invert(this.width);
-        this.yminFloat = yScale.invert(this.height - this.bottomMargin);
+        this.xmaxFloat = xScale.invert(this.canvasWidth);
+        this.yminFloat = yScale.invert(this.canvasHeight - this.bottomMargin);
         this.ymaxFloat = yScale.invert(0);
 
         this.xmin = Math.ceil(this.xminFloat);
@@ -463,52 +503,38 @@ class Display {
         this.yScale = yScale;
     }
 
+    dxScale(x){
+        return this.xScale(x) - this.xScale(0);
+    }
+
+    dyScale(x){
+        return this.yScale(x) - this.yScale(0);
+    }
+
     _updateGridAndTickStep(){
         this.xZoom = Math.log(this.scale) / Math.log(this.TICK_STEP_LOG_BASE);
         this.yZoom = this.xZoom;
 
-        this.xTicks = this.xScale.ticks(15);
-        this.yTicks = this.yScale.ticks();
+        // TODO: This 70 is a magic number. Maybe I should give it a name?
+        this.xTicks = this.xScale.ticks(this.canvasWidth / 70);
+        this.yTicks = this.yScale.ticks(this.canvasHeight / 70);
 
         this.xTickStep = Math.ceil(this.xTicks[1] - this.xTicks[0]);
         this.yTickStep = Math.ceil(this.yTicks[1] - this.yTicks[0]);
 
         this.xGridStep = (Math.floor(this.xTickStep / 5) === 0) ? 1 : Math.floor(this.xTickStep / 5);
         this.yGridStep = (Math.floor(this.yTickStep / 5) === 0) ? 1 : Math.floor(this.yTickStep / 5);
+        // TODO: This is an ad-hoc modification requested by Danny to ensure that the grid boxes are square.
+        // Probably it's a useful thing to be able to have square grid boxes, how do we want to deal with this?
         if(this.sseq.squareAspectRatio){
-            this.xGridStep = this.yGridStep; // TODO: Clean up Danny mod
+            this.xGridStep = this.yGridStep;
         }
     }
-
-    _drawGrid(context) {
-        if(!context){
-            context = this.gridLayerContext;
-        }
-        context.strokeStyle = this.gridColor;
-        context.clearRect(0, 0, this.width, this.height);
-
-        context.beginPath();
-        for (let col = Math.floor(this.xmin / this.xGridStep) * this.xGridStep; col <= this.xmax; col += this.xGridStep) {
-            context.moveTo(this.xScale(col), 0);
-            context.lineTo(this.xScale(col), this.clipHeight);
-        }
-        context.lineWidth = this.gridStrokeWidth;
-        context.stroke();
-
-        context.beginPath();
-        for (let row = Math.floor(this.ymin / this.yGridStep) * this.yGridStep; row <= this.ymax; row += this.yGridStep) {
-            context.moveTo(this.leftMargin, this.yScale(row));
-            context.lineTo(this.width - this.rightMargin, this.yScale(row));
-        }
-        context.lineWidth = this.gridStrokeWidth;
-        context.stroke();
-    }
-
 
     _drawTicks(context) {
         if(!context){
             context = this.marginLayerContext;
-            context.clearRect(0, 0, this.width, this.height);
+            context.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
             context.textBaseline = "middle";
             context.font = "15px Arial";
         }
@@ -523,11 +549,58 @@ class Display {
         }
     }
 
+    _drawGrid(context){
+        if(!context){
+            context = this.gridLayerContext;
+        }
+        context.strokeStyle = this.gridColor;
+        context.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+        context.lineWidth = this.gridStrokeWidth;
+
+        switch(this.gridStyle){
+            case gridGo:
+                this._drawGoGrid(context);
+                break;
+            case gridChess:
+                this._drawChessGrid(context);
+                break;
+            default:
+                // TODO: an error here?
+                break;
+        }
+
+        this._drawSelection(context);
+    }
+
+    _drawGoGrid(context) {
+        this._drawGridWithOffset(context, 0, 0);
+    }
+
+    _drawChessGrid(context) {
+        this._drawGridWithOffset(context, 0.5, 0.5);
+    }
+
+    _drawGridWithOffset(context, xoffset, yoffset){
+        context.beginPath();
+        for (let col = Math.floor(this.xmin / this.xGridStep) * this.xGridStep - xoffset; col <= this.xmax; col += this.xGridStep) {
+            context.moveTo(this.xScale(col), 0);
+            context.lineTo(this.xScale(col), this.clipHeight);
+        }
+        context.stroke();
+
+        context.beginPath();
+        for (let row = Math.floor(this.ymin / this.yGridStep) * this.yGridStep - yoffset; row <= this.ymax; row += this.yGridStep) {
+            context.moveTo(this.leftMargin, this.yScale(row));
+            context.lineTo(this.canvasWidth - this.rightMargin, this.yScale(row));
+        }
+        context.stroke();
+    }
+
     _drawSupermarginLayer(context){
         if(!context){
             context = this.supermarginLayerContext;
         }
-        context.clearRect(0, 0, this.width, this.height);
+        context.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
         // This makes the white square in the bottom left corner which prevents axes labels from appearing to the left
         // or below the axes intercept.
         context.fillStyle = "#FFF";
@@ -539,7 +612,7 @@ class Display {
         context.beginPath();
         context.moveTo(this.leftMargin, this.topMargin);
         context.lineTo(this.leftMargin, this.clipHeight);
-        context.lineTo(this.width - this.rightMargin, this.clipHeight);
+        context.lineTo(this.canvasWidth - this.rightMargin, this.clipHeight);
         context.stroke();
     }
 
@@ -551,7 +624,7 @@ class Display {
 
     _updateClasses(){
         let context = this.classLayerContext;
-        context.clearRect(0, 0, this.width, this.height);
+        context.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
         context.save();
 
         let scale_size;
@@ -565,7 +638,7 @@ class Display {
 
         this.classLayer.removeChildren();
         for (let c of this.sseq._getClassesToDisplay()) {
-            if(!c){ // TODO: should we log these cases?
+            if(!c || c.invalid){ // TODO: should we log these cases?
                 continue;
             }
 
@@ -582,20 +655,28 @@ class Display {
             }
             // let invalid_offsets = ["x","y"].filter((v) => this.sseq[`_get${v.toUpperCase()}Offset`](c));
             // if(invalid_offsets.length > 0){
-            //     console.log(`Invalid ${invalid_offsets.join(" and ")} offset${invalid_offsets.length === 2 ? "s" : ""} for class:`);
+            //     console.log(`Invalid ${invalid_offsets.join(" and "dr)} offset${invalid_offsets.length === 2 ? "s" : ""} for class:`);
             //     console.log(c);
             // }
 
             s.setPosition({x: this.xScale(c.x + this.sseq._getXOffset(c)), y: this.yScale(c.y + this.sseq._getYOffset(c))});
 
-            let node = this.sseq.getClassNode(c,this.page);
+            let node = this.sseq.getClassNode(c, this.page);
             if(node === undefined){
-                console.log("Error: node for class is undefined. Using default node."); console.log(c);
+                console.log("Error: node for class is undefined. Using default node.", c);
                 node = this.sseq.default_node;
             }
 
             s.setNode(node);
             s.size(s.size() * scale_size * this.sseq.class_scale);
+            // Highlight selected class code
+            if(c.selected){
+                let highlight_shape = s.clone();
+                highlight_shape.size(s.size() * 1.3);
+                highlight_shape.stroke("orange");
+                highlight_shape.fill("orange");
+                this.classLayer.add(highlight_shape);
+            }
             this.classLayer.add(s);
         }
     }
@@ -619,7 +700,7 @@ class Display {
     _drawEdges(context){
         if(!context){
             context = this.edgeLayerContext;
-            context.clearRect(0, 0, this.width, this.height);
+            context.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
         }
         let edges = this.sseq._getEdgesToDisplay();
         for (let i = 0; i < edges.length; i++) {
@@ -682,40 +763,6 @@ class Display {
         }
     }
 
-
-    _getPositionColorKey(x, y) {
-        return "#" + Konva.Util._rgbToHex(...this.hitCtx.getImageData(x, y, 1, 1).data);
-    }
-
-    // Not currently in use because it is too slow...
-    _findBoundaryTowards(shape, x, y) {
-        const colorKey = shape.colorKey;
-        const start_distance = 8;
-        let x0 = shape.x();
-        let y0 = shape.y();
-        let dx = x - x0;
-        let dy = y - y0;
-        let length = Math.sqrt(dx * dx + dy * dy);
-
-        if (length === 0) {
-            return {x: x0, y: y0};
-        }
-
-        dx = dx / length * start_distance;
-        dy = dy / length * start_distance;
-        length = start_distance;
-        while (length > 0.5) {
-            length /= 2;
-            dx /= 2;
-            dy /= 2;
-            if (this._getPositionColorKey(x0 + dx, y0 + dy) === colorKey) {
-                x0 += dx;
-                y0 += dy;
-            }
-        }
-        return {x: x0, y: y0};
-    }
-
     _addClasses() {
         this.classLayer.removeChildren();
         for (let c of this.sseq.classes) {
@@ -724,7 +771,7 @@ class Display {
     }
 
     _addClass(c){
-        if(!c){ // TODO: should we log invalid classes?
+        if(!c || c.invalid){ // TODO: should we log invalid classes?
             return;
         }
 
@@ -752,16 +799,24 @@ class Display {
         target_shape.show();
         target_shape.draw();
 
-
         let sourcePt = this._findBoundaryTowards(source_shape, target_shape.x(), target_shape.y());
         let targetPt = this._findBoundaryTowards(target_shape, source_shape.x(), source_shape.y());
         edge.sourceOffset = {x: (sourcePt.x - source_shape.x()), y: (sourcePt.y - source_shape.y())};
         edge.targetOffset = {x: (targetPt.x - source_shape.x()), y: (targetPt.y - source_shape.y())};
     }
 
+    // Tooltips
+    /**
+     *
+     * @param shape
+     * @private
+     */
     _handleMouseover(shape) {
-        this.mouseover_class = shape.sseq_class;
         let c = shape.sseq_class;
+        if(!c){
+            return;
+        }
+        this.mouseover_class = c;
         // Is the result cached?
         let tooltip = this.sseq.getClassTooltip(c, this.page).replace(/\n/g, "\n<hr>\n");
         if (c.tooltip_html) {
@@ -798,9 +853,9 @@ class Display {
             .style("top", (shape.y() - tooltip_height) + "px")
             .style("right", null).style("bottom", null);
         let bounding_rect = this.tooltip_div.node().getBoundingClientRect();
-        if (bounding_rect.right > this.width) {
+        if (bounding_rect.right > this.canvasWidth) {
             this.tooltip_div.style("left", null)
-                .style("right", (this.width - shape.x() + 10) + "px")
+                .style("right", (this.canvasWidth - shape.x() + 10) + "px")
         }
         if (bounding_rect.top < 0) {
             this.tooltip_div.style("top", (shape.y() + 10) + "px")
@@ -825,6 +880,11 @@ class Display {
             .style("opacity", 0);
     }
 
+    /**
+     * Draw an svg onto the canvas.
+     * @param context html5 canvas context
+     * @param xml An svg string
+     */
     drawSVG(context, xml){
         // make it base64
         let svg64 = btoa(xml);
@@ -840,20 +900,21 @@ class Display {
         context.drawImage(img,
             this.xScale(this.sseq.xRange[0]) - this.xMinOffset,
             this.yScale(this.sseq.yRange[1] + 1),
-            this.width  / (this.xmaxFloat - this.xminFloat) * (this.sseq.xRange[1] - this.sseq.xRange[0] + 1),
-            this.height / (this.ymaxFloat - this.yminFloat) * (this.sseq.yRange[1] - this.sseq.yRange[0] + 1)
+            this.canvasWidth  / (this.xmaxFloat - this.xminFloat) * (this.sseq.xRange[1] - this.sseq.xRange[0] + 1),
+            this.canvasHeight / (this.ymaxFloat - this.yminFloat) * (this.sseq.yRange[1] - this.sseq.yRange[0] + 1)
         );
     }
 
+    /**
+     * Make an SVG of the current canvas. I think this returns a string.
+     * TODO: fix clipping.
+     */
     toSVG(){
-        let ctx = new C2S(this.width, this.height);
+        let ctx = new C2S(this.canvasWidth, this.canvasHeight);
         ctx.translate(10, 20);
-
-//        window.ctx = ctx;
         ctx._fill = ctx.fill;
         ctx._stroke = ctx.stroke;
         ctx.fillStrokeShape = Konva.Context.prototype.fillStrokeShape;
-
 
         ctx.save();
         //this._clipLayer(ctx);
@@ -868,7 +929,6 @@ class Display {
         // this._clipLayer(ctx);
         this._drawEdges(ctx);
         ctx.restore();
-
 
         ctx.save(); // clip
         //this._clipLayer(ctx);
@@ -888,19 +948,176 @@ class Display {
         }
         ctx.restore(); // restore unclipped
 
-
         // draw axes
         ctx.beginPath();
         ctx.moveTo(this.leftMargin, this.topMargin);
         ctx.lineTo(this.leftMargin, this.clipHeight);
-        ctx.lineTo(this.width - this.rightMargin, this.clipHeight);
+        ctx.lineTo(this.canvasWidth - this.rightMargin, this.clipHeight);
         ctx.stroke();
 
-            // if(this.sseq.on_draw){
-            //     this.sseq.on_draw(this);
-            // }
+        if(this.sseq.on_draw){
+            this.sseq.on_draw(this);
+        }
 
         return ctx.getSerializedSvg(true);
+    }
+
+    /**
+     * This is a click event handler to update the selected cell when the user clicks.
+     * @param event A click event.
+     */
+    updateSelection(event){
+        event.mouseover_class = this.mouseover_class;
+        this.selectedX = Math.floor(display.xScale.invert(event.layerX) + 0.5);
+        this.selectedY = Math.floor(display.yScale.invert(event.layerY) + 0.5);
+        this.update();
+    }
+
+    /**
+     * Enable selection. This changes the grid style to a chess grid and attaches event handlers for clicking
+     * @param arrowNavigate
+     */
+    enableSelection(arrowNavigate){
+        this.gridStyle = gridChess;
+        this.addEventHandler("onclick",this.updateSelection.bind(this));
+        if(arrowNavigate){
+            this.addEventHandler('left',  () => {
+                if(this.selectedX !== undefined){
+                    this.selectedX --;
+                    this.update();
+                }
+            });
+            this.addEventHandler('right', () => {
+                if(this.selectedX !== undefined){
+                    this.selectedX ++;
+                    this.update();
+                }
+            });
+            this.addEventHandler('down',  () => {
+                if(this.selectedY !== undefined){
+                    this.selectedY --;
+                    this.update();
+                }
+            });
+            this.addEventHandler('up', () => {
+                if(this.selectedY !== undefined){
+                    this.selectedY ++;
+                    this.update();
+                }
+            });
+        }
+        this.update();
+    }
+
+    disableSelection(){
+        this.selectedX = undefined;
+        this.gridStyle = gridGo;
+        Mousetrap.bind('left',  this.previousPage);
+        Mousetrap.bind('right', this.nextPage);
+        this.eventHandlerLayer["onclick"] = (event) => {};
+        this.update();
+    }
+
+    _drawSelection(context){
+        let x = this.selectedX;
+        let y = this.selectedY;
+        if(x !== undefined && y !== undefined){
+            context.fillStyle = this.gridColor;
+            context.rect(
+                display.xScale(x - 0.5),
+                display.yScale(y - 0.5),
+                display.dxScale(1),
+                display.dyScale(1)
+            );
+            context.fill();
+        }
+    }
+
+    /**
+     * Move the canvas to contain (x,y)
+     * TODO: control speed, control acceptable range of target positions, maybe zoom out if display is super zoomed in?
+     * @param x
+     * @param y
+     */
+    seek(x, y){
+        return new Promise((resolve) => {
+            let dx = 0;
+            let dy = 0;
+            if (x > this.xmaxFloat - 1) {
+                dx = this.xmaxFloat - 1 - x;
+            } else if (x < this.xminFloat + 1) {
+                dx = this.xminFloat + 1 - x;
+            }
+            if (y > this.ymaxFloat - 1) {
+                dy = this.ymaxFloat - 1 - y;
+            } else if (y < this.xminFloat + 1) {
+                dy = this.yminFloat + 1 - y;
+            }
+            if (dx === 0 && dy === 0) {
+                return;
+            }
+
+            let dxActual = this.dxScale(dx);
+            let dyActual = this.dyScale(dy);
+            let dist = Math.sqrt(dxActual * dxActual + dyActual * dyActual);
+            // steps controls the speed -- doubling steps halves the speed.
+            // Of course we could maybe set up some fancy algorithm that zooms and pans.
+            let steps = Math.ceil(dist / 10);
+            let xstep = dxActual / steps;
+            let ystep = dyActual / steps;
+
+            let i = 0;
+            let t = d3.interval(() => {
+                i++;
+                this.translateBy(xstep, ystep);
+                if (i >= steps) {
+                    t.stop();
+                    resolve();
+                }
+            }, 5);
+        });
+    }
+
+    translateBy(xstep, ystep){
+        this.zoom.on("zoom", null);
+        this.zoom.translateBy(this.zoomDomElement, xstep / this.transform.k, ystep / this.transform.k ); //
+        this.update();
+        this.zoom.on("zoom", this.updateBatch);
+    }
+
+
+    // Only used in unused _findBounaryTowards
+    _getPositionColorKey(x, y) {
+        return "#" + Konva.Util._rgbToHex(...this.hitCtx.getImageData(x, y, 1, 1).data);
+    }
+
+    // Not currently in use because it is too slow...
+    _findBoundaryTowards(shape, x, y) {
+        const colorKey = shape.colorKey;
+        const start_distance = 8;
+        let x0 = shape.x();
+        let y0 = shape.y();
+        let dx = x - x0;
+        let dy = y - y0;
+        let length = Math.sqrt(dx * dx + dy * dy);
+
+        if (length === 0) {
+            return {x: x0, y: y0};
+        }
+
+        dx = dx / length * start_distance;
+        dy = dy / length * start_distance;
+        length = start_distance;
+        while (length > 0.5) {
+            length /= 2;
+            dx /= 2;
+            dy /= 2;
+            if (this._getPositionColorKey(x0 + dx, y0 + dy) === colorKey) {
+                x0 += dx;
+                y0 += dy;
+            }
+        }
+        return {x: x0, y: y0};
     }
 }
 

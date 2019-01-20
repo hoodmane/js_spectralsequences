@@ -68,8 +68,8 @@ Sseq.loadFromServer(file_name)
 
         // sseq.onDifferentialAdded((d) => {
         //     d.addInfoToSourceAndTarget();
-        //     d.source.update();
-        //     d.target.update();
+        //     d.source.updateAll();
+        //     d.target.updateAll();
         //     d.leibniz(["a_0", "h_0", "<h_0,h_0,->","b"]);
         // });
 
@@ -90,7 +90,7 @@ Sseq.loadFromServer(file_name)
             let bend = Number.parseInt(prompt(`Enter bend angle`, e.bend));
             if(bend !== NaN){
                 e.bend = bend;
-                sseq.update();
+                sseq.updateAll();
             }
         });
 
@@ -112,7 +112,7 @@ Sseq.loadFromServer(file_name)
             }
             console.log(c.x_offset);
             console.log(c.y_offset);
-            sseq.update();
+            sseq.updateAll();
         });
 
         let ext_colors = {"3" : "orange", "\\alpha_1" : "purple", "\\beta_1" : "black", "<\\alpha,3,->" : "black", "<\\alpha,\\alpha,->" : "brown"};
@@ -134,7 +134,7 @@ Sseq.loadFromServer(file_name)
                     }
                     d.display_edge.mult = ext_type;
                     d.display_edge.color = d.color;
-                    sseq.update();
+                    sseq.updateAll();
                 }
             }
         });
@@ -155,7 +155,7 @@ Sseq.loadFromServer(file_name)
         //         real_class.name = name;
         //         real_class.setColor("black");
         //         sseq.updateClass(real_class);
-        //         dss.update();
+        //         dss.updateAll();
         //     }
         //     c.tooltip_html = undefined;
         //     add_g1_name_if_possible(real_class);
@@ -167,7 +167,7 @@ Sseq.loadFromServer(file_name)
         //     real_class.addExtraInfo(`\\(${str}\\)`);
         //     real_class.setColor("black");
         //     sseq.updateClass(real_class);
-        //     dss.update();
+        //     dss.updateAll();
         // }
         //
         // function setPermanentCycleInfoRec(c, str){
@@ -200,10 +200,10 @@ Sseq.loadFromServer(file_name)
         //         real_class.permanent_cycle_info = permanent_cycle_info;
         //         c.permanent_cycle_info = permanent_cycle_info;
         //         real_class.extra_info = `\n\\(${permanent_cycle_info}\\)`;
-        //         real_class.update();
+        //         real_class.updateAll();
         //
         //         //c.tooltip_html = undefined;
-        //         dss.update();
+        //         dss.updateAll();
         //     }
         //     c.tooltip_html = undefined;
         //     add_g1_name_if_possible(real_class);

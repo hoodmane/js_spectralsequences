@@ -45,11 +45,7 @@ class DisplaySseq {
         this.xRange = [0, 100];
         this.yRange = [0, 100];
         this.offset_size = 0.3;
-        this.default_node = new Node();
-        this.default_node.fill = true;
-        this.default_node.stroke = true;
-        this.default_node.shape = Shapes.circle;
-        this.default_node.size = 6;
+        this.default_node = DisplaySseq.default_node;
         this.class_scale = 1;
         this.eventHandlers = {};
         this.class_tooltip_fields = ["extra_info"];
@@ -57,6 +53,7 @@ class DisplaySseq {
         this.serializeSseqFields = Sseq.serializeSseqFields;
         this.serializeClassFields = Sseq.serializeClassFields;
         this.serializeEdgeFields = Sseq.serializeEdgeFields;
+        this.update_listeners = new Map();
     }
 
     /**
@@ -103,6 +100,9 @@ class DisplaySseq {
      */
     addEventHandler(key, fn) {
         this.eventHandlers[key] = fn;
+        if(window.display){
+            window.display._updateEventHandlers();
+        }
     }
 
     setPageChangeHandler(f) {
@@ -151,8 +151,8 @@ class DisplaySseq {
      * If this spectral sequence is being displayed, tell the display to redraw. Use after changing the spectral sequence.
      */
     update() {
-        if (this.update_listener) {
-            this.update_listener();
+        for(let f of this.update_listeners.values()) {
+            f();
         }
     }
 
@@ -179,13 +179,17 @@ class DisplaySseq {
     //
 
     /**
-     * If this spectral sequence is currently being displayed, this will called with a reference to display.update()
-     * so that this.update() will cause the display to update.
+     * If this spectral sequence is currently being displayed, this will called with a reference to display.updateAll()
+     * so that this.updateAll() will cause the display to updateAll.
      * @param f
      * @package
      */
-    _registerUpdateListener(f) {
-        this.update_listener = f;
+    _registerUpdateListener(id, f) {
+        this.update_listeners.set(id, f);
+    }
+
+    _removeUpdateListener(id){
+        this.update_listeners.delete(id);
     }
 
     /**
@@ -432,8 +436,11 @@ class DisplaySseq {
         let num_classes_by_degree = new StringifyingMap();
         let classes_by_id = new Map();
         let classes = [];
+        let total_classes = 0;
         for(let c of json.classes){
+            total_classes ++;
             let cn = DisplaySseq.newClass();
+            cn.unique_id = total_classes;
             cn.x = c.degree[0];
             cn.y = c.degree[1];
             let idx  = num_classes_by_degree.getOrElse([cn.x, cn.y], 0);
@@ -461,6 +468,9 @@ class DisplaySseq {
 
 
     static fromJSONObject(sseq_obj){
+        if(!sseq_obj){
+            return undefined;
+        }
         let sseq = Object.assign(new DisplaySseq(), sseq_obj);
         // To resuscitate, we need to fix:
         //  1) The num_classes_by_degree map which is used for calculating offsets doesn't get serialized.
@@ -471,6 +481,8 @@ class DisplaySseq {
         //     these integers with references to the actual class.
 
         sseq.default_node = Object.assign(new Node(), sseq.default_node);
+        sseq.default_node.shape = Shapes[sseq.default_node.shape.name];
+
         let num_classes_by_degree = new StringifyingMap();
         let class_list_index_map = new Map(); // For fixing edge source / target references
         for(let i = 0; i < sseq.classes.length; i++){
@@ -507,6 +519,11 @@ class DisplaySseq {
         let sseqToSerialize = {};
         // Copy fields listed in serializeSseqFields into our serializer object.
         // TODO: What happens if extra fields contain references? Is this forbidden? Can we handle it somehow?
+        for(let field of ["serializeSseqFields", "serializeClassFields", "serializeEdgeFields"]){
+            if(!this[field]){
+                this[field] = Sseq[field].slice();
+            }
+        }
         for(let field of this.serializeSseqFields){
             sseqToSerialize[field] = this[field];
         }
@@ -551,7 +568,6 @@ class DisplaySseq {
             edgeToSerialize.target = edge.target.list_index;
             sseqToSerialize.edges.push(edgeToSerialize);
         }
-        console.log(sseqToSerialize);
         return sseqToSerialize;
     }
 
@@ -561,5 +577,12 @@ class DisplaySseq {
 
 
 }
+
+DisplaySseq.default_node = new Node();
+DisplaySseq.default_node.fill = true;
+DisplaySseq.default_node.stroke = true;
+DisplaySseq.default_node.shape = Shapes.circle;
+DisplaySseq.default_node.size = 6;
+
 
 exports.DisplaySseq = DisplaySseq;

@@ -2,9 +2,9 @@ url = new URL(document.location)
 jsFile = url.searchParams.get("sseq");
 if(jsFile){
     document.body.id = "sseq_display";
-    let mainDiv = document.createElement("div");
-    mainDiv.id = "main";
-    document.body.appendChild(mainDiv);
+    // let mainDiv = document.createElement("div");
+    // mainDiv.id = "main";
+    // document.body.appendChild(mainDiv);
     let script = document.createElement('script');
     // script.onload = function () {
     //     //do stuff with the script
@@ -12,8 +12,11 @@ if(jsFile){
     script.src = jsFile;
     document.body.appendChild(script);
 } else {
+    while (document.body.firstChild) {
+        document.body.removeChild(document.body.firstChild);
+    }
     document.body.id = "spectral_sequences";
-    let heading = document.createElement("h1");
+    let heading = c.createElement("h1");
     heading.innerHTML = "Spectral Sequences";
     document.body.appendChild(heading);
     let table = document.createElement("table");

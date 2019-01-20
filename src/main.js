@@ -11,7 +11,8 @@ window.mod = function(n,d){
 
 
 window.Util = require("./Util.js");
-window.IO = require("./IO");
+window.IO = require("./SaveLoad");
+window.Interface = require("./Interface");
 window.sseqDatabase = IO.sseqDatabase;
 window.Shapes = require("./Shape.js");
 window.Display = require("./display.js").Display;
@@ -51,4 +52,4 @@ window.getJSONFilename = function(file_name){
         file_name = "js_spectralsequences/" + file_name;
     }
     return file_name;
-}
+};

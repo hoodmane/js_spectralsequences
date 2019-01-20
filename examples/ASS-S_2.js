@@ -13,15 +13,12 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
     dss._getXOffset = tools.fixed_tower_xOffset.bind(dss);
     dss._getYOffset = (c) => c.y_offset || 0;
 
-
     if (on_public_website) {
         dss.display();
         return;
     }
 
-
     // sseq.addClassFieldToSerialize("lambda_monomial");
-    // console.log(disp_uass);
     // let uass = Sseq.getSseqFromDisplay(disp_uass);
     // window.uass = uass;
     // for(let c of sseq.getClasses()){
@@ -71,24 +68,27 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
     tools.install_edit_handlers(dss, "ASS-S_2");
 
     dss.addEventHandler("onclick", (event) => {
-        if (!event.mouseover_class) {
-            return;
-        }
-        let c = sseq.display_class_to_real_class.get(event.mouseover_class);
-        let x_offset = Number.parseFloat(prompt(`x nudge ${c.name}`));
-        if (x_offset) {
-            let old_x_offset = c.x_offset || (dss._getXOffset(c.display_class) / dss.offset_size);
-            c.x_offset = old_x_offset + x_offset;
-        }
 
-        let y_offset = Number.parseFloat(prompt(`y nudge ${c.name}`));
-        if (y_offset) {
-            let old_y_offset = c.y_offset || (dss._getYOffset(c.display_class) / dss.offset_size);
-            c.y_offset = old_y_offset + y_offset;
-        }
-        console.log(c.x_offset);
-        console.log(c.y_offset);
-        sseq.update();
+        //if (!event.mouseover_class) {
+        //    return;
+        //}
+
+
+        // let c = sseq.display_class_to_real_class.get(event.mouseover_class);
+        // let x_offset = Number.parseFloat(prompt(`x nudge ${c.name}`));
+        // if (x_offset) {
+        //     let old_x_offset = c.x_offset || (dss._getXOffset(c.display_class) / dss.offset_size);
+        //     c.x_offset = old_x_offset + x_offset;
+        // }
+        //
+        // let y_offset = Number.parseFloat(prompt(`y nudge ${c.name}`));
+        // if (y_offset) {
+        //     let old_y_offset = c.y_offset || (dss._getYOffset(c.display_class) / dss.offset_size);
+        //     c.y_offset = old_y_offset + y_offset;
+        // }
+        // console.log(c.x_offset);
+        // console.log(c.y_offset);
+        // sseq.updateAll();
     });
 
     // dss.addEventHandler("onclick", (event) => {
@@ -106,7 +106,7 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
     //         real_class.permanent_cycle_info = permanent_cycle_info;
     //         c.permanent_cycle_info = permanent_cycle_info;
     //         real_class.extra_info = `\n\\(${permanent_cycle_info}\\)`;
-    //         sseq.update();
+    //         sseq.updateAll();
     //     }
     //     c.tooltip_html = undefined;
     // });
@@ -124,7 +124,7 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
     //     let bend = Number.parseInt(prompt(`Enter bend angle`, e.bend));
     //     if(bend !== NaN){
     //         e.bend = bend;
-    //         sseq.update();
+    //         sseq.updateAll();
     //     }
     // });
 
@@ -144,13 +144,13 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
                 d.mult = ext_type;
                 d.display_edge.mult = ext_type;
                 d.display_edge.color = d.color;
-                sseq.update();
+                sseq.updateAll();
             }
         }
     });
 
-    console.log(dss.classes[0]);
-
-
     dss.display();
-});
+    // dss.classes.forEach( c => c.recid = c.unique_id);
+    // w2ui['myGrid'].add(dss.classes);
+
+}).catch(e => console.log(e));
