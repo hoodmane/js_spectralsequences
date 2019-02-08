@@ -12,14 +12,7 @@ let colorList = ["black", "blue", "orange", "green","red","yellow", "purple", "m
 
 
 
-let exponents_to_classes = new StringifyingMap();
-function setClassName(c, powers, cell){
-    c.exponents = powers.slice();
-    c.exponents.push(cell);
-    exponents_to_classes.set(c.exponents, c);
-    c.setName(monomialString(["a", "b", "x", "v"], powers, `[${cell}]`));
-    return c;
-}
+
 
 let sseq_types = {};
 sseq_types.HFPSS = {};
@@ -27,64 +20,22 @@ sseq_types.AHSS = {};
 let HFPSS = sseq_types.HFPSS;
 let AHSS = sseq_types.AHSS;
 
-AHSS.addCells = function addAHSSCells(sseq, cells){
-    let cellMap = {};
-    let colorMap = {};
-    for(let i = 0; i < cells.length; i++){
-        for(let v = vmin; v < vmax; v++ ){
-            sseq.xshift = 72*v + cells[i];
-            sseq.onClassAdded((c) => c.setColor(colorList[i]));
-            let o = setClassName(sseq.addClass(0,0),[0,0,0,3*v],cells[i]).setNode(squareNode).setColor(colorList[i])
-            setClassName(sseq.addClass(24,0),[0,0,0,3*v+1],cells[i]).setNode(openSquareNode).setColor(colorList[i]);
-            setClassName(sseq.addClass(48,0),[0,0,0,3*v+2],cells[i]).setNode(openSquareNode).setColor(colorList[i]);
-            let b = setClassName(sseq.addClass(10,2), [0,1,0,3*v], cells[i]);
-            let b2 = setClassName(sseq.addClass(20,4), [0,2,0,3*v], cells[i]);
-            let b3 = setClassName(sseq.addClass(30,6), [0,3,0,3*v], cells[i]);
-            let b4 = setClassName(sseq.addClass(40,8), [0,4,0,3*v], cells[i]);
-            let a = setClassName(sseq.addClass(3,1), [1,0,0,3*v], cells[i]);
-            let ab = setClassName(sseq.addClass(13,3), [1,1,0,3*v], cells[i]);
-            let x = setClassName(sseq.addClass(27,1), [0,0,1,3*v], cells[i]);
-            let bx = setClassName(sseq.addClass(37,3), [0,1,1,3*v], cells[i]);
-            sseq.addStructline(o, a).setProduct("a");
-            sseq.addStructline(o, b).setProduct("b");
-            sseq.addStructline(b, b2).setProduct("b");
-            sseq.addStructline(b2, b3).setProduct("b");
-            sseq.addStructline(b3, b4).setProduct("b");
-            sseq.addStructline(a, ab).setProduct("b");
-            sseq.addStructline(b, ab).setProduct("a");
-            sseq.addStructline(x, b3).setProduct("a");
-            sseq.addStructline(x, bx).setProduct("b");
-            sseq.addStructline(bx, b4).setProduct("a");
-            sseq.xshift = 0;
-        }
-    }
-};
-HFPSS.addCells = function addHFPSSCells(sseq, cells){
-    let cellMap = {};
-    let colorMap = {};
-    for(let i = 0; i < cells.length; i++){
-        cellMap[`[${cells[i]}]`] = [cells[i], 0];
-        colorMap[`[${cells[i]}]`] = colorList[i];
-    }
 
+AHSS.initialize = function(sseq) {
+    sseq.exponents_to_classes = new StringifyingMap();
+};
+HFPSS.initialize = function(sseq) {
+    sseq.colorMap = {};
     sseq.polynomial_classes = sseq.addPolynomialClasses(
         {"a" : [3, 1], "b" : [10, 2], "v" : [24, 0] },
         [["a",0,1],["b",0,30],["v", vmin, vmax]],
-        cellMap
+        {}
     );
-
     sseq.polynomial_classes_by_id = sseq.polynomial_classes._tuples_to_ids;
 
     classes = sseq.polynomial_classes;
-
-    for(let kv of sseq.polynomial_classes){
-        let k = kv[0];
-        let c = kv[1];
-        if(c.y === 0){
-            c.setNode(squareNode);
-        }
-        c.setColor(colorMap[k._module_generator]);
-    }
+    classes.addStructline("a");
+    classes.addStructline("b");
 
     sseq.onDifferentialAdded((d) => {
         if(d.source.y === 0){
@@ -94,12 +45,87 @@ HFPSS.addCells = function addHFPSSCells(sseq, cells){
             s.setStructlinePages(d.page);
         }
     });
+    sseq.num_cells = 0;
+};
 
-    sseq.polynomial_classes.addStructline("a");
-    sseq.polynomial_classes.addStructline("b");
+
+AHSS.onOpen = function(sseq){
+    sseq.exponents_to_classes = new StringifyingMap();
+    for(let c of sseq.getClasses()){
+        sseq.exponents_to_classes.set(c.exponents, c);
+    }
+};
+HFPSS.onOpen = function(sseq){
+    sseq.colorMap = {};
+};
+
+
+AHSS.addCells = function addAHSSCells(sseq, cells){
+    cells.forEach(cell => AHSS.addCell(sseq, cell));
+};
+AHSS.addCell = function addAHSSCell(sseq, cell){
+    if(!Number.isInteger(cell)){
+        return;
+    }
+    let i = sseq.num_cells;
+    sseq.num_cells ++;
+    for(let v = vmin; v < vmax; v++ ){
+        sseq.xshift = 72*v + cell;
+        sseq.onClassAdded((c) => c.setColor(colorList[i]));
+        let o = AHSS.setClassName(sseq.addClass(0,0),[0,0,0,3*v],cell).setNode(squareNode).setColor(colorList[i]);
+        AHSS.setClassName(sseq.addClass(24,0),[0,0,0,3*v+1],cell).setNode(openSquareNode).setColor(colorList[i]);
+        AHSS.setClassName(sseq.addClass(48,0),[0,0,0,3*v+2],cell).setNode(openSquareNode).setColor(colorList[i]);
+        let b = AHSS.setClassName(sseq.addClass(10,2), [0,1,0,3*v], cell);
+        let b2 = AHSS.setClassName(sseq.addClass(20,4), [0,2,0,3*v], cell);
+        let b3 = AHSS.setClassName(sseq.addClass(30,6), [0,3,0,3*v], cell);
+        let b4 = AHSS.setClassName(sseq.addClass(40,8), [0,4,0,3*v], cell);
+        let a = AHSS.setClassName(sseq.addClass(3,1), [1,0,0,3*v], cell);
+        let ab = AHSS.setClassName(sseq.addClass(13,3), [1,1,0,3*v], cell);
+        let x = AHSS.setClassName(sseq.addClass(27,1), [0,0,1,3*v], cell);
+        let bx = AHSS.setClassName(sseq.addClass(37,3), [0,1,1,3*v], cell);
+        sseq.addStructline(o, a).setProduct("a");
+        sseq.addStructline(o, b).setProduct("b");
+        sseq.addStructline(b, b2).setProduct("b");
+        sseq.addStructline(b2, b3).setProduct("b");
+        sseq.addStructline(b3, b4).setProduct("b");
+        sseq.addStructline(a, ab).setProduct("b");
+        sseq.addStructline(b, ab).setProduct("a");
+        sseq.addStructline(x, b3).setProduct("a");
+        sseq.addStructline(x, bx).setProduct("b");
+        sseq.addStructline(bx, b4).setProduct("a");
+        sseq.xshift = 0;
+    }
+    sseq.update();
+};
+AHSS.setClassName = function setClassName(c, powers, cell){
+    c.exponents = powers.slice();
+    c.exponents.push(cell);
+    sseq.exponents_to_classes.set(c.exponents, c);
+    c.setName(monomialString(["a", "b", "x", "v"], powers, `[${cell}]`));
+    return c;
+};
+
+
+HFPSS.addCells = function addHFPSSCells(sseq, cells){
+    cells.forEach(cell => HFPSS.addCell(sseq, cell));
+};
+HFPSS.addCell = function addHFPSSCells(sseq, cell_dim){
+    if(!Number.isInteger(cell_dim)){
+        return;
+    }
+    let cellName = `[${cell_dim}]`;
+    sseq.colorMap[cellName] = colorList[sseq.num_cells];
+    sseq.num_cells ++;
+    sseq.polynomial_classes.addModuleGenerator(cellName, [cell_dim, 0], HFPSS.classAddedCallback);
     return sseq.polynomial_classes;
 };
 
+HFPSS.classAddedCallback = function classAddedCallback(c) {
+    if(c.y === 0){
+        c.setNode(squareNode);
+    }
+    c.setColor(sseq.colorMap[c.module_generator]);
+};
 
 AHSS.addDifferential = function addDifferentialAHSS(event){
     if(!event.mouseover_class || !dss.temp_source_class) {
@@ -117,14 +143,20 @@ AHSS.addDifferential = function addDifferentialAHSS(event){
     let length = sc.exponents[sc.exponents.length - 1] -  tc.exponents[tc.exponents.length - 1];
     if(confirm(`Add d${length} differential from ${tools.getClassExpression(s)} to ${tools.getClassExpression(t)}`)){
         let vIndex = 3;
+        sseq.startMutationTracking();
         for(let v = vmin; v < vmax; v++){
             let scexp = sc.exponents.slice();
             let tcexp = tc.exponents.slice();
             scexp[vIndex] =  scexp[vIndex] + 3*v;
             tcexp[vIndex] =  tcexp[vIndex] + 3*v;
-            sseq.addDifferential(exponents_to_classes.get(scexp), exponents_to_classes.get(tcexp),length);
+            if(!sseq.exponents_to_classes.has(scexp) || !sseq.exponents_to_classes.has(tcexp)){
+                return;
+            }
+            let e = sseq.addDifferential(sseq.exponents_to_classes.get(scexp), sseq.exponents_to_classes.get(tcexp),length);
         }
+        sseq.addMutationsToUndoStack();
         //d.color = differential_colors[d.page];
+        AHSS.update(sseq);
         dss.update();
     }
 };
@@ -152,6 +184,7 @@ HFPSS.addDifferential = function addDifferentialHFPSS(event) {
         vPeriod = (length < 5) ? 1 : 3;
         let offsetVector = classes._ring.getElement(disp_vec);
         let edge_list = [];
+        sseq.startMutationTracking();
         for (let key_value of classes) {
             let k = key_value[0];
             let c1 = key_value[1];
@@ -165,7 +198,8 @@ HFPSS.addDifferential = function addDifferentialHFPSS(event) {
                 }
             }
         }
-        undo.addEdgeList(edge_list);
+        sseq.addMutationsToUndoStack();
+        HFPSS.update(sseq);
         dss.update();
     }
 };
@@ -187,16 +221,15 @@ AHSS.addExtension = function addExtension(event) {
 
     if (confirm(`Add ${extensions[t.x - s.x]} extension from ${tools.getClassExpression(s)} to ${tools.getClassExpression(t)}`)) {
         let vIndex = 3;
-        let edge_list = [];
+        sseq.startMutationTracking();
         for (let v = vmin; v < vmax; v++) {
             let scexp = sc.exponents.slice();
             let tcexp = tc.exponents.slice();
             scexp[vIndex] = scexp[vIndex] + 3 * v;
             tcexp[vIndex] = tcexp[vIndex] + 3 * v;
-            let e = sseq.addExtension(exponents_to_classes.get(scexp), exponents_to_classes.get(tcexp));
-            edge_list.push(e);
+            sseq.addExtension(sseq.exponents_to_classes.get(scexp), sseq.exponents_to_classes.get(tcexp));
         }
-        undo.addEdgeList(edge_list);
+        sseq.addMutationsToUndoStack();
         dss.update();
     }
 };
@@ -215,15 +248,15 @@ HFPSS.addExtension = function addExtension(event) {
     let source_module_gen = sc.vector._module_generator;
     let target_module_gen = tc.vector._module_generator;
 
-
     if (!extensions[t.x - s.x]) {
         return;
     }
 
-
     if (confirm(`Add ${extensions[t.x - s.x]} extension from ${tools.getClassExpression(s)} to ${tools.getClassExpression(t)}`)) {
         vPeriod = 3;
         let offsetVector = classes._ring.getElement(disp_vec);
+        sseq.startMutationTracking();
+        let edge_list = [];
         if (!confirm("Translate along products?")) {
             let source_key = sc.vector;
             let target_key = tc.vector;
@@ -233,8 +266,10 @@ HFPSS.addExtension = function addExtension(event) {
                 let translated_target_key = target_key.multiply(elt);
                 let sc = classes.get(translated_source_key);
                 let tc = classes.get(translated_target_key);
-                sseq.addExtension(sc, tc);
+                let e = sseq.addExtension(sc, tc);
+                edge_list.push(e);
             }
+            sseq.addMutationsToUndoStack();
             dss.update();
             return;
         }
@@ -250,13 +285,15 @@ HFPSS.addExtension = function addExtension(event) {
                 let targetClass = classes.get(targetVector);
                 if (targetClass) {
                     let t = classes.get(targetVector);
-                    sseq.addExtension(c1, t);
+                    let e = sseq.addExtension(c1, t);
+                    edge_list.push(e);
                 }
             }
         }
+        sseq.addMutationsToUndoStack();
         dss.update();
     }
-}
+};
 
 AHSS.onDifferentialAdded = function(d) {
     d.leibniz(["a", "b"]);
@@ -269,6 +306,39 @@ AHSS.onDifferentialAdded = function(d) {
     }
 };
 
+AHSS.update = function(){};
+HFPSS.update = function(sseq){
+    if(!sseq.polynomial_classes || !sseq.polynomial_classes.get){
+        return;
+    }
+    for(let e of sseq.getStructlines()){
+        if(e.guide_differential && (HFPSS.btorsionQ(e.source) || HFPSS.btorsionQ(e.target))){
+            sseq.deleteEdge(e);
+        }
+    }
+    for(let c of sseq.getClasses()){
+        if(c.vector[1] !== 0 || HFPSS.btorsionQ(c)){
+            continue;
+        }
+        for(let d of sseq.getStem(c.x - 1)){
+            if(d.y > 11 || d.y <= c.y || HFPSS.btorsionQ(d)){
+                continue;
+            }
+            if(c.edges.filter(e => e.otherClass(c) === d).length > 0){
+                continue;
+            }
+            let e = sseq.addStructline(c, d).setColor("red");
+            e.guide_differential = true;
+        }
+    }
+};
+
+
+HFPSS.btorsionQ = function btorsionQ(c){
+    let v = c.vector;
+    v = v.multiply(v._ring.getElement([0,10,0]));
+    return sseq.polynomial_classes.get(v).page_list[0] < 10000;
+};
 
 function save_main(ss, name){
     if(!name){
@@ -279,16 +349,24 @@ function save_main(ss, name){
     ss.saveToLocalStore(name);
 }
 
-function saveAsPrompt(ss){
-    let name = prompt("Save as:", ss.name);
+function saveAsPrompt(ss, prefix){
+    let oldName = ss.name || "";
+    if(oldName.startsWith(prefix)){
+        oldName = oldName.slice(prefix.length);
+    }
+    let name = prompt("Save as:", oldName);
+    if(!name){
+        return;
+    }
+    name = (prefix || "") + name;
     save_main(ss, name);
 }
 
-function save(ss, name){
+function save(ss, name, prefix){
     if(!name){
-        saveAsPrompt(ss);
+        saveAsPrompt(ss, prefix);
     } else {
-        save_main(ss,name);
+        save_main(ss, name);
     }
 }
 
@@ -308,25 +386,6 @@ function upload() {
     return false;
 }
 
-// This copies form.record into form.save_record to avoid a race condition between:
-//    the onClose writes over form.record with form.original
-//    the success code writes over form.original with form.record.
-function backupRecord(form){
-    form.save_record = {};
-    Object.assign(form.save_record,form.record);
-}
-
-// Write over form.original and form.record with form.save_record. Better have called backupRecord first!
-function saveRecord(form){
-    Object.assign(form.original, form.save_record);
-    Object.assign(form.record,   form.save_record);
-}
-
-// Write over form.record with form.original. Goes in the onClose handler.
-function restoreRecord(form){
-    Object.assign(form.record, form.original);
-}
-
 async function makeSseqDatalist(prefix){
     let sseqs = await IO.loadKeysFromLocalStoreWithPrefix(prefix);
     sseqs = sseqs.map(e => e.key.slice(prefix.length));
@@ -338,6 +397,53 @@ async function makeSseqDatalist(prefix){
     }
     return {sseqs: sseqs, datalist: datalist};
 }
+
+let new_sseq_form = new Interface.PopupForm(
+    {
+        name: 'new_sseq_form',
+        fields: [
+            { name: "sseq-type", type: 'radio', html : {caption: 'Type'},
+                options: {
+                    items: [
+                        { id: "AHSS", text: '<u>A</u>tiyah Hirzebruch', attributes : { accesskey : 'a' } },
+                        { id: "HFPSS", text: '<u>H</u>omotopy Fixed Point', attributes : { accesskey : 'h' } }
+                    ]
+                }
+            },
+            { name: 'cell-dimensions', type: 'text', attributes : {accesskey : 'c'}, html: {caption : '<u>C</u>ell Dimensions'} }
+        ],
+        focus  : 1, // Start out with focus on filename text field.
+        record: {
+            "sseq-type"   : 'AHSS' // Start out with "AHSS" radio button selected.
+        },
+        accept_button_name : "Okay",
+        onValidate: function(event) {
+            let cells = this.record["cell-dimensions"];
+            let error = false;
+            try {
+                cells = JSON.parse("[" + cells + "]");
+            } catch(e) {
+                error = true;
+            }
+            if(!error){
+                error = !cells.every(Number.isInteger);
+            }
+            if(error) {
+                event.errors.push({ field: this.get('cell-dimensions'),
+                    error: 'Not a list of integers.'});
+                return;
+            }
+            this.cells = cells;
+        },
+        onSuccess: function(event){
+            newSseq(this.record['sseq-type'], this.cells);
+        }
+    },
+    {
+        title   : 'New',
+        // speed : error_on_toString
+    }
+);
 
 let open_sseq_form = new Interface.PopupForm(
     {
@@ -355,7 +461,8 @@ let open_sseq_form = new Interface.PopupForm(
         ],
         focus  : 1, // Start out with focus on filename text field.
         record: {
-            "sseq-type"   : 'AHSS' // Start out with "AHSS" radio button selected.
+            "sseq-type"   : 'AHSS', // Start out with "AHSS" radio button selected.
+            "sseq-file-name" : ''
         },
         accept_button_name : "Open",
         onValidate: function(event){
@@ -410,59 +517,23 @@ let open_sseq_form = new Interface.PopupForm(
     }
 );
 
-let error_on_toString = {};
-error_on_toString.toString = 1;
 
-let new_sseq_form = new Interface.PopupForm(
-    {
-        name: 'new_sseq_form',
-        fields: [
-            { name: "sseq-type", type: 'radio', html : {caption: 'Type'},
-                options: {
-                    items: [
-                        { id: "AHSS", text: '<u>A</u>tiyah Hirzebruch', attributes : { accesskey : 'a' } },
-                        { id: "HFPSS", text: '<u>H</u>omotopy Fixed Point', attributes : { accesskey : 'h' } }
-                    ]
-                }
-            },
-            { name: 'cell-dimensions', type: 'text', attributes : {accesskey : 'c'}, html: {caption : '<u>C</u>ell Dimensions'} }
-        ],
-        focus  : 1, // Start out with focus on filename text field.
-        record: {
-            "sseq-type"   : 'AHSS' // Start out with "AHSS" radio button selected.
-        },
-        accept_button_name : "Okay",
-        onValidate: function(event) {
-            let cells = this.record["cell-dimensions"];
-            let error = false;
-            try {
-                cells = JSON.parse("[" + cells + "]");
-            } catch(e) {
-                error = true;
-            }
-            if(!error){
-                error = !cells.every(Number.isInteger);
-            }
-            if(error) {
-                event.errors.push({ field: this.get('cell-dimensions'),
-                    error: 'Not a list of integers.'});
-                return;
-            }
-            this.cells = cells;
-        },
-        onSuccess: function(event){
-            newSseq(this.record['sseq-type'], this.cells);
-        }
-    },
-    {
-        title   : 'New',
-        // speed : error_on_toString
-    }
-);
-
+function newSseq(type, cells){
+    sseq = new Sseq();
+    sseq.type = type;
+    dss.type = type;
+    dss = sseq.getDisplaySseq();
+    sseq.num_cells = 0;
+    type = sseq_types[type];
+    type.initialize(sseq);
+    type.addCells(sseq, cells);
+    type.update(sseq);
+    sseq.getDisplaySseq();
+    setUpSseq(sseq, dss);
+    sseq.display();
+}
 
 async function openSseq(key){
-    console.log(key);
     let loaded_dss = await Sseq.loadFromLocalStore(key);
     if(!loaded_dss){
         alert(`Unknown sseq ${key}`);
@@ -471,30 +542,30 @@ async function openSseq(key){
     dss = loaded_dss;
     sseq = Sseq.getSseqFromDisplay(dss);
     sseq.type = w2ui.open_sseq_form.getType();
-    sseq.addSseqFieldToSerialize("type");
-    dss.type = sseq.type;
-    setRange(sseq);
-    addEventHandlers(sseq, dss);
+    console.log(sseq.type);
+    if(!sseq.num_cells){
+        let color_set = new Set();
+        sseq.getClasses().forEach(c => color_set.add(c.getColor()));
+        sseq.num_cells = color_set.size;
+    }
+    let type = sseq_types[sseq.type];
+    type.onOpen(sseq);
+    type.update(sseq);
+    setUpSseq(sseq, dss);
     sseq.display();
     return true;
 }
 
-function newSseq(type, cells){
-    sseq = new Sseq();
+
+
+function setUpSseq(sseq, dss){
     sseq.undo = new Interface.Undo(sseq);
-    console.log(sseq.undo);
-    window.undo = sseq.undo;
-    sseq.addSseqFieldToSerialize(["name","type", "polynomial_classes","differentials_source_target"]);
+    sseq.addSseqFieldToSerialize(["name","type", "num_cells", "polynomial_classes","differentials_source_target"]);
+    sseq.addClassFieldToSerialize(["vector","exponents"]);
     sseq.differentials_source_target = [];
-    sseq.addClassFieldToSerialize("vector");
-    dss = sseq.getDisplaySseq();
-    sseq.type = type;
-    dss.type = type;
-    setRange(sseq);
+    dss.type = sseq.type;
     addEventHandlers(sseq, dss);
-    sseq_types[type].addCells(sseq, cells);
-    sseq.getDisplaySseq();
-    sseq.display();
+    setRange(sseq);
 }
 
 function selectOddCycles(){
@@ -504,6 +575,13 @@ function selectOddCycles(){
         }
         sseq.update();
     }
+}
+
+function setRange(sseq){
+    sseq.xRange = [-24, 96];
+    sseq.yRange = [0, 20];
+    sseq.initialxRange = [0, 72];
+    sseq.initialyRange = [0, 15];
 }
 
 function setEdgeSource(event){
@@ -517,28 +595,22 @@ function setEdgeSource(event){
     }
 }
 
-
-
-function setRange(sseq){
-    sseq.xRange = [-24, 96];
-    sseq.yRange = [0, 20];
-    sseq.initialxRange = [0, 72];
-    sseq.initialyRange = [0, 15];
-}
-
 function addEventHandlers(sseq, dss) {
+    const save_prefix = `EO3-${sseq.type}:`;
+    const type = sseq_types[dss.type];
     dss.addEventHandler("ctrl+s", (e) => {
-        if (sseq.name || dss.name) {
-            save(sseq, sseq.name || dss.name);
-        } else {
-            saveAsPrompt(sseq);
-        }
+        save(sseq, sseq.name || dss.name, save_prefix);
         e.preventDefault();
         return true;
     });
 
-    dss.addEventHandler("ctrl+shift+s", () => saveAsPrompt(sseq));
+    dss.addEventHandler("ctrl+shift+s", () => {
+        saveAsPrompt(sseq, save_prefix);
+    });
     dss.addEventHandler("u", upload);
+    dss.addEventHandler("d", () => {
+        sseq.download(sseq.name + ".json");
+    });
     dss.addEventHandler("o", open_sseq_form.open);
     dss.addEventHandler("n", new_sseq_form.open);
 
@@ -551,12 +623,19 @@ function addEventHandlers(sseq, dss) {
         }
     });
 
-    dss.addEventHandler('t', sseq_types[dss.type].addDifferential);
-    dss.addEventHandler('e', sseq_types[dss.type].addExtension);
-    dss.addEventHandler("ctrl+z", sseq.undo.undo);
-    dss.addEventHandler("ctrl+shift+z", sseq.undo.redo);
-    if(sseq_types[dss.type].onDifferentialAdded){
-        sseq.onDifferentialAdded(sseq_types[dss.type].onDifferentialAdded);
+    dss.addEventHandler('a', (event) => {
+        let c = prompt("Cell dimension");
+        type.addCell(sseq, Number.parseInt(c));
+        type.update(sseq);
+    });
+    dss.addEventHandler('t', type.addDifferential);
+    dss.addEventHandler('e', type.addExtension);
+    if(sseq.undo){
+        dss.addEventHandler("ctrl+z", sseq.undo.undo);
+        dss.addEventHandler("ctrl+shift+z", sseq.undo.redo);
+    }
+    if(type.onDifferentialAdded){
+        sseq.onDifferentialAdded(type.onDifferentialAdded);
     }
 }
 

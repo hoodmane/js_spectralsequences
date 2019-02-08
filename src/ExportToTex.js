@@ -1,4 +1,4 @@
-let IO = require("./IO.js");
+let IO = require("./SaveLoad.js");
 
 let texHead = "\\documentclass{spectralsequence-example}\n\\makeatletter\n\\begin{document}";
 let beginSseqpage = "\\begin{sseqpage}";

@@ -176,6 +176,29 @@ class SseqClass {
         this._last_page_idx = 0;
     }
 
+    getMemento(){
+        let res = Util.copyFields({}, this);
+        res.node_list = res.node_list.map( n => n.copy());
+        return res;
+    }
+
+    restoreFromMemento(memento){
+        if(memento.delete){
+            if(this.invalid){
+                return;
+            }
+            this.sseq.deleteClass(this);
+            return;
+        }
+        if(this.invalid){
+            this.sseq.reviveClass(this);
+        }
+        let res = Util.copyFields(this, memento);
+        this.node_list = this.node_list.map( n => n.copy());
+        this.sseq.updateClass(this);
+        return this;
+    }
+
     static getDummy(){
         if(SseqClass._dummy){
             return SseqClass._dummy;
@@ -279,8 +302,11 @@ class SseqClass {
         if(node === undefined){
             node = {};
         }
+        let pre = this.getMemento();
         const idx = this._getPageIndex(page);
         this.node_list[idx] = Node.merge(this.node_list[idx], node);
+        let post = this.getMemento();
+        this.sseq.addMutation(this, pre, post);
         return this;
     }
 
@@ -289,7 +315,10 @@ class SseqClass {
     }
 
     setColor(color, page){
+        let pre = this.getMemento();
         this.getNode(page).setColor(color);
+        let post = this.getMemento();
+        this.sseq.addMutation(this, pre, post);
         return this;
     }
 
@@ -298,7 +327,10 @@ class SseqClass {
     }
 
     setShape(shape, page){
+        let pre = this.getMemento();
         this.getNode(page).setShape(shape);
+        let post = this.getMemento();
+        this.sseq.addMutation(this, pre, post);
         return this;
     }
 
@@ -313,7 +345,10 @@ class SseqClass {
         for(let i = 0; i < structlines.length; i++){
             let sl = structlines[i];
             if(sl.page > page){
+                let pre = sl.getMemento();
                 sl.page = page;
+                let post = sl.getMemento();
+                this.sseq.addMutation(sl, pre, post);
                 this.sseq.updateEdge(sl);
             }
         }
@@ -328,6 +363,7 @@ class SseqClass {
      * @returns {SseqClass}
      */
     replace(node, lastPageName){
+        let pre = this.getMemento();
         if(lastPageName){
             if(typeof lastPageName === "string"){
                 this.last_page_name = lastPageName;
@@ -338,6 +374,8 @@ class SseqClass {
         }
         this._appendPage(infinity);
         this.setNode(node);
+        let post = this.getMemento();
+        this.sseq.addMutation(this, pre, post);
         return this;
     }
 
@@ -347,13 +385,20 @@ class SseqClass {
      * @returns {SseqClass} Chainable
      */
     addExtraInfo(str){
+        let pre = this.getMemento();
         this.extra_info += "\n" + str;
+        this.sseq.addMutation(this, pre, post);
+        let post = this.getMemento();
         return this;
     }
 
     setPermanentCycleInfo(str){
+        let pre = this.getMemento();
         this.permanent_cycle_info = str;
         this.addExtraInfo(this.permanent_cycle_info);
+        let post = this.getMemento();
+        this.sseq.addMutation(this, pre, post);
+        return this;
     }
 
     getEdges(){

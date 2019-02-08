@@ -9,13 +9,14 @@ class Edge {
      * @param {SseqClass} source
      * @param {SseqClass} target
      */
-    constructor(source, target){
+    constructor(sseq, source, target){
         // Make sure source has lower y coordinate than target.
         if(source.y > target.y){
             let temp = source;
             source = target;
             target = temp;
         }
+        this.sseq = sseq;
         this.source = source;
         this.target = target;
         this.source_name = this.source.last_page_name;
@@ -25,6 +26,26 @@ class Edge {
         this.color = "#000";
         this.type = this.constructor.name;
         this.visible = true;
+    }
+
+    getMemento(){
+        return Util.copyFields({}, this);
+    }
+
+    restoreFromMemento(memento){
+        if(memento.delete){
+            if(this.invalid){
+                return;
+            }
+            this.sseq.deleteEdge(this);
+            return;
+        }
+        if(this.invalid){
+            this.sseq.reviveEdge(this);
+        }
+        Util.copyFields(this, memento);
+        this.sseq.updateEdge(this);
+        return this;
     }
 
     otherClass(c){
@@ -107,7 +128,7 @@ class Edge {
 
     /**
      * Determine whether the edge is drawn on the given page. Overridden in subclasses.
-     * @param page
+     * @param pageRange
      * @returns {boolean}
      * @package
      */
@@ -149,8 +170,8 @@ exports.Extension = Extension;
  * Differentials are a bit more complicated.
  */
 class Differential extends Edge {
-    constructor(source, target, page){
-        super(source, target);
+    constructor(sseq, source, target, page){
+        super(sseq, source, target);
         this.page = page;
         this.color = "#00F";
     }

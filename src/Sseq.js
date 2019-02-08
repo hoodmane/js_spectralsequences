@@ -134,6 +134,36 @@ class Sseq {
         this.serializeEdgeFields = Sseq.serializeEdgeFields;
     }
 
+    startMutationTracking(){
+        this.mutationMap = new Map();
+    }
+
+    addMutationsToUndoStack(){
+        this.undo.add(this.mutationMap);
+        this.mutationMap = undefined;
+    }
+
+    addMutation(obj, pre, post){
+        if(!this.mutationMap){
+            return;
+        }
+        if(this.mutationMap.get(obj)){
+            pre = this.mutationMap.get(obj).before;
+        }
+        this.mutationMap.set(obj, {obj: obj, before: pre, after : post});
+    }
+
+    changeObject(obj, callback){
+        if(!this.mutationList){
+            callback();
+            return;
+        }
+        let pre = obj.getMemento();
+        callback();
+        let post = obj.getMemento();
+        this.mutationList.push({obj: obj, before: pre, after : post});
+    }
+
     set_shift(x, y){
         this.xshift = x;
         this.yshift = y;
@@ -288,7 +318,8 @@ class Sseq {
         this.display_sseq.classes[c.class_list_index] = c.display_class;
         this.updateClass(c);
         this.display_class_to_real_class.set(c.display_class, c);
-        this.display_sseq.update(); // Update the display if it exists.
+        // this.display_sseq.update(); // Update the display if it exists.
+        this.addMutation(c, {delete: true}, c.getMemento());
         return c;
     }
 
@@ -303,7 +334,7 @@ class Sseq {
         this.total_classes --;
         this.classes.splice( this.classes.indexOf(c), 1 );
         this.updateClass(c);
-        this.display_sseq.update();
+        // this.display_sseq.update();
         return c;
     }
 
@@ -318,7 +349,7 @@ class Sseq {
         this.total_classes ++;
         this.classes.push(c);
         this.updateClass(c);
-        this.display_sseq.update();
+        // this.display_sseq.update();
         return c;
     }
 
@@ -347,7 +378,7 @@ class Sseq {
         if(!source || !target || source.isDummy() || target.isDummy()){
             return Structline.getDummy();
         }
-        let struct = new Structline(source,target);
+        let struct = new Structline(this, source, target);
         source._addStructline(struct);
         target._addStructline(struct);
         this.structlines.push(struct);
@@ -395,7 +426,7 @@ class Sseq {
         if(!source || !target || source.isDummy() || target.isDummy()){
             return Differential.getDummy();
         }
-        let differential = new Differential(source, target, page);
+        let differential = new Differential(this, source, target, page);
         source._addOutgoingDifferential(differential);
         target._addIncomingDifferential(differential);
         differential.edge_list_index = this.edges.length;
@@ -422,7 +453,7 @@ class Sseq {
         if(!source || !target || source.isDummy() || target.isDummy()){
             return Extension.getDummy();
         }
-        let ext = new Extension(source, target);
+        let ext = new Extension(this, source, target);
         ext.edge_list_index = this.edges.length;
         this.edges.push(ext);
         if(this.on_edge_added){
@@ -552,6 +583,7 @@ class Sseq {
         display_edge.type = edge.constructor.name;
         this.display_edge_to_real_edge.set(edge.display_edge, edge);
         this.updateEdge(edge);
+        this.addMutation(edge, {delete: true}, edge.getMemento());
         //this.display_sseq.update();
     }
 
@@ -575,6 +607,14 @@ class Sseq {
             this.updateEdge(e);
         }
         this.display_sseq.update();
+    }
+
+    updateObject(o){
+        if(o.constructor === SseqClass){
+            this.updateClass(o);
+        } else {
+            this.updateEdge(o);
+        }
     }
 
     updateClass(c){
@@ -789,6 +829,7 @@ class Sseq {
         return sseq;
     }
 
+    // TODO: This shouldn't have side effects?
     getDisplaySseq(){
         let dss = this.display_sseq;
         dss.real_sseq = this;
@@ -941,7 +982,7 @@ class Sseq {
            }
        }
        for(let e of this.getEdges()) {
-            for(let field of this.serializeClassFields){
+            for(let field of this.serializeEdgeFields){
                 if(e[field]){
                     e.display_edge[field] = e[field];
                 }

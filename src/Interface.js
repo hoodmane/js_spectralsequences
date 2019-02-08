@@ -17,6 +17,25 @@ fixFormHTML.radio = function(doc, field){
 };
 
 class PopupForm {
+    // This copies form.record into form.save_record to avoid a race condition between:
+    //    the onClose writes over form.record with form.original
+    //    the success code writes over form.original with form.record.
+    static backupRecord(form){
+        form.save_record = {};
+        Object.assign(form.save_record,form.record);
+    }
+
+    // Write over form.original and form.record with form.save_record. Better have called backupRecord first!
+    static saveRecord(form){
+        Object.assign(form.original, form.save_record);
+        Object.assign(form.record,   form.save_record);
+    }
+
+    // Write over form.record with form.original. Goes in the onClose handler.
+    static restoreRecord(form){
+        Object.assign(form.record, form.original);
+    }
+
     constructor(form_options, popup_options){
         let form_obj = Object.assign({}, PopupForm.default_form_obj, form_options);
         this.form_obj = form_obj;
@@ -28,12 +47,12 @@ class PopupForm {
             // to a server. There doesn't seem to be an API call to save current fields into .record, and
             // I couldn't figure out another way to access them.
             w2ui[name].save();
-            backupRecord(w2ui[name]);
+            PopupForm.backupRecord(w2ui[name]);
             let errs = w2ui[name].validate();
             if (errs.length > 0) {
                 return;
             }
-            saveRecord(w2ui[name]);
+            PopupForm.saveRecord(w2ui[name]);
             w2ui[name].onSuccess();
             w2popup.close();
         };
@@ -46,6 +65,7 @@ class PopupForm {
         let form = w2ui[name];
         this.form = form;
         this.fixFormHTML(form);
+        Object.assign(form.original, form_obj.record);
 
         this.popup_obj = Object.assign({}, PopupForm.default_popup_obj, popup_options);
         // No idea what this is for I just copied it from http://w2ui.com/web/demos/#!forms/forms-8
@@ -67,40 +87,25 @@ class PopupForm {
         };
 
         this.popup_obj.onClose = function(event){
-                event.onComplete = () => restoreRecord(form);
+            PopupForm.restoreRecord(form);
         };
 
         this.userOnOpen = this.popup_obj.onOpen;
         this.popup_obj.onOpen = (event) => {
-            let observer = new MutationObserver((mutation_list) => {
-                for(let e of mutation_list){
-                    if((e.target.id === "w2ui-popup" || e.target.id === "w2ui-lock") && e.target.style.opacity !== 0){
-                        e.target.style.opacity = '0';
-                        $('#w2ui-popup').css(w2utils.cssPrefix('transform', ''));
-                    }
-                }
-            });
-            observer.observe(document.body, { attributes: true, subtree: true });
+            // There's a delay between when the popup opens and when the form is rendered into the popup.
+            // It looks ugly if we let these two events happen sequentially, so we temporarily add a style
+            // element to override the opacity with 0. Once the document is rendered, we remove this style element
+            // to allow the form to display.
+            // TODO: refactor this a bit.
+            let hide_popup = document.createElement("style");
+            hide_popup.innerText = '#w2ui-popup, #w2ui-lock { opacity :  0 !important }';
+            document.body.appendChild(hide_popup);
             event.onComplete = () => {
-                observer.disconnect();
-                $('#w2ui-popup #form').w2render(form);
+                $('#w2ui-popup #form').w2render(form); // Render the form
                 if(this.userOnOpen){
                     this.userOnOpen(event);
                 }
-                let opacity = 0.4;
-                let speed = 0.3;
-                $('#w2ui-popup')
-                    .css('opacity', '1')
-                    .css(w2utils.cssPrefix({
-                        'transition': speed + 's opacity, ' + speed + 's -webkit-transform',
-                        'transform' : 'scale(1)'
-                    }));
-                $('#w2ui-lock')
-                    .css('opacity', opacity)
-                    .css(w2utils.cssPrefix('transition', speed + 's opacity'));
-                // setTimeout(function () {
-                //     $('#w2ui-popup').css(w2utils.cssPrefix('transform', ''));
-                // }, speed * 1000);
+                document.body.removeChild(hide_popup); // Once everything is done, remove the element.
             }
         };
 
@@ -151,8 +156,8 @@ class Undo {
         this.redo = this.redo.bind(this);
     };
 
-    add(undoCallback, redoCallback) {
-        this.undoStack.push({undo: undoCallback, redo: redoCallback});
+    add(mutations) {
+        this.undoStack.push(mutations);
         this.redoStack = [];
     };
 
@@ -161,49 +166,37 @@ class Undo {
         this.redoStack = [];
     };
 
-    addClass(c){
-        undo.add(() => {
-            this.sseq.deleteClass(c);
-            // updateLastClass(lastClass);
-        }, () => {
-            this.sseq.reviveClass(c);
-            // updateLastClass(c);
-        });
-    };
 
-    addClassList(l){
-        undo.add(() => {
-            l.forEach(c => this.sseq.deleteClass(c));
-            sseq.update();
-            // updateLastClass(lastClass);
-        }, () => {
-            l.forEach(c => this.sseq.reviveClass(c));
-            sseq.update();
-            // updateLastClass(c);
-        });
-    };
-
-    addEdge(e){
-        undo.add(() => this.sseq.deleteEdge(e), () => this.sseq.reviveEdge(e));
-    };
-
-    addEdgeList(l){
-        undo.add(() => l.forEach(e => this.sseq.deleteEdge(e)), () => l.forEach(e => this.sseq.reviveEdge(e)));
-    };
 
     merge(){
         let e1 = this.undoStack.pop();
         let e2 = this.undoStack.pop();
-        this.add(() => {e1.undo(); e2.undo()}, () => {e2.redo(); e1.redo()});
+        this.add(Undo.mergeMutationMaps(e1, e2));
     };
+
+    static mergeMutationMaps(m1, m2){
+        let res = new Map(m1);
+        for(let kv of m2){
+            let key = kv[0];
+            let value = kv[1];
+            if(res.has(key)){
+                let o = res.get(key);
+                value.before = o.before;
+            }
+            res.set(key, value);
+        }
+        return res;
+    }
 
     undo() {
         if (this.undoStack.length === 0) {
             return;
         }
-        let e = this.undoStack.pop();
-        e.undo();
-        this.redoStack.push(e);
+        let mutations = this.undoStack.pop();
+        for(let m of mutations.values()){
+            m.obj.restoreFromMemento(m.before);
+        }
+        this.redoStack.push(mutations);
         sseq.display_sseq.update();
     };
 
@@ -211,9 +204,11 @@ class Undo {
         if (this.redoStack.length === 0) {
             return;
         }
-        let e = this.redoStack.pop();
-        e.redo();
-        this.undoStack.push(e);
+        let mutations = this.redoStack.pop();
+        for(let m of mutations.values()){
+            m.obj.restoreFromMemento(m.after);
+        }
+        this.undoStack.push(mutations);
         sseq.display_sseq.update();
     };
 

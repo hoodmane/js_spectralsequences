@@ -123,6 +123,10 @@ class monomial_ring {
         this._module_generators_dict = module_generators_dict;
     }
 
+    addModuleGenerator(name, bidegree){
+        this._module_generators_dict[name] = bidegree;
+    }
+
     _exponent_map_to_vector(var_powers_dict){
         return convert_exponent_map_to_vector(this._var_list, var_powers_dict);
     }
@@ -240,6 +244,7 @@ class monomial_basis {
         this._strings_to_classes = new Map();
         this._tuples_to_strings = new StringifyingMap();
         this._strings_to_tuples = new Map();
+        this._structlines = [];
         this.length = 0;
         if(!var_spec_list){
             this._fromSerializedMonomialBasis(sseq, var_degree_dict);
@@ -247,8 +252,8 @@ class monomial_basis {
         }
         this.var_degree_dict = var_degree_dict;
         this.var_spec_list = var_spec_list;
-        this.module_generators_dict = module_generators_dict;
-        this.module_generators = Object.keys(module_generators_dict);
+        this.module_generators_dict = {};
+        this.module_generators = [];
 
         let var_name_list = [];
         let stem_list = [];
@@ -270,13 +275,23 @@ class monomial_basis {
         this._range_list = range_list;
 
 
-        this._ring = new monomial_ring(var_name_list, var_name_list, var_degree_dict, module_generators_dict);
+        this._ring = new monomial_ring(var_name_list, var_name_list, var_degree_dict, {});
+        for(let kv of Object.entries(module_generators_dict)){
+            let name = kv[0];
+            let bidegree = kv[1];
+            this.addModuleGenerator(name, bidegree);
+        }
+        this.sseq.update();
+    }
 
-        let l = product(this.module_generators,...range_list);
+    addModuleGenerator(gen_name, bidegree, callback){
+        this.module_generators_dict[gen_name] = bidegree;
+        this.module_generators.push(gen_name);
+        this._ring.addModuleGenerator(gen_name, bidegree);
+        let l = product(...this._range_list);
         for(let i = 0; i < l.length; i++){
             let exponent_vector = l[i];
-            let module_generator = exponent_vector.shift();
-            let elt = this._ring.getElementFromVector(exponent_vector, module_generator);
+            let elt = this._ring.getElementFromVector(exponent_vector, gen_name);
             let degree = elt.getDegree();
             let stem = degree[0];
             let filtration = degree[1];
@@ -294,8 +309,28 @@ class monomial_basis {
                     continue;
                 }
             }
-            this._add_class(elt, sseq.addClass(stem,filtration).setName(name));
+            let c = sseq.addClass(stem, filtration).setName(name);
+            this._add_class(elt, c);
+            c.module_generator = gen_name;
+            if(callback){
+                callback(c);
+            }
         }
+        for(let sl of this._structlines) {
+            for (let i = 0; i < l.length; i++) {
+                let exponent_vector = l[i];
+                let v = this._ring.getElementFromVector(exponent_vector, gen_name);
+                let c1 = this.get(v);
+                let c2 = this.get(v.multiply(sl.offset));
+                if (c2 !== undefined) {
+                    let sline = this.sseq.addStructline(c1, c2);
+                    if (sl.callback) {
+                        sl.callback(sline);
+                    }
+                }
+            }
+        }
+        this.sseq.update();
     }
 
     _fromSerializedMonomialBasis(sseq, obj){
@@ -388,6 +423,8 @@ class monomial_basis {
                 }
             }
         }
+        this._structlines.push({offset: offset_vector, callback: callback});
+        this.sseq.update();
         return this;
     }
 
