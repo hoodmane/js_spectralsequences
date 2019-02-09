@@ -9,6 +9,7 @@
   "devDependencies": {
     "browserify": "^16.2.2",
     "budo": "^11.2.2",
+    "canvas2svg": "^1.0.16",
     "uglifyify": "^5.0.0"
   },
   "dependencies": {

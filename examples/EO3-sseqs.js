@@ -311,17 +311,23 @@ HFPSS.update = function(sseq){
     if(!sseq.polynomial_classes || !sseq.polynomial_classes.get){
         return;
     }
+    HFPSS.updateGuideDifferentials();
+};
+
+HFPSS.updateGuideDifferentials = function updateGuideDifferentials(){
     for(let e of sseq.getStructlines()){
-        if(e.guide_differential && (HFPSS.btorsionQ(e.source) || HFPSS.btorsionQ(e.target))){
+        if(e.guide_differential && (HFPSS.btorsionQ(e.source) || HFPSS.btorsionQ(e.target) || e.source.permanent_cycle)){
             sseq.deleteEdge(e);
         }
     }
     for(let c of sseq.getClasses()){
-        if(c.vector[1] !== 0 || HFPSS.btorsionQ(c)){
+        if(c.vector[1] !== 0 || HFPSS.btorsionQ(c) || c.permanent_cycle){
             continue;
         }
+        console.log(c.permanent_cycle);
         for(let d of sseq.getStem(c.x - 1)){
             if(d.y > 11 || d.y <= c.y || HFPSS.btorsionQ(d)){
+
                 continue;
             }
             if(c.edges.filter(e => e.otherClass(c) === d).length > 0){
@@ -628,6 +634,18 @@ function addEventHandlers(sseq, dss) {
         type.addCell(sseq, Number.parseInt(c));
         type.update(sseq);
     });
+
+    if(dss.type === 'HFPSS'){
+        dss.addEventHandler('c', (event) => {
+             if(!event.mouseover_class){ return; }
+             let c = sseq.display_class_to_real_class.get(event.mouseover_class);
+             c.permanent_cycle = true;
+             console.log(c);
+             HFPSS.updateGuideDifferentials();
+             sseq.update();
+        })
+    }
+
     dss.addEventHandler('t', type.addDifferential);
     dss.addEventHandler('e', type.addExtension);
     if(sseq.undo){

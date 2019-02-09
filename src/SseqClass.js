@@ -387,8 +387,8 @@ class SseqClass {
     addExtraInfo(str){
         let pre = this.getMemento();
         this.extra_info += "\n" + str;
-        this.sseq.addMutation(this, pre, post);
         let post = this.getMemento();
+        this.sseq.addMutation(this, pre, post);
         return this;
     }
 
