@@ -7,7 +7,7 @@ function stdCatToString(x){
     if(x.getStringifyingMapKey !== undefined){
         return x.getStringifyingMapKey();
     } else {
-        return JSON.stringify(x);
+        return x.toString();
     }
 }
 
