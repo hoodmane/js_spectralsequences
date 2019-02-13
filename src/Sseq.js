@@ -138,8 +138,8 @@ class Sseq {
         this.mutationMap = new Map();
     }
 
-    addMutationsToUndoStack(){
-        this.undo.add(this.mutationMap);
+    addMutationsToUndoStack(event_obj){
+        this.undo.add(this.mutationMap, event_obj);
         this.mutationMap = undefined;
     }
 
@@ -408,6 +408,7 @@ class Sseq {
        }
        if(typeof page !== "number"){
            console.log(`Invalid page ${page} for differential.`);
+           return Differential.getDummy();
        }
        // if(source.constructor != SseqClass.constructor){
        //     let err = new Error("addDifferential expected a SseqClass in position 1.");

@@ -151,14 +151,18 @@ class Undo {
     constructor(sseq){
         this.sseq = sseq;
         this.undoStack = [];
+        this.undoObjStack = []
         this.redoStack = [];
+        this.redoObjStack = [];
         this.undo = this.undo.bind(this);
         this.redo = this.redo.bind(this);
     };
 
-    add(mutations) {
+    add(mutations, event_obj) {
         this.undoStack.push(mutations);
+        this.undoObjStack.push(event_obj);
         this.redoStack = [];
+        this.redoObjStack = [];
     };
 
     clear(){
@@ -197,6 +201,8 @@ class Undo {
             m.obj.restoreFromMemento(m.before);
         }
         this.redoStack.push(mutations);
+        let obj = this.undoObjStack.pop();
+        this.redoObjStack.push(obj);
         sseq.display_sseq.update();
     };
 
@@ -209,8 +215,14 @@ class Undo {
             m.obj.restoreFromMemento(m.after);
         }
         this.undoStack.push(mutations);
+        let obj = this.redoObjStack.pop();
+        this.undoObjStack.push(obj);
         sseq.display_sseq.update();
     };
+
+    getEventObjects() {
+        return this.undoObjStack;
+    }
 
 }
 
