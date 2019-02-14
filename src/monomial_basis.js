@@ -223,6 +223,12 @@ class monomial_element {
         return this._module_generator + this.exponent_vector.toString();
     }
 
+    toJSON(){
+        let result = Object.assign({}, this);
+        result._ring = undefined;
+        return result;
+    }
+
     toString(){
         return this.getName();
     }
@@ -373,7 +379,6 @@ class monomial_basis {
      */
     _add_class(elt, the_class){
         this.length++;
-        let tuple = elt.exponent_vector;
         let name = elt.getName();
         this._tuples_to_classes.set(elt, the_class);
         this._strings_to_classes.set(name, the_class);

@@ -16,7 +16,7 @@ if(jsFile){
         document.body.removeChild(document.body.firstChild);
     }
     document.body.id = "spectral_sequences";
-    let heading = c.createElement("h1");
+    let heading = document.createElement("h1");
     heading.innerHTML = "Spectral Sequences";
     document.body.appendChild(heading);
     let table = document.createElement("table");

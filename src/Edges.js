@@ -26,6 +26,7 @@ class Edge {
         this.color = "#000";
         this.type = this.constructor.name;
         this.visible = true;
+        this.args = [];
     }
 
     getMemento(){
@@ -119,11 +120,22 @@ class Edge {
         dummy.setMinPage = Util.getDummyConstantFunction(dummy);
         dummy.constructor = Edge.constructor;
         dummy.otherClass = Util.getDummyConstantFunction(SseqClass.getDummy());
+        //getMemento,restoreFromMemento,setColor,setBend,revive,leibniz
+        dummy.leibniz = Util.getDummyConstantFunction(dummy);
         dummy.delete = () => true;
 
         Util.checkAllCommandsDefined(dummy);
 
         return dummy;
+    }
+
+    leibniz(multiplications){
+        for(let variable of multiplications){
+            let source = this.source.getProductIfPresent(variable);
+            let target = this.target.getProductIfPresent(variable);
+            this.sseq["add" + this.constructor.name](source, target, ...this.args).leibniz(multiplications);
+        }
+        return this;
     }
 
     /**
@@ -174,6 +186,7 @@ class Differential extends Edge {
         super(sseq, source, target);
         this.page = page;
         this.color = "#00F";
+        this.args = [page]; // Just for Leibniz command...
     }
 
 
@@ -341,18 +354,6 @@ class Differential extends Edge {
         this.source.update();
         this.target.update();
         return this;
-    }
-
-    leibniz(multiplications){
-        for(let variable of multiplications){
-            let source = this.source.getProductIfPresent(variable);
-            let target = this.target.getProductIfPresent(variable);
-            if(!source.isAlive() || !target.isAlive()){
-                continue;
-            }
-            sseq.addDifferential(source, target, this.page).leibniz(multiplications);
-        }
-
     }
 
     /**

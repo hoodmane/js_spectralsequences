@@ -23,7 +23,7 @@ Shapes.circle = {
         let save_fill = this.fillEnabled();
         this.fillEnabled(true);
         context.fillStrokeShape(this);
-        this.fill(save_fill);
+        this.fillEnabled(save_fill);
     }
 }
 
@@ -54,7 +54,7 @@ Shapes.circlen = {
         let save_fill = this.fillEnabled();
         this.fillEnabled(true);
         context.fillStrokeShape(this);
-        this.fill(save_fill);
+        this.fillEnabled(save_fill);
     }
 };
 

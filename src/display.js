@@ -20,18 +20,26 @@ Konva.Shape.prototype.setNode = setNode;
  */
 function setNode(node) {
     this.node = node;
-    this.setAttrs(node);
+    // Prevent annoy warnings:
+    // Konva warning: true is a not valid value for "fill" attribute. The value should be a string.
+    let node_copy = Object.assign({}, node);
+    node_copy.fill = undefined;
+    node_copy.stroke = undefined;
+    node_copy.color = undefined;
+    this.setAttrs(node_copy);
     this.sceneFunc(node.shape.draw);
     if (node.shape.hitRegion) {
         this.hitFunc(node.shape.hitRegion);
     }
     this.setFillEnabled(node.fill);
     this.setStrokeEnabled(node.stroke);
-    if ((node.fill !== true && node.fill) || node.color) {
-        this.fill((node.fill !== true && node.fill) || node.color);
+    let fill_color = (node.fill !== true && node.fill) || node.color;
+    if (fill_color) {
+        this.fill(fill_color);
     }
-    if ((node.stroke !== true && node.stroke) || node.color) {
-        this.stroke((node.stroke !== true && node.stroke) || node.color);
+    let stroke_color = (node.stroke !== true && node.stroke) || node.color;
+    if (stroke_color) {
+        this.stroke(stroke_color);
     }
     if(node.opacity){
         this.opacity(node.opacity);

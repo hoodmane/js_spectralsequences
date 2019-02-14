@@ -135,6 +135,9 @@ class Sseq {
     }
 
     startMutationTracking(){
+        if(!this.undo){
+            this.undo = new Interface.Undo(this);
+        }
         this.mutationMap = new Map();
     }
 
@@ -375,6 +378,9 @@ class Sseq {
 //        } else if(target == undefined){
 //            target = this.last_classes[0]
 //        }
+        if(this.duplicateEdge(Structline, source, target)){
+            return Structline.getDummy();
+        }
         if(!source || !target || source.isDummy() || target.isDummy()){
             return Structline.getDummy();
         }
@@ -410,17 +416,11 @@ class Sseq {
            console.log(`Invalid page ${page} for differential.`);
            return Differential.getDummy();
        }
-       // if(source.constructor != SseqClass.constructor){
-       //     let err = new Error("addDifferential expected a SseqClass in position 1.");
-       //     console.log(err);
-       //     //return Differential.getDummy();
-       // }
-       //  if(target.constructor != SseqClass.constructor){
-       //      console.log("addDifferential expected a SseqClass in position 2.")
-       //      console.log(target);
-       //      return Differential.getDummy();
-       //  }
+        if(this.duplicateEdge(Differential, source, target, page)){
+            return Differential.getDummy();
+        }
         if(page <= 0){
+            console.log([source, target, page]);
             console.log("No page <= 0 differentials allowed.");
             return Differential.getDummy();
         }
@@ -454,6 +454,9 @@ class Sseq {
         if(!source || !target || source.isDummy() || target.isDummy()){
             return Extension.getDummy();
         }
+        if(this.duplicateEdge(Extension, source, target)){
+            return Extension.getDummy();
+        }
         let ext = new Extension(this, source, target);
         ext.edge_list_index = this.edges.length;
         this.edges.push(ext);
@@ -465,6 +468,15 @@ class Sseq {
         }
         this.setupDisplayEdge(ext);
         return ext;
+    }
+
+    duplicateEdge(type, source, target, page){
+        return this.edges.some(e =>
+            e.constructor === type
+            && e.source === source
+            && e.target === target
+            && (!page || e.page === page)
+        );
     }
 
     /**
