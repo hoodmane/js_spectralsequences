@@ -302,11 +302,12 @@ class monomial_basis {
             let stem = degree[0];
             let filtration = degree[1];
             let name = elt.getName();
-            if(sseq.xRange){
-                if(sseq.xRange && (stem < sseq.xRange[0] -10 || stem > sseq.xRange[1] + 10)){
-                    continue;
-                }
-            }
+            // TODO: make some attempt to limit out of range class generation? Probably a bad choice?
+            // if(sseq.xRange){
+            //     if(sseq.xRange && (stem < sseq.xRange[0] -10 || stem > sseq.xRange[1] + 10)){
+            //         continue;
+            //     }
+            // }
             // if(cond && cond()){
             //
             // }

@@ -141,6 +141,8 @@ function addDifferentialEvent(type, event){
     }
     if(confirm(`Add d${length} differential from ${tools.getClassExpression(s)} to ${tools.getClassExpression(t)}`)){
         addDifferential(type, sc, tc, length);
+        type.update(sseq);
+        sseq.update();
     }
 }
 
@@ -148,8 +150,6 @@ function addDifferential(type, s, t, length){
     sseq.startMutationTracking();
     type.addDifferential(s, t, length);
     sseq.addMutationsToUndoStack({"command" : "addDifferential", "arguments" : [s.exponents, t.exponents, length]});
-    type.update(sseq);
-    sseq.update();
 }
 commands.addDifferential = addDifferential;
 
@@ -213,14 +213,14 @@ function addExtensionEvent(type, event) {
     if (confirm(`Add ${extensions[t.x - s.x]} extension from ${tools.getClassExpression(s)} to ${tools.getClassExpression(t)}`)) {
         let flags = type.addExtensionQueries();
         addExtension(type, s, t, flags);
+        dss.update();
     }
 }
 
 function addExtension(type, s, t, flags){
     sseq.startMutationTracking();
-    type.addExtension(s, t, type.addExtensionQueries());
+    type.addExtension(s, t, flags);
     sseq.addMutationsToUndoStack({"command" : "addExtension", "arguments" : [s.exponents, t.exponents, flags]});
-    dss.update();
 }
 commands.addExtension = addExtension;
 
@@ -326,9 +326,6 @@ HFPSS.onDifferentialAdded = function(d){
 
 AHSS.update = function(){};
 HFPSS.update = function(sseq){
-    if(!sseq.polynomial_classes || !sseq.polynomial_classes.get){
-        return;
-    }
     HFPSS.updateGuideDifferentials();
 };
 
@@ -351,6 +348,7 @@ HFPSS.updateGuideDifferentials = function updateGuideDifferentials(){
                 continue;
             }
             let e = sseq.addStructline(c, d).setColor("red");
+            sseq.updateEdge(e);
             e.guide_differential = true;
         }
     }
@@ -360,7 +358,6 @@ HFPSS.updateGuideDifferentials = function updateGuideDifferentials(){
 HFPSS.btorsionQ = function btorsionQ(c){
     let v = c.vector;
     v = v.multiply(v._ring.getElement([0,10,0]));
-    console.log(v);
     let cp = sseq.polynomial_classes.get(v);
     return cp.page_list[0] < 10000;
 };
@@ -554,18 +551,18 @@ let open_sseq_form = new Interface.PopupForm(
 
 function newSseq(type, cells){
     sseq = new Sseq();
+    dss = sseq.getDisplaySseq();
     sseq.type = type;
     dss.type = type;
-    dss = sseq.getDisplaySseq();
     sseq.num_cells = 0;
+    addEventHandlers(sseq, dss);
+    setRange(sseq);
     sseq.undo = new Interface.Undo(sseq);
     type = sseq_types[type];
     type.initialize(sseq);
     addCells(type, cells);
-    //sseq.undo.clear();
     type.update(sseq);
-    sseq.getDisplaySseq();
-    setUpSseq(sseq, dss);
+    sseq.undo.clear();
 }
 
 async function openSseq(key){
@@ -588,21 +585,14 @@ async function openSseq(key){
     }
     type.onOpen(sseq);
     type.update(sseq);
-    setUpSseq(sseq, dss);
-    sseq.display();
-    return true;
-}
-
-
-
-function setUpSseq(sseq, dss){
-    // sseq.addSseqFieldToSerialize(["name","type", "num_cells", "polynomial_classes","differentials_source_target"]);
-    // sseq.addClassFieldToSerialize(["vector","exponents"]);
-    sseq.differentials_source_target = [];
     dss.type = sseq.type;
     addEventHandlers(sseq, dss);
     setRange(sseq);
+    sseq.display();
+    sseq.fully_loaded = true;
+    return true;
 }
+
 
 function selectOddCycles(){
     for(let c of sseq.getSurvivingClasses(10000)){
@@ -614,7 +604,7 @@ function selectOddCycles(){
 }
 
 function setRange(sseq){
-    sseq.xRange = [-24, 96];
+    sseq.xRange = [-72, 144];
     sseq.yRange = [0, 20];
     sseq.initialxRange = [0, 72];
     sseq.initialyRange = [0, 15];
