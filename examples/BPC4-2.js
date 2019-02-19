@@ -182,7 +182,7 @@ function renderBPC42(){
     BPC4.addPageRangeToPageList([5, 15]);
     BPC4.min_page_idx = 1;
     let s1max = 10;
-    let max_diagonal = 400;
+    let max_diagonal = 800;
     let max_y = Math.floor(9 / 16 * max_diagonal / 2);
     let max_x = max_diagonal / 2;
     let d1max = Math.floor(max_x / 2);
@@ -798,6 +798,7 @@ function renderBPC42(){
 
     dss.display();
     window.sseq = truncation_sseq;
+    sseq.updateAll();
     let t1 = performance.now();
     console.log("Rendered in " + (t1 - t0)/1000 + " seconds.");
     truncation_sseq.saveToLocalStore(cache_id);
