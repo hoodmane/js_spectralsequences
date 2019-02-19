@@ -53,6 +53,7 @@ HFPSS.onOpen = function(sseq){
 let commands = {};
 
 function addCells(type, cells){
+    console.log("addcells");
     sseq.startMutationTracking();
     cells.forEach(cell => type.addCell(sseq, cell));
     sseq.addMutationsToUndoStack({command: "addCells", arguments : [cells]});
@@ -99,7 +100,9 @@ AHSS.setClassName = function setClassName(c, powers, cell){
     c.exponents = powers.slice();
     c.exponents.push(cell);
     sseq.exponents_to_classes.set(c.exponents, c);
+    let name = monomialString(["a", "b", "x", "v"], powers, `[${cell}]`);
     c.setName(monomialString(["a", "b", "x", "v"], powers, `[${cell}]`));
+    sseq.updateClass(c);
     return c;
 };
 
@@ -164,13 +167,14 @@ HFPSS.getDifferentialLength = function HFPSSgetDifferentialLength(s, t){
 
 AHSS.addDifferential = function addDifferentialAHSS(sc, tc, length) {
     const vIndex = 3;
+    console.log(sc, tc);
     for (let v = vmin; v < vmax; v++) {
         let scexp = sc.exponents.slice();
         let tcexp = tc.exponents.slice();
         scexp[vIndex] = scexp[vIndex] + 3 * v;
         tcexp[vIndex] = tcexp[vIndex] + 3 * v;
         if (!sseq.exponents_to_classes.has(scexp) || !sseq.exponents_to_classes.has(tcexp)) {
-            return;
+            continue;
         }
         let e = sseq.addDifferential(sseq.exponents_to_classes.get(scexp), sseq.exponents_to_classes.get(tcexp), length);
     }
@@ -404,9 +408,13 @@ function upload() {
     IO.upload().then((fileList) => {
         for (let f of fileList) {
             try {
-                let dss = DisplaySseq.fromJSONObject(JSON.parse(f.content));
-                let sseq = Sseq.getSseqFromDisplay(dss);
-                save(sseq, sseq.name);
+                let res = f.content;
+                if(!f.content.type){
+                    res = {};
+                    res.type = f.name.includes("AHSS") ? "AHSS" : "HFPSS";
+                    res.events = JSON.parse(f.content);
+                }
+                IO.saveToLocalStore(f.name.split(".")[0].split('_').join(':'), res);
             } catch (e) {
                 console.log(f.name, f.content);
                 console.log(e);
@@ -555,9 +563,9 @@ function newSseq(type, cells){
     sseq.type = type;
     dss.type = type;
     sseq.num_cells = 0;
+    sseq.undo = new Interface.Undo(sseq);
     addEventHandlers(sseq, dss);
     setRange(sseq);
-    sseq.undo = new Interface.Undo(sseq);
     type = sseq_types[type];
     type.initialize(sseq);
     addCells(type, cells);
@@ -575,6 +583,10 @@ async function openSseq(key){
     let type = sseq_types[loaded_sseq.type];
     newSseq(loaded_sseq.type, []);
     sseq.display();
+    sseq.name = loaded_sseq.name;
+    if(loaded_sseq.events.constructor !== Array){
+        loaded_sseq.events = loaded_sseq.events.events;
+    }
     for(let e of loaded_sseq.events){
         console.log(e.command);
         if(e.command !== "addCells"){
@@ -635,7 +647,7 @@ function addEventHandlers(sseq, dss) {
     });
     dss.addEventHandler("u", upload);
     dss.addEventHandler("d", () => {
-        IO.download(sseq.name + ".json", JSON.stringify(sseq.undo.getEventObjects()));
+        IO.download(sseq.name + ".json", JSON.stringify(serializeSseq(sseq)));
     });
     dss.addEventHandler("o", open_sseq_form.open);
     dss.addEventHandler("n", new_sseq_form.open);
@@ -651,7 +663,7 @@ function addEventHandlers(sseq, dss) {
 
     dss.addEventHandler('a', (event) => {
         let c = prompt("Cell dimension");
-        type.addCell(sseq, Number.parseInt(c));
+        addCells(type, [Number.parseInt(c)]);
         type.update(sseq);
     });
 
@@ -667,10 +679,8 @@ function addEventHandlers(sseq, dss) {
 
     dss.addEventHandler('t', e => addDifferentialEvent(type, e));
     dss.addEventHandler('e', e => addExtensionEvent(type, e));
-    if(sseq.undo){
-        dss.addEventHandler("ctrl+z", sseq.undo.undo);
-        dss.addEventHandler("ctrl+shift+z", sseq.undo.redo);
-    }
+    dss.addEventHandler("ctrl+z", sseq.undo.undo);
+    dss.addEventHandler("ctrl+shift+z", sseq.undo.redo);
     if(type.onDifferentialAdded){
         sseq.onDifferentialAdded(type.onDifferentialAdded);
     }

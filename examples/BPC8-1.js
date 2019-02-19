@@ -128,6 +128,7 @@ function getSlice(d1pow, s1pow){
 
 
 let BPC4 = new Sseq();
+BPC4.drop_out_of_range_classes = true;
 BPC4.addPageRangeToPageList([5,15]);
 BPC4.min_page_idx = 1;
 let s1max = 10;
@@ -246,6 +247,7 @@ addDifferential(13, [11, 0],[14, 0], 37, 2);
 
 
 let truncation_sseq = new Sseq();
+truncation_sseq.drop_out_of_range_classes = true;
 truncation_sseq.xRange = [0, 100];
 truncation_sseq.yRange = [0, 50];
 

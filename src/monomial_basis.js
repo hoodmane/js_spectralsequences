@@ -303,11 +303,18 @@ class monomial_basis {
             let filtration = degree[1];
             let name = elt.getName();
             // TODO: make some attempt to limit out of range class generation? Probably a bad choice?
-            // if(sseq.xRange){
-            //     if(sseq.xRange && (stem < sseq.xRange[0] -10 || stem > sseq.xRange[1] + 10)){
-            //         continue;
-            //     }
-            // }
+            if(sseq.xRange && sseq.drop_out_of_range_classes){
+                // console.log(sseq.drop_out_of_range_classes);
+                if((stem < sseq.xRange[0] -10 || stem > sseq.xRange[1] + 10)){
+                    console.log("dropped");
+                    continue;
+                }
+            }
+            if(sseq.yRange && sseq.drop_out_of_range_classes){
+                if((stem < sseq.yRange[0] -10 || stem > sseq.yRange[1] + 10)){
+                    continue;
+                }
+            }
             // if(cond && cond()){
             //
             // }

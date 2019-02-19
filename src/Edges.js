@@ -123,6 +123,7 @@ class Edge {
         //getMemento,restoreFromMemento,setColor,setBend,revive,leibniz
         dummy.leibniz = Util.getDummyConstantFunction(dummy);
         dummy.delete = () => true;
+        dummy.setColor = Util.getDummyConstantFunction(dummy);
 
         Util.checkAllCommandsDefined(dummy);
 
@@ -187,6 +188,22 @@ class Differential extends Edge {
         this.page = page;
         this.color = "#00F";
         this.args = [page]; // Just for Leibniz command...
+    }
+
+    leibniz(multiplications){
+        for(let variable of multiplications){
+            let source = this.source.getProductIfPresent(variable);
+            let target = this.target.getProductIfPresent(variable);
+            if(source.isDummy() || target.isDummy()){
+                continue;
+            }
+            if(source.page_list[source.page_list.length - 1] < infinity
+            || target.page_list[target.page_list.length - 1] < infinity){
+                continue;
+            }
+            this.sseq["add" + this.constructor.name](source, target, ...this.args).leibniz(multiplications);
+        }
+        return this;
     }
 
 

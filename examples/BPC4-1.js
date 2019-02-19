@@ -141,6 +141,7 @@ function getSlice(d1pow, s1pow){
 
 
 let BPC4 = new Sseq();
+BPC4.drop_out_of_range_classes = true;
 BPC4.addPageRangeToPageList([5,10000]);
 BPC4.min_page_idx = 1;
 let s1max = 10;

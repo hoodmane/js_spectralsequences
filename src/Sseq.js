@@ -476,6 +476,7 @@ class Sseq {
             && e.source === source
             && e.target === target
             && (!page || e.page === page)
+            && !e.invalid
         );
     }
 
