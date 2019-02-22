@@ -86,7 +86,8 @@ class Display {
             .attr("id", "status")
             .style("position", "absolute")
             .style("left", `20px`)
-            .style("bottom",`20px`);
+            .style("bottom",`20px`)
+            .style("z-index", 1000);
 
         this.page_indicator_div = this.container.append("div")
             .attr("id", "page_indicator")
@@ -828,20 +829,20 @@ class Display {
         // Is the result cached?
         let tooltip = this.sseq.getClassTooltip(c, this.page).replace(/\n/g, "\n<hr>\n");
         if (c.tooltip_html) {
-            this.tooltip_div_dummy.html(c.tooltip_html);
-            this._setupTooltipDiv(shape);
-            let tooltip = this.sseq.getClassTooltip(c, this.page).replace(/\n/g, "\n<hr>\n");
-            this.tooltip_div_dummy.html(c.tooltip);
-            MathJax.Hub.Queue(["Typeset", MathJax.Hub, "tooltip_div_dummy"]);
-            MathJax.Hub.Queue(() => this.copyTooltipHTMLFromDummyTooltip(shape,tooltip));
+            this._setupTooltipDiv(shape, c.tooltip_html); // Display right away
+            // Now recompute in case things have changed
+            this.updateNameHTML(c);
+            this.mathjaxHTML(tooltip).then(html => {
+                if (html && !html.includes("\\(")) {
+                    // Cache the result of the MathJax so we can display this tooltip faster next time.
+                    c.tooltip_html = html;
+                }
+            });
         } else {
-            this.tooltip_div_dummy.html(tooltip);
-            if(window.MathJax && MathJax.Hub) {
-                MathJax.Hub.Queue(["Typeset", MathJax.Hub, "tooltip_div_dummy"]);
-                MathJax.Hub.Queue(() => this._setupTooltipDiv(shape,tooltip));
-            } else {
-                this._setupTooltipDiv(shape,tooltip);
-            }
+            this.mathjaxHTML(tooltip)
+                .then(html => this._setupTooltipDiv(shape, html))
+                .catch((err) => this._setupTooltipDiv(shape, tooltip));
+            this.updateNameHTML(c);
         }
         if(this.sseq.onmouseoverClass){
             this.sseq.onmouseoverClass(c);
@@ -851,12 +852,47 @@ class Display {
         }
     }
 
-    _setupTooltipDiv(shape) {
+    updateNameHTML(c){
+        return this.mathjaxHTML(this.sseq.getClassTooltipFirstLine(c)).then(html => c.name_html = html);
+    }
+
+    getNameHTML(c){
+        return new Promise(function(resolve, reject) {
+            MathJax.Hub.Queue(function(){
+                if(c.name_html){
+                    resolve(c.name_html);
+                } else {
+                    reject();
+                }
+            });
+        })
+        .catch(() => this.updateNameHTML(c).then( () => c.name_html) );
+    }
+
+    mathjaxHTML(html){
+        return new Promise(function(resolve, reject){
+            let div = document.createElement("div");
+            div.innerHTML = html;
+            if(! window.MathJax || !MathJax.Hub) {
+                reject(); // TODO: add error indicating mathjax not present.
+                return;
+            }
+            MathJax.Hub.Queue(["Typeset", MathJax.Hub, div]);
+            MathJax.Hub.Queue(() => {
+                resolve(div.innerHTML);
+            });
+        }.bind(this));
+    }
+
+    _setupTooltipDiv(shape, html) {
         let rect = this.tooltip_div.node().getBoundingClientRect();
         let tooltip_width = rect.width;
         let tooltip_height = rect.height;
-        this.copyTooltipHTMLFromDummyTooltip(shape);
-        this.tooltip_div.html(this.tooltip_div_dummy.html());
+        if (!html.includes("\\(")) {
+            // Cache the result of the MathJax so we can display this tooltip faster next time.
+            shape.sseq_class.tooltip_html = html;
+        }
+        this.tooltip_div.html(html);
         this.tooltip_div.style("left", (shape.x() + 25) + "px")
             .style("top", (shape.y() - tooltip_height) + "px")
             .style("right", null).style("bottom", null);
@@ -873,19 +909,22 @@ class Display {
             .duration(200)
             .style("opacity", .9);
     }
-
-    copyTooltipHTMLFromDummyTooltip(shape) {
-        if (!this.tooltip_div_dummy.html().includes("\\(")) {
-            // Cache the result of the MathJax so we can display this tooltip faster next time.
-            shape.sseq_class.tooltip_html = this.tooltip_div_dummy.html();
-        }
-    }
-
     _handleMouseout() {
         this.mouseover_class = null;
         this.tooltip_div.transition()
             .duration(500)
             .style("opacity", 0);
+    }
+
+    setStatus(html){
+        if(this.status_div.timer_id){
+            clearTimeout(this.status_div.timer_id);
+        }
+        this.status_div.html(html);
+    }
+
+    delayedSetStatus(html, delay){
+        this.status_div.timer_id = setTimeout(() => this.status_div.html(html), delay);
     }
 
     /**
@@ -1126,6 +1165,16 @@ class Display {
             }
         }
         return {x: x0, y: y0};
+    }
+
+    static enableFontAwesome(){
+        let fontAwesome = document.createElement('link');
+        fontAwesome.rel = 'stylesheet';
+        fontAwesome.href = 'https://use.fontawesome.com/releases/v5.6.3/css/all.css';
+        fontAwesome.integrity = "sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/";
+        fontAwesome.crossOrigin = "anonymous";
+        document.head.appendChild(fontAwesome);
+        return;
     }
 }
 

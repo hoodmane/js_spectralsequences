@@ -1,4 +1,7 @@
 exports.download = function(filename, text) {
+    if(text.constructor !== String){
+        text = JSON.stringify(text);
+    }
     let element = document.createElement('a');
     element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
     element.setAttribute('download', filename);
@@ -46,8 +49,11 @@ exports.upload = function() {
 
 
 exports.saveToLocalStore = function(key, value, collection){
+    if(value.constructor !== String){
+        value = JSON.stringify(value);
+    }
     return sseqDatabase.open().catch((err) => console.log(err))
-        .then(() => sseqDatabase.createKey(key, JSON.stringify(value), collection))
+        .then(() => sseqDatabase.createKey(key, value, collection))
         .then(() => console.log("Successfully saved."));
 };
 

@@ -371,6 +371,15 @@ class DisplaySseq {
         return c.node_list[SseqClass.prototype._getPageIndex.call(c, page)];
     }
 
+    getClassTooltipFirstLine(c){
+        let tooltip = "";
+        if (c.name !== "") {
+            tooltip = `\\(\\large ${c.name}\\)&nbsp;&mdash;&nbsp;`;
+        }
+        tooltip += `(${c.x}, ${c.y})`;
+        return tooltip;
+    }
+
     /**
      * Gets the tooltip for the current class on the given page (currently ignores the page).
      * @param c
@@ -378,12 +387,7 @@ class DisplaySseq {
      * @returns {string}
      */
     getClassTooltip(c, page) {
-        let tooltip = "";
-        if (c.name !== "") {
-            tooltip = `\\(${c.name}\\) &mdash; `;
-        }
-        tooltip += `(${c.x}, ${c.y})`;
-
+        let tooltip = this.getClassTooltipFirstLine(c);
         let extra_info = "";
         for (let field of this.class_tooltip_fields) {
             let value = c[field];

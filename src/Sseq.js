@@ -416,6 +416,21 @@ class Sseq {
            console.log(`Invalid page ${page} for differential.`);
            return Differential.getDummy();
        }
+        if(!source || !target){
+            // throw new Error(`Source or target is undefined.`);
+            return Differential.getDummy();
+        }
+       if(source.constructor !== SseqClass){
+           console.log(`Source has invalid type ${source.constructor.name}`);
+           return Differential.getDummy();
+       }
+        if(target.constructor !== SseqClass){
+            console.log(`Target has invalid type ${target.constructor.name}`);
+            return Differential.getDummy();
+        }
+        if(source.isDummy() || target.isDummy()){
+            return Differential.getDummy();
+        }
         if(this.duplicateEdge(Differential, source, target, page)){
             return Differential.getDummy();
         }
@@ -424,9 +439,7 @@ class Sseq {
             console.log("No page <= 0 differentials allowed.");
             return Differential.getDummy();
         }
-        if(!source || !target || source.isDummy() || target.isDummy()){
-            return Differential.getDummy();
-        }
+
         let differential = new Differential(this, source, target, page);
         source._addOutgoingDifferential(differential);
         target._addIncomingDifferential(differential);
