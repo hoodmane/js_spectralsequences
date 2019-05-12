@@ -123,6 +123,14 @@ class Display {
         this.update();
     }
 
+    static addLoadingMessage(message){
+        let msg_div = document.getElementById('loading');
+        if(typeof display === "undefined"){
+            msg_div.innerHTML += `<p>${message}</p>`;
+        }
+        console.log(message);
+    }
+
     /**
      *
      * @param width Optional width. Default to 97% of width of bounding element.
@@ -841,7 +849,10 @@ class Display {
         } else {
             this.mathjaxHTML(tooltip)
                 .then(html => this._setupTooltipDiv(shape, html))
-                .catch((err) => this._setupTooltipDiv(shape, tooltip));
+                .catch((err) => {
+                    console.log(err);
+                    this._setupTooltipDiv(shape, tooltip);
+                });
             this.updateNameHTML(c);
         }
         if(this.sseq.onmouseoverClass){
@@ -858,15 +869,24 @@ class Display {
 
     getNameHTML(c){
         return new Promise(function(resolve, reject) {
+            if(!c){
+                reject("c undefined");
+                return;
+            }
             MathJax.Hub.Queue(function(){
                 if(c.name_html){
                     resolve(c.name_html);
                 } else {
-                    reject();
+                    reject("no name");
                 }
             });
         })
-        .catch(() => this.updateNameHTML(c).then( () => c.name_html) );
+        .catch((err) => {
+            if(err === "c undefined"){
+                throw new Error("c undefined");
+            }
+            return this.updateNameHTML(c).then( () => c.name_html)
+        } );
     }
 
     mathjaxHTML(html){

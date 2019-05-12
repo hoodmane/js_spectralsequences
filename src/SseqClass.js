@@ -540,11 +540,13 @@ class SseqClass {
      * @param differential
      * @package
      */
-    _addOutgoingDifferential(differential){
+    _addOutgoingDifferential(differential, set_page){
         if(this.getPage() < differential.page){
             //this.handleDoubledDifferential("supporting another" + differential.supportedMessage());
         }
-        this.setPage(differential.page);
+        if(set_page){
+            this.setPage(differential.page);
+        }
         this.edges.push(differential);
         this._updateDifferentialStrings();
     }
@@ -554,11 +556,13 @@ class SseqClass {
      * @param differential
      * @package
      */
-    _addIncomingDifferential(differential){
+    _addIncomingDifferential(differential, set_page){
         if(this.getPage() < differential.page){
             //this.handleDoubledDifferential("receiving another" + differential.hitMessage());
         }
-        this.setPage(differential.page);
+        if(set_page){
+            this.setPage(differential.page);
+        }
         this.edges.push(differential);
         this._updateDifferentialStrings();
     }

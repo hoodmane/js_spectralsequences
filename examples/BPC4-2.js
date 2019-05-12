@@ -6,6 +6,12 @@ function getTime(){
     return (tp5 - t) / 1000;
 }
 
+
+
+
+
+
+
 let differential_colors = {
     13: "#34eef3",//"cyan",//
     15: "#ff00ff",//"magenta", //
@@ -50,7 +56,7 @@ Groups.Zsupsup = Groups.Z.copy();
 Groups.Zsupsup.fill = "black";
 
 IO.loadFromServer(getJSONFilename("BPC4-2-E13")).then(function(json){
-    console.log(`Read JSON in ${getTime()} seconds.`);
+    Display.addLoadingMessage(`Read JSON in ${getTime()} seconds.`);
     window.classes = {};
     classes.induced = new StringifyingMap();
     classes.surviving = new StringifyingMap();
@@ -102,7 +108,7 @@ IO.loadFromServer(getJSONFilename("BPC4-2-E13")).then(function(json){
         }
         classes[o.type].set([c.x,c.y], c);
     }
-    console.log(`Added classes in ${getTime()} seconds.`);
+    Display.addLoadingMessage(`Added classes in ${getTime()} seconds.`);
 
     sseq.onDifferentialAdded(d => {
         d.addInfoToSourceAndTarget();
@@ -169,10 +175,10 @@ IO.loadFromServer(getJSONFilename("BPC4-2-E13")).then(function(json){
         let target = classes[o.target_type].get(o.target);
         sseq.addDifferential(source, target, o.page);
     }
-    console.log(`Added differentials in ${getTime()} seconds.`);
-
+    Display.addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
+    document.getElementById("loading").style.display =  "none";
     sseq.display();
-    console.log(`Displayed in ${getTime()} seconds.`);
+    Display.addLoadingMessage(`Displayed in ${getTime()} seconds.`);
     let t1 = performance.now();
     console.log("Rendered in " + (t1 - t0)/1000 + " seconds.");
 }).catch((err) => console.log(err));
@@ -277,7 +283,7 @@ window.saveTruncationSseq = function saveTruncationSseq(){
         o.name = c.name;
         o.x = c.x;
         o.y = c.y;
-        o.extra_info = c.extra_info;
+        o.extra_info = c.extra_info.split("\n").filter(l => !l.startsWith("\\(d") && l !== "\\(\\)").join("\n");
         if(c.getColor(0) === "pink"){
             result.induced_classes.push(o);
             class_map.set(c, "induced");

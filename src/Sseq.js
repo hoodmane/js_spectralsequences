@@ -407,7 +407,7 @@ class Sseq {
      * @param page
      * @returns {Differential}
      */
-   addDifferential(source, target, page){
+   addDifferential(source, target, page, set_pages = true){
        if(typeof source === "number"){
            console.log("addDifferential a SseqClass in position 1, got a number. Probably the arguments are in the wrong order.")
            return Differential.getDummy();
@@ -420,14 +420,14 @@ class Sseq {
             // throw new Error(`Source or target is undefined.`);
             return Differential.getDummy();
         }
-       if(source.constructor !== SseqClass){
-           console.log(`Source has invalid type ${source.constructor.name}`);
-           return Differential.getDummy();
-       }
-        if(target.constructor !== SseqClass){
-            console.log(`Target has invalid type ${target.constructor.name}`);
-            return Differential.getDummy();
-        }
+       // if(source.constructor !== SseqClass){
+       //     console.log(`Source has invalid type ${source.constructor.name}`);
+       //     return Differential.getDummy();
+       // }
+       //  if(target.constructor !== SseqClass){
+       //      console.log(`Target has invalid type ${target.constructor.name}`);
+       //      return Differential.getDummy();
+       //  }
         if(source.isDummy() || target.isDummy()){
             return Differential.getDummy();
         }
@@ -441,8 +441,8 @@ class Sseq {
         }
 
         let differential = new Differential(this, source, target, page);
-        source._addOutgoingDifferential(differential);
-        target._addIncomingDifferential(differential);
+        source._addOutgoingDifferential(differential, set_pages);
+        target._addIncomingDifferential(differential, set_pages);
         differential.edge_list_index = this.edges.length;
         this.differentials.push(differential);
         this.edges.push(differential);

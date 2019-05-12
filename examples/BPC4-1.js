@@ -124,7 +124,6 @@ class sliceMonomial {
     sliceName(){
         return monomialString(["\\overline{\\mathfrak{d}}_3","\\overline{\\mathfrak{d}}_1", "\\overline{s}_1"],[this.d3, this.d1,this.s1]);
     }
-
 }
 
 
@@ -258,6 +257,36 @@ addDifferential(13, {"d1" : 6}, {"d1" : 9}, 18, 2);
 addDifferential(13, {"d1" : 8}, {"d1" : 11}, 30, 2);
 addDifferential(13, {"d1" : 11},{"d1" : 14}, 37, 2);
 
+
+window.saveSseq = function saveTruncationSseq(sseq){
+    max_x = sseq.xRange[1];
+    max_y = sseq.yRange[1];
+    let result = {};
+    result.max_diagonal = max_diagonal;
+    result.max_x = max_x;
+    result.max_y = max_y;
+    result.classes = [];
+    result.differentials = [];
+    for(let c of sseq.getClasses().filter(c => c.page_list[c.page_list.length - 1] > 3 && c.x < max_x && c.y < max_y)) {
+        let o = {};
+        o.name = c.name;
+        o.slice = c.slice.copy();
+        o.x = c.x;
+        o.y = c.y;
+        o.extra_info = c.extra_info;
+        o.page_list = c.page_list;
+        o.node_list = c.node_list;
+        result.classes.push(o);
+    }
+    for(let d of sseq.getDifferentials()){
+        let o = {};
+        o.source = [d.source.x, d.source.y];
+        o.page = d.page;
+        o.color = d.color;
+        result.differentials.push(o);
+    }
+    return result;
+};
 
 let dss = BPC4.getDisplaySseq();
 //tools.install_edit_handlers(dss,"BPC4-1");

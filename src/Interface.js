@@ -158,8 +158,27 @@ class Undo {
         this.redo = this.redo.bind(this);
     };
 
+    startMutationTracking(){
+        this.mutationMap = new Map();
+    }
+
+    addMutationsToUndoStack(event_obj){
+        this.add(this.mutationMap, event_obj);
+        this.mutationMap = undefined;
+    }
+
+    addMutation(obj, pre, post){
+        if(!this.mutationMap){
+            return;
+        }
+        if(this.mutationMap.get(obj)){
+            pre = this.mutationMap.get(obj).before;
+        }
+        this.mutationMap.set(obj, {obj: obj, before: pre, after : post});
+    }
+
     add(mutations, event_obj) {
-        this.undoStack.push(mutations);
+        this.undoStack.push({type:"normal", mutations: mutations});
         this.undoObjStack.push(event_obj);
         this.redoStack = [];
         this.redoObjStack = [];
@@ -196,34 +215,83 @@ class Undo {
         if (this.undoStack.length === 0) {
             return;
         }
-        let mutations = this.undoStack.pop();
-        for(let m of mutations.values()){
-            m.obj.restoreFromMemento(m.before);
-        }
-        this.redoStack.push(mutations);
+        let e = this.undoStack.pop();
+        this.redoStack.push(e);
         let obj = this.undoObjStack.pop();
         this.redoObjStack.push(obj);
-        sseq.display_sseq.update();
+        if(e.type === "custom"){
+            e.undoFunction();
+            return;
+        } else if(e.type === "normal"){
+            Undo.undoNormal(e.mutations);
+        }
     };
+
+    static undoNormal(mutations){
+        for(let m of mutations.values()){
+            if(m.obj.undoFromMemento){
+                m.obj.undoFromMemento(m.before);
+            } else {
+                m.obj.restoreFromMemento(m.before);
+            }
+        }
+
+        sseq.display_sseq.update();
+    }
 
     redo() {
         if (this.redoStack.length === 0) {
             return;
         }
-        let mutations = this.redoStack.pop();
-        for(let m of mutations.values()){
-            m.obj.restoreFromMemento(m.after);
-        }
-        this.undoStack.push(mutations);
+        let e = this.redoStack.pop();
+        this.undoStack.push(e);
         let obj = this.redoObjStack.pop();
         this.undoObjStack.push(obj);
-        sseq.display_sseq.update();
+        if(e.type === "custom"){
+            e.redoFunction();
+            return;
+        } else if(e.type === "normal"){
+            Undo.redoNormal(e.mutations);
+        }
     };
+
+    static redoNormal(mutations){
+        for(let m of mutations.values()){
+            if(m.obj.redoFromMemento){
+                m.obj.redoFromMemento(m.after);
+            } else {
+                m.obj.restoreFromMemento(m.after);
+            }
+        }
+
+        sseq.display_sseq.update();
+    }
+
+    addLock(msg){
+        if(msg === undefined){
+            msg = Undo.defaultLockMessage;
+        }
+        this.undoStack.push({
+            type : "custom",
+            undoFunction : function(){
+                w2confirm(msg)
+                    .yes(() => {
+                        this.redoStack.pop();
+                    })
+                    .no(() => {
+                        let e = this.redoStack.pop();
+                        this.undoStack.push(e);
+                    });
+            }.bind(this)
+        })
+    }
 
     getEventObjects() {
         return this.undoObjStack;
     }
 
 }
+
+Undo.defaultLockMessage = "Undo events before loaded page?";
 
 exports.Undo = Undo;
