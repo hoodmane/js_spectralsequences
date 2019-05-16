@@ -648,6 +648,8 @@ class Sseq {
         Util.assignFields(c.display_class, c, this._class_update_fields);
         Util.assignFields(c.display_class, c, this.class_tooltip_fields);
         c.display_class.tooltip = undefined;
+        // Crappy fix for a bug when the list of indices changes.
+        this.display_sseq.getClassNode(c.display_class, -1);
     }
 
     //

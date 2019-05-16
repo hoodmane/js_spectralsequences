@@ -95,8 +95,7 @@ class Display {
             .style("left", "120px")
             .style("top","10px")
             .style("font-family","Arial")
-            .style("font-size","15px")
-            .html("test");
+            .style("font-size","15px");
 
         this.tooltip_div       = tooltip_divs[0];
         this.tooltip_div_dummy = tooltip_divs[1];
@@ -125,6 +124,9 @@ class Display {
 
     static addLoadingMessage(message){
         let msg_div = document.getElementById('loading');
+        // if(msg_div == null){
+        //     document.createElement()
+        // }
         if(typeof display === "undefined"){
             msg_div.innerHTML += `<p>${message}</p>`;
         }
@@ -706,6 +708,10 @@ class Display {
         }
         if(this.sseq.on_draw){
             this.sseq.on_draw(this);
+            // Stop crappy on_draw methods from causing trouble.
+            this.gridLayerContext.beginPath();
+            this.classLayerContext.beginPath();
+            this.edgeLayerContext.beginPath();
         }
     }
 

@@ -8,7 +8,6 @@ function getTime(){
 
 
 
-
 function subnomialString(vars, exponents, module_generator = ""){
     let out = [];
     out[0] = module_generator;
@@ -84,17 +83,21 @@ class sliceMonomial {
                 ["a","\\lambda"], ["a", "\\sigma"], ["a","\\sigma_2"]],
             [this.ul, this.us, this.us2,
                 this.al, this.as, this.as2],
-            monomialString(["\\overline{\\mathfrak{d}}_{a_0}","\\overline{\\mathfrak{d}}_{a_1}", "\\overline{s}_1"],[this.da0, this.da1,this.s1]));
+            monomialString(["\\overline{\\mathfrak{d}}_{a_0}","\\overline{\\mathfrak{d}}_{a_1}", "(\\overline{s}_{a_0}+\\overline{s}_{a_1})"],[this.da0, this.da1,this.s1]));
     }
 
     sliceName(){
-        return monomialString(["\\overline{\\mathfrak{d}}_{a_0}","\\overline{\\mathfrak{d}}_{a_1}", "\\overline{s}_1"],[this.da0, this.da1,this.s1]);
+        return monomialString(["\\overline{\\mathfrak{d}}_{a_0}","\\overline{\\mathfrak{d}}_{a_1}", "(\\overline{s}_{a_0}+\\overline{s}_{a_1})"],[this.da0, this.da1,this.s1]);
     }
 }
 
 
 let differential_colors = {
-    13: "#34eef3",//"cyan",//
+    3 : "blue",
+    5 : "#40E0D0", // turquoise -- cyan is too bright
+    7 : "magenta",
+    11 : "green",
+    13: "orange",//"cyan",//
     15: "#ff00ff",//"magenta", //
     19: "#7fe900", // LimeGreen
     21: "blue",
@@ -119,8 +122,10 @@ Groups.Z.shape = Shapes.square;
 Groups.Z.size = 8;
 
 Groups.Z2 = new SseqNode();
+Groups.Z2.shape = Shapes.circle;
 
 Groups.Z4 = new SseqNode();
+Groups.Z4.shape = Shapes.circle;
 Groups.Z4.size = 8;
 Groups.Z4.fill = "white";
 
@@ -136,7 +141,7 @@ Groups.Zsup.fill = "red";
 Groups.Zsupsup = Groups.Z.copy();
 Groups.Zsupsup.fill = "black";
 
-IO.loadFromServer(getJSONFilename("BPC8-truncations")).then(function(json){
+IO.loadFromServer(getJSONFilename("BPC8-truncations")).catch(err => console.log(err)).then(function(json){
     Display.addLoadingMessage(`Read JSON in ${getTime()} seconds.`);
     window.classes = new StringifyingMap();
     window.sseq = new Sseq();
@@ -190,18 +195,19 @@ IO.loadFromServer(getJSONFilename("BPC8-truncations")).then(function(json){
         let d = sseq.addDifferential(source, target, o.page, false);
         d.color = o.color;
     }
-
+    sseq.page_list[0] = [5, infinity];
     updateTruncation(da1);
 
     sseq.onDraw((display) => {
-        // let context = display.edgeLayerContext;
-        // context.clearRect(0, 0, this.width, this.height);
-        // context.save();
-        // context.lineWidth = 0.3;
-        // context.strokeStyle = "#818181";
-        // let xScale = display.xScale;
-        // let yScale = display.yScale;
-        // // Truncation lines
+        let context = display.edgeLayerContext;
+        // context.beginPath();
+        context.clearRect(0, 0, this.width, this.height);
+        context.save();
+        context.lineWidth = 0.3;
+        context.strokeStyle = "#818181";
+        let xScale = display.xScale;
+        let yScale = display.yScale;
+        // Truncation lines
         // for (let diag = 12; diag < json.max_diagonal; diag += 12) {
         //     context.moveTo(xScale(diag + 2), yScale(-2));
         //     context.lineTo(xScale(-2), yScale(diag + 2));
@@ -217,12 +223,12 @@ IO.loadFromServer(getJSONFilename("BPC8-truncations")).then(function(json){
         //     context.moveTo(xScale(-2), yScale(y));
         //     context.lineTo(xScale(max_diagonal), yScale(y));
         // }
-        // context.moveTo(xScale(-1), yScale(-1));
-        // context.lineTo(xScale(max_diagonal), yScale(max_diagonal));
-        // context.moveTo(xScale(-1), yScale(-3));
-        // context.lineTo(xScale(max_diagonal / 3), yScale(max_diagonal));
-        // context.stroke();
-        // context.restore();
+        context.moveTo(xScale(0), yScale(0));
+        context.lineTo(xScale(max_diagonal), yScale(max_diagonal));
+        context.moveTo(xScale(0), yScale(0));
+        context.lineTo(xScale(max_diagonal / 3), yScale(max_diagonal));
+        context.stroke();
+        context.restore();
         // context = display.supermarginLayerContext;
     });
     sseq.initial_page_idx = 0;
@@ -235,11 +241,11 @@ IO.loadFromServer(getJSONFilename("BPC8-truncations")).then(function(json){
     let t1 = performance.now();
     console.log("Rendered in " + (t1 - t0)/1000 + " seconds.");
 
+
 });
 
 function updateTruncation(da1) {
     window.da1 = da1;
-    console.log(da1, da1.constructor);
     for(let c of sseq.classes){
         if(  (c.x % 8 === 1 && c.y === 1)
             ||(c.x % 8 === 2 && c.y === 2)){
@@ -249,11 +255,24 @@ function updateTruncation(da1) {
         c.visible = c.slice.d1 >= da1;
         c.node_list = c.save_node_list;
         c.page_list = c.save_page_list;
-        let trunc_ds = c.edges.filter(d => d.source.visible).length;
-        if(trunc_ds < c.edges.length){
-            c.node_list = c.save_node_list.slice(0, trunc_ds + 1);
-            c.page_list = c.save_page_list.slice(0, trunc_ds);
+        let trunc_edges = c.edges.filter(d => !d.source.visible).map( d => d.page);
+        c.trunc_edges = trunc_edges;
+        if(trunc_edges.length > 0){
+            c.node_list = c.save_node_list.filter((_,idx)=> !trunc_edges.includes(c.page_list[idx - 1]));
+            c.page_list = c.save_page_list.filter(p => !trunc_edges.includes(p));
             c.page_list.push(infinity);
+            if(c.node_list.length < c.page_list.length){
+                c.node_list.push(Groups.Z2sup.copy());
+            }
+            for(let i = 0; i < c.node_list.length; i++){
+                c.node_list[i] = new Node(c.node_list[i]);
+                trunc_page = Math.min(...c.edges.filter(d => !d.source.visible).map( d => d.page));
+                c.node_list[i].color = differential_colors[trunc_page];
+            }
+            if(c.getOutgoingDifferentials().map(d => d.page).includes(5)){
+                c.page_list = [5, infinity];
+                c.node_list = c.save_node_list;
+            }
         }
         c.slice.da1 = da1;
         c.slice.da0 = c.slice.d1 - da1;
@@ -266,6 +285,7 @@ function updateTruncation(da1) {
         c.extra_info = c.differential_strings.join("\n");
     }
     sseq.updateAll();
+    document.body.appendChild(truncation_div);
 }
 
 
@@ -292,5 +312,8 @@ truncation_div.appendChild(truncation_input);
 da1 = 0;
 truncation_input.innerText = da1;
 truncation_div.style.setProperty("position", "absolute");
-truncation_div.style.setProperty("bottom", "10pt");
-document.body.appendChild(truncation_div);
+truncation_div.style.setProperty("top", "10px");
+truncation_div.style.setProperty("left", "400px");
+truncation_div.style.setProperty("font-family", "Arial");
+truncation_div.style.setProperty("font-size","15px");
+

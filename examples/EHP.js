@@ -12,6 +12,7 @@ node_map[32] = new Node().setFill("white").setShape(Shapes.circlen).setSize(12);
 Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) => {
     window.dss = dss;
     window.sseq = Sseq.getSseqFromDisplay(dss);
+    sseq.updateAll();
 
     dss._getYOffset = (c) => c.y_offset || 0;
 
