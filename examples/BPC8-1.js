@@ -1,4 +1,5 @@
 // Name: Slice SS $Res^{C_4} BP^{((C_8))}\langle 2\rangle$
+
 // Description: The slice spectral sequence for the $C_4$ fixed points of $BP^{((C_8))}\langle 1\rangle$.
 
 let Groups = {};

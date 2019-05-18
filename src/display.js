@@ -3,6 +3,7 @@
 let d3 = require("d3");
 let Mousetrap = require("mousetrap");
 let Konva = require("konva");
+let katex = require("katex");
 
 document.documentElement.style.overflow = 'hidden'; // prevent scrollbars
 
@@ -897,16 +898,21 @@ class Display {
 
     mathjaxHTML(html){
         return new Promise(function(resolve, reject){
-            let div = document.createElement("div");
-            div.innerHTML = html;
-            if(! window.MathJax || !MathJax.Hub) {
-                reject(); // TODO: add error indicating mathjax not present.
-                return;
+            // let div = document.createElement("div");
+            // div.innerHTML = html;
+            // if(! window.MathJax || !MathJax.Hub) {
+            //     reject(); // TODO: add error indicating mathjax not present.
+            //     return;
+            // }
+            // MathJax.Hub.Queue(["Typeset", MathJax.Hub, div]);
+            // MathJax.Hub.Queue(() => {
+            //     resolve(div.innerHTML);
+            // });
+            let html_list = html.split(/(?:\\\[)|(?:\\\()|(?:\\\))|(?:\\\])|(?:\$)/);
+            for(let i = 1; i < html_list.length; i+=2){
+                html_list[i] = katex.renderToString(html_list[i]);
             }
-            MathJax.Hub.Queue(["Typeset", MathJax.Hub, div]);
-            MathJax.Hub.Queue(() => {
-                resolve(div.innerHTML);
-            });
+            resolve(html_list.join("\n"));
         }.bind(this));
     }
 

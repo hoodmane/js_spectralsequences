@@ -1,3 +1,7 @@
+// Name: Slice SS $Res^{C_4} BP^{((C_4))}\langle 2\rangle$
+// Description: The slice spectral sequence for the $C_4$ fixed points of $BP^{((C_4))}\langle 2\rangle$.
+
+
 let t0 = performance.now();
 let tp5 = t0;
 function getTime(){
