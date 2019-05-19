@@ -1,4 +1,4 @@
-// Name: Slice SS $Res^{C_4} BP^{((C_4))}\langle 2\rangle$
+// Name: Slice SS $BP^{((C_4))}\langle 2\rangle$
 // Description: The slice spectral sequence for the $C_4$ fixed points of $BP^{((C_4))}\langle 2\rangle$.
 
 

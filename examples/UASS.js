@@ -126,20 +126,26 @@ function setupDSS(dss, dss_list){
 
     return dss;
 }
+;
+let ready_dss_list = new Array(dss_promises.length).fill(undefined);
 
-let ready_DSS_list = new Array(dss_promises.length);
+let sphere_div = document.createElement("div");
+sphere_div.style.setProperty("position", "absolute");
+sphere_div.style.setProperty("top", "10px");
+sphere_div.style.setProperty("left", "400px");
+sphere_div.style.setProperty("font-family", "Arial");
+sphere_div.style.setProperty("font-size","15px");
+document.body.appendChild(sphere_div);
 
 function switchToSseq(index){
-    if(!ready_DSS_list[index]){
+    // if(!ready_dss_list[index]){
         dss_promises[index].then((dss) => {
-            ready_DSS_list[index] = setupDSS(dss);
-            ready_DSS_list[index].display();
-        });
+            let x = setupDSS(dss);
+            sphere_div.innerHTML = display.renderLaTeX(`UASS for $S^{${2*index+3}}$. Press +/- to change sphere.`);
+        }).catch(err => console.log(err));
         return;
-    }
-    window.dss = ready_DSS_list[index];
-    window.sseq = Sseq.getSseqFromDisplay(dss);
-    ready_DSS_list[index].display();
+    // }
+    // sphere_div.innerHTML = `UASS for S^{${2*index+3}}$. Press +/- to change sphere.`; //display.renderLaTeX(`UASS for S^{${2*index+3}}$. Press +/- to change sphere.`);
 }
 
 switchToSseq(0);

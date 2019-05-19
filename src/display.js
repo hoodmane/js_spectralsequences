@@ -125,9 +125,14 @@ class Display {
 
     static addLoadingMessage(message){
         let msg_div = document.getElementById('loading');
-        // if(msg_div == null){
-        //     document.createElement()
-        // }
+        if(msg_div == null){
+            msg_div = document.createElement("div");
+            msg_div.id = "loading";
+            msg_div.style.position = "absolute";
+            msg_div.style.top = "10pt";
+            msg_div.style.left = "10pt";
+            document.body.appendChild(msg_div);
+        }
         if(typeof display === "undefined"){
             msg_div.innerHTML += `<p>${message}</p>`;
         }
@@ -398,7 +403,10 @@ class Display {
         } else {
             drawFunc();
         }
-
+        // If there's a mouseover class
+        if (this.stage.getPointerPosition() && this.stage.getIntersection(this.stage.getPointerPosition())) {
+            this._handleMouseover(this.stage.getIntersection(this.stage.getPointerPosition()));
+        }
     }
 
     /**
@@ -843,25 +851,21 @@ class Display {
         this.mouseover_class = c;
         // Is the result cached?
         let tooltip = this.sseq.getClassTooltip(c, this.page).replace(/\n/g, "\n<hr>\n");
-        if (c.tooltip_html) {
-            this._setupTooltipDiv(shape, c.tooltip_html); // Display right away
-            // Now recompute in case things have changed
+        // if (c.tooltip_html) {
+        //     this._setupTooltipDiv(shape, c.tooltip_html); // Display right away
+        //     // Now recompute in case things have changed
+        //     this.updateNameHTML(c);
+        //     this.mathjaxHTML(tooltip).then(html => {
+        //         if (html && !html.includes("\\(")) {
+        //             // Cache the result of the MathJax so we can display this tooltip faster next time.
+        //             c.tooltip_html = html;
+        //         }
+        //     });
+        // } else {
+            let html = this.renderLaTeX(tooltip);
+            this._setupTooltipDiv(shape, html);
             this.updateNameHTML(c);
-            this.mathjaxHTML(tooltip).then(html => {
-                if (html && !html.includes("\\(")) {
-                    // Cache the result of the MathJax so we can display this tooltip faster next time.
-                    c.tooltip_html = html;
-                }
-            });
-        } else {
-            this.mathjaxHTML(tooltip)
-                .then(html => this._setupTooltipDiv(shape, html))
-                .catch((err) => {
-                    console.log(err);
-                    this._setupTooltipDiv(shape, tooltip);
-                });
-            this.updateNameHTML(c);
-        }
+        // }
         if(this.sseq.onmouseoverClass){
             this.sseq.onmouseoverClass(c);
         }
@@ -871,49 +875,15 @@ class Display {
     }
 
     updateNameHTML(c){
-        return this.mathjaxHTML(this.sseq.getClassTooltipFirstLine(c)).then(html => c.name_html = html);
+        c.name_html = this.renderLaTeX(this.sseq.getClassTooltipFirstLine(c));
     }
 
-    getNameHTML(c){
-        return new Promise(function(resolve, reject) {
-            if(!c){
-                reject("c undefined");
-                return;
-            }
-            MathJax.Hub.Queue(function(){
-                if(c.name_html){
-                    resolve(c.name_html);
-                } else {
-                    reject("no name");
-                }
-            });
-        })
-        .catch((err) => {
-            if(err === "c undefined"){
-                throw new Error("c undefined");
-            }
-            return this.updateNameHTML(c).then( () => c.name_html)
-        } );
-    }
-
-    mathjaxHTML(html){
-        return new Promise(function(resolve, reject){
-            // let div = document.createElement("div");
-            // div.innerHTML = html;
-            // if(! window.MathJax || !MathJax.Hub) {
-            //     reject(); // TODO: add error indicating mathjax not present.
-            //     return;
-            // }
-            // MathJax.Hub.Queue(["Typeset", MathJax.Hub, div]);
-            // MathJax.Hub.Queue(() => {
-            //     resolve(div.innerHTML);
-            // });
-            let html_list = html.split(/(?:\\\[)|(?:\\\()|(?:\\\))|(?:\\\])|(?:\$)/);
-            for(let i = 1; i < html_list.length; i+=2){
-                html_list[i] = katex.renderToString(html_list[i]);
-            }
-            resolve(html_list.join("\n"));
-        }.bind(this));
+    renderLaTeX(html){
+        let html_list = html.split(/(?:\\\[)|(?:\\\()|(?:\\\))|(?:\\\])|(?:\$)/);
+        for(let i = 1; i < html_list.length; i+=2){
+            html_list[i] = katex.renderToString(html_list[i]);
+        }
+        return html_list.join("\n")
     }
 
     _setupTooltipDiv(shape, html) {

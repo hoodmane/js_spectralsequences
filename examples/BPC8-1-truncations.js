@@ -289,9 +289,7 @@ function updateTruncation(da1) {
 }
 
 
-truncation_div = document.createElement("div");
-truncation_div.innerText = "Truncation: ";
-truncation_input = document.createElement("span");
+
 
 Mousetrap.bind("up", () => {
     da1 ++;
@@ -308,6 +306,9 @@ Mousetrap.bind("down", () => {
     updateTruncation(da1);
 });
 
+truncation_div = document.createElement("div");
+truncation_div.innerText = "Truncation: ";
+truncation_input = document.createElement("span");
 truncation_div.appendChild(truncation_input);
 da1 = 0;
 truncation_input.innerText = da1;
