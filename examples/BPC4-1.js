@@ -3,7 +3,7 @@
 
 let SseqNode = Node;
 
-let max_diagonal = 200;
+let max_diagonal = 300;
 
 let Groups = {};
 

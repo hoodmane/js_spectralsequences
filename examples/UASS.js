@@ -137,15 +137,29 @@ sphere_div.style.setProperty("font-family", "Arial");
 sphere_div.style.setProperty("font-size","15px");
 document.body.appendChild(sphere_div);
 
+let pm_div = document.createElement("div");
+pm_div.style.setProperty("position", "absolute");
+pm_div.style.setProperty("top", "10px");
+pm_div.style.setProperty("left", "500px");
+pm_div.style.setProperty("font-family", "Arial");
+pm_div.style.setProperty("font-size","15px");
+document.body.appendChild(pm_div);
+
+
 function switchToSseq(index){
     // if(!ready_dss_list[index]){
         dss_promises[index].then((dss) => {
             let x = setupDSS(dss);
-            sphere_div.innerHTML = display.renderLaTeX(`UASS for $S^{${2*index+3}}$. Press +/- to change sphere.`);
+            let msg = `UASS for $S^{${2*index+3}}$`;
+            if(index + 1 === dss_promises.length){
+                msg = "Stable ASS";
+            }
+            sphere_div.innerHTML = display.renderLaTeX(msg);
+            pm_div.innerText = "Press +/- to change sphere.";
         }).catch(err => console.log(err));
         return;
     // }
-    // sphere_div.innerHTML = `UASS for S^{${2*index+3}}$. Press +/- to change sphere.`; //display.renderLaTeX(`UASS for S^{${2*index+3}}$. Press +/- to change sphere.`);
+    // pm_div.innerHTML = `UASS for S^{${2*index+3}}$. Press +/- to change sphere.`; //display.renderLaTeX(`UASS for S^{${2*index+3}}$. Press +/- to change sphere.`);
 }
 
 switchToSseq(0);

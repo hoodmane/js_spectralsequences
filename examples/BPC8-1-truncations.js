@@ -246,13 +246,17 @@ IO.loadFromServer(getJSONFilename("BPC8-truncations")).catch(err => console.log(
 
 function updateTruncation(da1) {
     window.da1 = da1;
-    for(let c of sseq.classes){
-        if(  (c.x % 8 === 1 && c.y === 1)
-            ||(c.x % 8 === 2 && c.y === 2)){
-            c.visible = false;
+    for(let c of sseq.classes) {
+        c.visible = !(
+            (c.x % 8 === 1 && c.y === 1)
+            || (c.x % 8 === 2 && c.y === 2)
+        ) && c.slice.d1 >= da1;
+    }
+
+    for(let c of sseq.classes) {
+        if(!c.visible){
             continue;
         }
-        c.visible = c.slice.d1 >= da1;
         c.node_list = c.save_node_list;
         c.page_list = c.save_page_list;
         let trunc_edges = c.edges.filter(d => !d.source.visible).map( d => d.page);
@@ -260,13 +264,15 @@ function updateTruncation(da1) {
         if(trunc_edges.length > 0){
             c.node_list = c.save_node_list.filter((_,idx)=> !trunc_edges.includes(c.page_list[idx - 1]));
             c.page_list = c.save_page_list.filter(p => !trunc_edges.includes(p));
-            c.page_list.push(infinity);
+            if(!c.page_list.includes(infinity)){
+                c.page_list.push(infinity);
+            }
             if(c.node_list.length < c.page_list.length){
                 c.node_list.push(Groups.Z2sup.copy());
             }
             for(let i = 0; i < c.node_list.length; i++){
                 c.node_list[i] = new Node(c.node_list[i]);
-                trunc_page = Math.min(...c.edges.filter(d => !d.source.visible).map( d => d.page));
+                let trunc_page = Math.min(...trunc_edges);
                 c.node_list[i].color = differential_colors[trunc_page];
             }
             if(c.getOutgoingDifferentials().map(d => d.page).includes(5)){

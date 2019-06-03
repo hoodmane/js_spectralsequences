@@ -184,10 +184,17 @@ class Display {
         // this.rightMargin = 5;
         // this.topMargin = 20;
         // this.bottomMargin = 60;
+
         this.leftMargin = 40;
         this.rightMargin = 5;
         this.topMargin = 30;
         this.bottomMargin = 60;
+
+        // this.leftMargin = 30;
+        // this.rightMargin = 5;
+        // this.topMargin = 5;
+        // this.bottomMargin = 40;
+
 
         this.clipWidth = this.canvasWidth - this.rightMargin;
         this.clipHeight = this.canvasHeight - this.bottomMargin;
@@ -555,7 +562,8 @@ class Display {
         // TODO: This is an ad-hoc modification requested by Danny to ensure that the grid boxes are square.
         // Probably it's a useful thing to be able to have square grid boxes, how do we want to deal with this?
         if(this.sseq.squareAspectRatio){
-            this.xGridStep = this.yGridStep;
+            this.xGridStep = 1;
+            this.yGridStep = this.xGridStep;
         }
     }
 

@@ -16,7 +16,7 @@ window.Interface = require("./Interface");
 window.sseqDatabase = IO.sseqDatabase;
 window.Shapes = require("./Shape.js");
 window.Display = require("./display.js").Display;
-//window.C2S = require("canvas2svg");
+window.C2S = require("canvas2svg");
 
 
 let Sseqjs = require("./Sseq.js");

@@ -1,17 +1,409 @@
-// Name: Slice SS $Res^{C_4} BP^{((C_8))}\langle 2\rangle$
+// Name: Slice SS $BP^{((C_4))}\langle 2\rangle$
+// Description: The slice spectral sequence for the $C_4$ fixed points of $BP^{((C_4))}\langle 2\rangle$.
 
-// Description: The slice spectral sequence for the $C_4$ fixed points of $BP^{((C_8))}\langle 1\rangle$.
+
+let t0 = performance.now();
+let tp5 = t0;
+function getTime(){
+    let t = tp5;
+    tp5 = performance.now();
+    return (tp5 - t) / 1000;
+}
+
+
+
+Display.enableFontAwesome();
+window.sseq = new Sseq();
+window.undo = new Interface.Undo(sseq);
+
+let layout = document.createElement("div");
+layout.id = "layout";
+document.body.appendChild(layout);
+d3.select("#layout")
+    .style("height", "100vh")
+    .style("width", "100vw");
+
+$('#layout').w2layout({
+    name: 'layout',
+    panels: [
+        {
+            type: 'main', style: 'background-color: #FFFFFF; padding: 5px;'
+        },
+        {
+            type: 'right', size: 400, resizable: true, style: 'background-color: #ffffff; border-left: 0px;',
+            hidden      : true
+        }
+    ]
+});
+
+$('#main')[0].id = '';
+$('#layout_layout_panel_right').css('border-left', '1px solid silver');
+let el = w2ui['layout'].el('main');
+el.id = "main";
+
+
+let grid_config = {
+    name: 'grid',
+    show: {
+        toolbar: true,
+        toolbarDelete : true,
+        toolbarReload : false
+    },
+    multiSearch: false,
+    toolbar: {
+        style: 'background-color: #ffffff;',
+        items: [
+            {type: 'spacer' },
+            {
+                type: 'button', id: 'close', icon: 'fa fa-window-close', hint: 'Close sidebar',
+                onClick: () => w2ui.layout.hide('right')
+            }
+        ]
+    },
+    columns: [
+        { field: 'source', caption: 'Source', size: '100px', sortable: true, searchable: true },
+        { field: 'target', caption: 'Target', size: '100px', sortable: true, searchable: true },
+        { field: 'page', caption: 'Page', size: '43px', sortable: true, searchable: true },
+        { field: 'offset_vectors', caption: 'Leibniz Vectors', size: '50%' }
+    ],
+    onSelect : function(event){
+        let recids = event.recids;
+        if(!event.multiple){
+            let recid = Number.parseInt(event.recid);
+            differential_family.current_differential = differential_family.rec_id_map.get(recid);
+            recids = [event.recid];
+        }
+        recids = recids.map(a => Number.parseInt(a)).filter(a => a);
+        for(let recid of recids){
+            recid = Number.parseInt(recid);
+            differential_family.rec_id_map.get(recid).select();
+        }
+        sseq.update();
+    },
+    onUnselect : function(event){
+        console.log(event);
+        let recids = event.recids;
+        if(!event.multiple){
+            recids = [event.recid];
+        }
+        recids = recids.map(a => Number.parseInt(a)).filter(a => a);
+        for(let recid of recids){
+            differential_family.rec_id_map.get(recid).unselect();
+            if(differential_family.current_differential && differential_family.current_differential.recid === recid){
+                differential_family.current_differential = undefined;
+            }
+        }
+        sseq.update();
+    }
+};
+w2ui.layout.content('right', $().w2grid(grid_config));
+w2ui.grid.toolbar.set('w2ui-delete', {'tooltip' : 'Delete selected differentials'});
+w2ui.grid.msgDelete = "Are you sure you want to delete the selected differentials?";
+
+w2ui.grid.on('delete', function(event) {
+    if(!event.force){
+        onDeleteQuery()
+    } else {
+        w2ui.grid.message();
+        onDelete(w2ui.grid.getSelection())
+    }
+});
+
+function onDeleteQuery(){
+    setTimeout(function () {
+        $(w2ui.grid.box).find('input, textarea, select, button').on('keydown.message', function (evt) {
+            if (evt.keyCode == 27) { // esc
+                w2ui.grid.message();
+            }
+            if(evt.keyCode === 13) {// enter
+                w2ui.grid.delete(true);
+            }
+        });
+    }, 25);
+}
+
+function onDelete(recids){
+    undo.startMutationTracking();
+    for(let recid of recids){
+        let df = differential_family.rec_id_map.get(recid);
+        df.delete();
+        df.unselect();
+        let e = {action: "delete", args : {recid : recid}};
+        undo.addMutation(df, e, e);
+    }
+    undo.addMutationsToUndoStack({action: "delete", args : {recids : recids}});
+}
+
+function openGrid() {
+    w2ui.layout.show('right');
+    w2ui.grid.refresh();
+}
+
+class differential_family {
+    constructor(o){
+        this.recid = differential_family.next_rec_id;
+        differential_family.next_rec_id ++;
+        this.page = o.page;
+        this.source = o.source;
+        this.offset_vectors = o.offset_vectors || [];
+        this.offset_vector_ranges = o.offset_vector_ranges || [];
+        this.liebnized_differentials = [];
+        this.invalid = false;
+
+        let source_degree = this.source;
+        let target_degree = vectorSum(source_degree, [-1,this.page]);
+        let sourceClass = classes.all.get(source_degree);
+        let targetClass = classes.all.get(target_degree);
+        this.root_differential  = sseq.addDifferential(sourceClass, targetClass, this.page);
+        this.color = this.root_differential.color;
+        differential_family.list.push(this);
+        differential_family.rec_id_map.set(this.recid, this);
+        differential_family.current_differential = this;
+        let rec_obj = this.getRecordObject();
+        w2ui.grid.add(rec_obj);
+        if(!w2ui.layout.get("right").hidden){
+            w2ui.grid.select(rec_obj.recid);
+        }
+    }
+
+    toJSON(){
+        let o = {};
+        o.recid = this.recid;
+        o.page = this.page;
+        o.source = this.source;
+        o.offset_vectors = this.offset_vectors;
+        o.offset_vector_ranges = this.offset_vector_ranges;
+        o.invalid = this.invalid;
+        return o;
+    }
+
+    getRecordObject(){
+        let o = {};
+        o.recid = this.recid;
+        o.page = this.page;
+        display.updateNameHTML(this.root_differential.source);
+        display.updateNameHTML(this.root_differential.target);
+        o.source = this.root_differential.source.name_html;
+        o.target = this.root_differential.target.name_html;
+        o.offset_vectors = JSON.stringify(this.offset_vectors).slice(1,-1);
+        return o;
+    }
+
+    static refreshRecords(){
+        for(let df of differential_family.list){
+            if(df.invalid){
+                continue;
+            }
+            let o = df.getRecordObject();
+            if(w2ui.grid.get(o.recid)){
+                w2ui.grid.set(o.recid, o)
+            } else {
+                w2ui.grid.add(o);
+            }
+        }
+        w2ui.grid.select(differential_family.list.filter(df => df.selected).map(df => df.recid));
+        sseq.update();
+    }
+
+
+    select(){
+        if(this.selected){
+            return;
+        }
+        this.selected = true;
+        this.root_differential.color = differential_family.root_selected_color;
+        sseq.updateEdge(this.root_differential);
+        for(let d of this.liebnized_differentials){
+            d.color = differential_family.selected_color;
+            sseq.updateEdge(d);
+        }
+    }
+
+    unselect(){
+        if(!this.selected){
+            return;
+        }
+        this.selected = false;
+        for(let d of this.liebnized_differentials.concat([this.root_differential])){
+            d.color = this.color;
+            sseq.updateEdge(d);
+        }
+    }
+
+    static selectNone(){
+        for(let df of differential_family.list){
+            df.unselect();
+        }
+    }
+
+    updateDifferentials(){
+        let o = this.getRecordObject();
+        w2ui.grid.set(o.recid, o);
+        w2ui.grid.refresh();
+
+        for(let d of this.liebnized_differentials){
+            d.delete();
+        }
+
+        this.liebnized_differentials = [];
+        if(this.offset_vectors.length === 0){
+            return; // Note the early return -- any logic that should always happen needs to go up top.
+        }
+        for(let exponent_vector of product(...this.offset_vectors.map( v => range(0,50)))){
+            let cur_source = [this.source[0], this.source[1]];
+            let source_degree = vectorSum(cur_source, vectorLinearCombination(this.offset_vectors, exponent_vector));
+            let target_degree = vectorSum(source_degree, [-1,this.page]);
+            let sourceClass = classes.all.get(source_degree);
+            let targetClass = classes.all.get(target_degree);
+            let d = sseq.addDifferential(sourceClass, targetClass, this.page);
+            this.liebnized_differentials.push(d);
+            if(this.selected){
+                d.color = differential_family.selected_color;
+                sseq.updateEdge(d);
+            }
+        }
+        sseq.update();
+    }
+
+    delete(){
+        if(this.invalid === true){
+            return;
+        }
+        this.invalid = true;
+        for(let d of this.liebnized_differentials){
+            d.delete();
+        }
+        this.root_differential.delete();
+        w2ui.grid.remove(this.recid);
+        differential_family.refreshRecords();
+        w2ui.grid.refresh();
+        sseq.update();
+    }
+
+    restore(){
+        if(!this.invalid){
+            return;
+        }
+        this.invalid = false;
+
+        for(let d of this.liebnized_differentials){
+            d.revive();
+        }
+        this.root_differential.revive();
+        let o = this.getRecordObject();
+        w2ui.grid.add(o);
+        differential_family.refreshRecords();
+        w2ui.grid.refresh();
+        sseq.update();
+    }
+
+    // getMemento(){
+    //     if(this.invalid){
+    //         return {invalid: true};
+    //     }
+    //     let result = {};
+    //     result.offset_vectors = this.offset_vectors.map(v => v.slice());
+    //     result.offset_vector_ranges = this.offset_vector_ranges.map(v => v.slice());
+    //     return result;
+    // }
+
+    // restoreFromMemento(o){
+    //     if(o.invalid){
+    //         this.delete();
+    //         return;
+    //     }
+    //     if(this.invalid){
+    //         this.restore();
+    //         return;
+    //     }
+    //     this.offset_vectors = o.offset_vectors;
+    //     this.offset_vector_ranges = o.offset_vector_ranges;
+    //     this.updateDifferentials();
+    // }
+
+    undoFromMemento(e){
+        let df = this;
+        const undoDict = {
+            new : function(){
+                df.delete()
+            },
+            leibniz : function(e){
+                df.offset_vectors.pop();
+                df.offset_vector_ranges.pop();
+                df.updateDifferentials();
+            },
+            delete : function(){
+                df.restore();
+            }
+        };
+        undoDict[e.action](e);
+    }
+
+    redoFromMemento(e){
+        let df = this;
+        const redoDict = {
+            new : function(){
+                df.restore()
+            },
+            leibniz : function(e){
+                df.offset_vectors.push(e.args.vector);
+                df.offset_vector_ranges.push(e.args.range);
+                df.updateDifferentials();
+            },
+            delete : function(){
+                df.delete();
+            }
+        };
+        redoDict[e.action](e);
+    }
+
+    static getSaveObject(){
+        let result = {};
+        result.history = undo.toJSON();
+        result.differentials = differential_family.list;
+        result.next_rec_id = differential_family.next_rec_id;
+        return result;
+    }
+}
+
+differential_family.list = [];
+differential_family.next_rec_id = 1;
+differential_family.rec_id_map = new Map();
+differential_family.root_selected_color = "red";
+differential_family.selected_color = "black";
+
+
+
+
+
+let differential_colors = {
+    13: "#34eef3",//"cyan",//
+    15: "#ff00ff",//"magenta", //
+    19: "#7fe900", // LimeGreen
+    21: "blue",
+    23: "orange",
+    27: "#14e01b", // ForestGreen
+    29: "red",
+    31: "pink",
+    35: "#ffb529", // Dandelion
+    43: "#ff3b21",  // RedOrange
+    51: "#22f19f",
+    53: "#8000ff", // Plum
+    55: "#0f75ff", // NavyBlue
+    59: "#8c2700", // Raw Sienna
+    61: "black"
+};
 
 let Groups = {};
-
-Groups.Z = new Node();
+let SseqNode = Node;
+Groups.Z = new SseqNode();
 Groups.Z.fill = "white";
 Groups.Z.shape = Shapes.square;
 Groups.Z.size = 8;
 
-Groups.Z2 = new Node();
+Groups.Z2 = new SseqNode();
 
-Groups.Z4 = new Node();
+Groups.Z4 = new SseqNode();
 Groups.Z4.size = 8;
 Groups.Z4.fill = "white";
 
@@ -27,315 +419,350 @@ Groups.Zsup.fill = "red";
 Groups.Zsupsup = Groups.Z.copy();
 Groups.Zsupsup.fill = "black";
 
-function subnomialString(vars, exponents, module_generator = ""){
-    let out = [];
-    out[0] = module_generator;
-    for(let i = 0; i < vars.length; i++){
-        let exponent = exponents[i];
-        if(exponent === 0){
-            out[i+1] = "";
-        } else if(exponent === 1){
-            out[i+1] = `${vars[i][0]}_{${vars[i][1]}}`;
-        } else {
-            out[i+1] = `${vars[i][0]}_{${exponent}${vars[i][1]}}`;
+IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
+    Display.addLoadingMessage(`Read JSON in ${getTime()} seconds.`);
+    window.classes = {};
+    classes.all = new StringifyingMap();
+    classes.induced = new StringifyingMap();
+    classes.surviving = new StringifyingMap();
+    classes.truncation = new StringifyingMap();
+    window.sseq = new Sseq();
+    window.max_x = json.max_x;
+    window.max_y = json.max_y;
+    window.max_diagonal = json.max_diagonal;
+    sseq.xRange = [0, max_x];
+    sseq.yRange = [0, max_y];
+
+    y_initial = 120;
+    sseq.initialxRange = [0, Math.floor(16/9 * y_initial)];
+    sseq.initialyRange = [0, y_initial];
+    sseq.class_scale = 0.4;
+    dss = sseq.getDisplaySseq();
+    dss.squareAspectRatio = true;
+
+    // sseq.initialxRange = [0, Math.floor(16 / 9 * 40)];
+    // sseq.initialyRange = [0, 40];
+    // sseq.class_scale = 0.75;
+
+    for(let o of json.truncation_classes) {
+        o.type = "truncation";
+    }
+    for(let o of json.induced_classes) {
+        o.type = "induced";
+    }
+    for(let o of json.surviving_classes) {
+        o.type = "surviving";
+        if(o.color === "blue"){
+            o.type = "truncation";
         }
     }
-    let outStr = out.filter(s =>  s !== "").join(" ");
-    if( outStr === "" ){
-        outStr = "1";
-    }
-    return outStr;
-}
-
-
-let b;
-sequentialTuples = a=>[a.map(a=>a[0]),...(b=a.find(a=>a[1]))?sequentialTuples(a,b.shift()):[]];
-
-
-class sliceMonomial {
-    constructor(d1, s1, as2, al, as){
-        this.d1 = d1;
-        this.s1 = s1;
-        this.d3 = 0;
-        this.as2 = as2;
-        this.al = al;
-        this.as = as;
-        this.us2 = s1 - as2;
-        this.ul = d1 - al;
-        this.us = d1 - as;
-        this.stem = 4*d1 + 2*s1 - 2*al - as2 - as;
-        this.filtration = 2*al + as2 + as;
-
-        if(this.as > 0 || this.as2 > 0){
-            this._group = "Z2";
-        } else if(this.al > 0 ){
-            this._group = "Z4";
+    let color_to_group = {
+        "white" : "Z",
+        "red"   : "2Z",
+        "black" : "4Z"
+    };
+    for(let o of json.truncation_classes.concat(json.induced_classes, json.surviving_classes)){
+        if(o.type === "induced" && classes[o.type].has([o.x, o.y])){
+            continue;
+        }
+        let c = sseq.addClass(o.x, o.y);
+        c.original_obj = o;
+        c.name = o.name;
+        c.extra_info = o.extra_info;
+        c.getNode().setColor(o.color).setFill(o.fill);
+        if(o.y === 0){
+            c.setShape(Shapes.square);
+            c.group = color_to_group[o.fill];
+        } else if(o.fill !== true){
+            c.getNode().setSize(8);
+            c.group = o.fill === "white" ? "Z/4" : "Z/2";
         } else {
-            this._group = "Z";
+            c.group = "Z/2";
+        }
+        classes.all.set([c.x,c.y], c);
+        classes[o.type].set([c.x,c.y], c);
+    }
+    Display.addLoadingMessage(`Added classes in ${getTime()} seconds.`);
+
+    sseq.onDifferentialAdded(d => {
+        d.addInfoToSourceAndTarget();
+        if (d.source.group === "Z/4") {
+            d.source.group = "Z/2";
+            d.source.replace(Groups.Z2sup, (name) => "2\\," + name);
+            d.source.setColor(d.source.getColor(0));
+        } else if (d.source.group === "Z") {
+            d.source.group = "2Z";
+            d.source.replace(Groups.Zsup, (name) => "2\\," + name);
+        } else if (d.source.group === "2Z") {
+            d.source.group = "4Z";
+            d.source.replace(Groups.Zsupsup);
         }
 
-        this._induced = s1 > 0;
+        if (d.target.group === "Z/4") {
+            d.target.group = "Z/2";
+            d.target.replace(Groups.Z2hit);
+            d.target.setColor(d.target.getColor(0));
+        }
+        d.color = differential_colors[d.page];
+    });
+
+    sseq.onDraw((display) => {
+        let context = display.edgeLayerContext;
+        context.clearRect(0, 0, this.width, this.height);
+        context.save();
+        context.lineWidth = 0.3;
+        context.strokeStyle = "#818181";
+        let xScale = display.xScale;
+        let yScale = display.yScale;
+        // Truncation lines
+        for (let diag = 4; diag < 2*json.max_diagonal; diag += 4) {
+            context.moveTo(xScale(diag + 2), yScale(-2));
+            context.lineTo(xScale(-2), yScale(diag + 2));
+        }
+        context.stroke();
+        context.restore();
+        // context.save();
+        // context.beginPath();
+        // context.lineWidth = 1;
+        // context.strokeStyle = "#9d9d9d";
+        // // vanishing lines
+        // for (let y of [3, 7, 15, 31, 61]) {
+        //     context.moveTo(xScale(-2), yScale(y));
+        //     context.lineTo(xScale(max_diagonal), yScale(y));
+        // }
+        // context.moveTo(xScale(-1), yScale(-1));
+        // context.lineTo(xScale(max_diagonal), yScale(max_diagonal));
+        // context.moveTo(xScale(-1), yScale(-3));
+        // context.lineTo(xScale(max_diagonal / 3), yScale(max_diagonal));
+        // context.stroke();
+        // context.restore();
+        context = display.supermarginLayerContext;
+    });
+    sseq.initial_page_idx = 0;
+
+    // addDifferentialsLogic();
+    for(let o of json.differentials){
+        o.target = [];
+        o.target[0] = o.source[0] - 1;
+        o.target[1] = o.source[1] + o.page;
+        let source = classes[o.source_type].get(o.source);
+        let target = classes[o.target_type].get(o.target);
+        sseq.addDifferential(source, target, o.page);
     }
+    Display.addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
+    document.getElementById("loading").style.display =  "none";
+    sseq.display();
+    // IO.download("BPC8-1.svg", display.toSVG());
+    Display.addLoadingMessage(`Displayed in ${getTime()} seconds.`);
+    let t1 = performance.now();
+    console.log("Rendered in " + (t1 - t0)/1000 + " seconds.");
+}).catch((err) => console.log(err)).then(() => IO.loadFromLocalStore("BPC4-2-differentials"))
+    .then((json) =>{
+        setupDifferentialInterface(json);
+    }).catch(err => {
+    console.log(err);
+    setupDifferentialInterface();
+});
 
-    copy(){
-        let out = Object.create(sliceMonomial);
-        out.__proto__ = sliceMonomial.prototype;
-        Object.assign(out, this);
-        return out;
+window.saveTruncationSseq = function saveTruncationSseq(){
+    max_x = sseq.xRange[1];
+    max_y = sseq.yRange[1];
+    let result = {};
+    result.max_diagonal = max_diagonal;
+    result.max_x = max_x;
+    result.max_y = max_y;
+    result.truncation_classes = [];
+    result.induced_classes = [];
+    result.surviving_classes = [];
+    result.differentials = [];
+    let class_map = new StringifyingMap();
+    let classes = new Set(sseq.getClasses().filter(c =>  c.x <= max_x && c.y <= max_y));
+    let differentials = sseq.getDifferentials().filter(d => d.source.x <= max_x + 1 && d.source.y <= max_y);
+    for(let d of differentials){
+        classes.add(d.target);
+        if(d.source.x === max_x + 1){
+            classes.add(d.source);
+        }
     }
+    classes = Array.from(classes);
 
-    degree(){
-        return [this.stem, this.filtration];
+    for(let c of classes) {
+        let o = {};
+        o.color = c.getColor(0);
+        o.fill = c.getNode(0).fill;
+        o.name = c.name;
+        o.x = c.x;
+        o.y = c.y;
+        o.extra_info = c.extra_info.split("\n").filter(l => !l.startsWith("\\(d") && l !== "\\(\\)").join("\n");
+        if(c.getColor(0) === "pink"){
+            result.induced_classes.push(o);
+            class_map.set(c, "induced");
+        } else if(c.getColor(0) === "black"){
+            result.surviving_classes.push(o);
+        } else {
+            result.truncation_classes.push(o);
+            class_map.set(c, "truncation");
+        }
     }
-
-    getTuple(){
-        return [this.d1, this.s1, this.as2, this.al, this.as];
+    for(let d of differentials){
+        let o = {};
+        o.source = [d.source.x, d.source.y];
+        o.page = d.page;
+        o.source_type = class_map.get(d.source);
+        o.target_type = class_map.get(d.target);
+        result.differentials.push(o);
     }
-
-    group(){
-        return this._group;
-    }
-
-    is_induced(){
-        return this._induced;
-    }
-
-    toString() {
-        return subnomialString(
-            [["u","\\lambda"], ["u", "\\sigma"], ["u","\\sigma_2"],
-                ["a","\\lambda"], ["a", "\\sigma"], ["a","\\sigma_2"]],
-            [this.ul, this.us, this.us2,
-                this.al, this.as, this.as2],
-            monomialString(["\\overline{\\mathfrak{d}}_3","\\overline{\\mathfrak{d}}_1", "\\overline{s}_1"],[this.d3, this.d1,this.s1]));
-    }
-
-    sliceName(){
-        return monomialString(["\\overline{\\mathfrak{d}}_3","\\overline{\\mathfrak{d}}_1", "\\overline{s}_1"],[this.d3, this.d1,this.s1]);
-    }
-
-}
-
-
-function getSlice(d1pow, s1pow){
-    let out = [];
-    let tuples;
-    if(s1pow === 0){
-        tuples = sequentialTuples([[0], range(0, d1pow), range(d1pow % 2, d1pow, 2)]);
-    } else {
-        tuples = sequentialTuples([range(s1pow % 2, s1pow, 2), range(0, d1pow), [0]]);
-    }
-    return tuples.map( l => new sliceMonomial(d1pow, s1pow, ...l));
-}
-
-
-let BPC4 = new Sseq();
-BPC4.drop_out_of_range_classes = true;
-BPC4.addPageRangeToPageList([5,15]);
-BPC4.min_page_idx = 1;
-let s1max = 10;
-let d1max = 100;
-
-BPC4.xRange = [0, 100];
-BPC4.yRange = [0, 40];
-
-BPC4.initialxRange = [0, 20];
-BPC4.initialyRange = [0, 16];
-
-let differential_colors = {
-    3 : "blue",
-    5 : "#40E0D0", // turquoise -- cyan is too bright
-    7 : "magenta",
-    11 : "green",
-    13 : "orange"
+    return result;
 };
 
-BPC4.onDifferentialAdded(d => {
-    d.addInfoToSourceAndTarget();
-    if(d.source.group == "Z4"){
-        d.source.group = "Z2";
-        d.source.replace(Groups.Z2sup, (name) => "2\\," + name);
-    } else if(d.source.group === "Z"){
-        d.source.group = "2Z";
-        d.source.replace(Groups.Zsup, (name) => "2\\," + name);
-    } else if(d.source.group === "2Z"){
-        d.source.group = "4Z";
-        d.source.replace(Groups.Zsupsup);
+
+
+function setupDifferentialInterface(json){
+    if(!json){
+        json = {history : [], differentials : []};
     }
-
-    if(d.target.group == "Z4"){
-        d.target.group = "Z2";
-        d.target.replace(Groups.Z2hit);
+    window.json = json;
+    let dfamilies = json.differentials;
+    dfamilies = dfamilies.map( o => new differential_family(o));
+    for(let df of dfamilies){
+        df.updateDifferentials();
     }
-    d.color = differential_colors[d.page];
-})
-
-
-
-let d3_cycles = [];
-let d3_cycles_map  = new StringifyingMap();
-let big_slices = [];
-
-
-function addSlice(sseq, elt) {
-    let slice = new Map();
-    let d1 = elt[0];
-    let s1 = elt[1];
-
-    for(let c of getSlice(d1, s1)) {
-        let sseq_class = sseq.addClass(...c.degree())
-            .setName(c.toString())
-            .setNode(Groups[c.group()]);
-        sseq_class.group = c.group();
-        sseq_class.E2group = c.group();
-        sseq_class.slice = c;
-        if(s1 == 0){
-            sseq_class.x_offset = 0;
-            sseq_class.y_offset = 0;
-        }
-        slice.set(sseq_class.x, sseq_class);
-    }
-
-    return slice;
-}
-
-slices = BPC4.addSliceClasses({"\\overline{s}_1" : 2, "\\overline{\\mathfrak{d}}_1" : 4},
-    [["\\overline{\\mathfrak{d}}_1", 0, d1max],["\\overline{s}_1", 0, 3]], addSlice);
-
-slices.addDifferential(3, [0, 1], (k, stem, filtration) => (stem - filtration) % 8 === 4);
-
-for(let c of BPC4.getSurvivingClasses(4)){
-    if(c.y < 3 && (c.slice.s1 > 2 || c.slice.us2 > 0) ){
-        c.setPage(3);
-    } else {
-        c.x_offset = 0;
-        c.y_offset = 0;
-    }
-}
-
-for(let d1 = 0; d1 < d1max; d1 += 2){
-    for(let s = 0; s <= 1; s++){
-        BPC4.addStructline(slices.get([d1,s]).get(4*d1 + s),slices.get([d1, s + 1]).get(4*d1 + s + 1)).setMinPage(5);
-    }
-}
-
-
-function addDifferential(page, source_slice, target_slice, stem, translation_multiple){
-    let i = translation_multiple;
-    slices.addDifferentialLeibniz(page, source_slice, stem, target_slice, [[i*2,0,i*4],[i*4,0,i*16]],[[0,Math.floor(d1max/(2*i))],[0,Math.floor(d1max/(4*i))]]);
-}
-
-
-slices.addDifferentialLeibniz(5, [2, 0], 4, [3,0], [[1,0,1],[4,0,8]], [[0,20],[0,10]]);
-
-addDifferential(5, [2,0], [3,0], 8, 1);
-addDifferential(5, [3,0], [4,0], 9, 1);
-addDifferential(5, [3,0], [4,0], 11, 1);
-
-
-addDifferential(7, [2, 0], [3,1],  8, 1);
-addDifferential(7, [4, 0], [5,1], 16, 2);
-addDifferential(7, [10, 0],[11,1],36, 2);
-
-
-addDifferential(11, [3, 1], [6, 0], 11, 2);
-addDifferential(11, [9, 1], [12, 0], 31, 2);
-
-addDifferential(13, [5, 0], [8, 0], 17, 2);
-addDifferential(13, [6, 0], [9, 0], 18, 2);
-addDifferential(13, [8, 0], [11, 0], 30, 2);
-addDifferential(13, [11, 0],[14, 0], 37, 2);
-
-
-
-let truncation_sseq = new Sseq();
-truncation_sseq.drop_out_of_range_classes = true;
-truncation_sseq.xRange = [0, 100];
-truncation_sseq.yRange = [0, 50];
-
-truncation_sseq.initialxRange = [0, 70];
-truncation_sseq.initialyRange = [0, 40];
-
-//truncation_sseq.min_page_idx = BPC4.page_list.length - 1;
-
-for(let c of BPC4.getSurvivingClasses()){
-    let nc = truncation_sseq.addClass(c.x,c.y);
-    nc.name = c.name;
-    if(c.group === "4Z"){
-        nc.name = "4\\," + nc.name;
-    } else if(c.group === "2Z" || c.getOutgoingDifferentials().length > 0){
-        nc.name = "2\\," + nc.name;
-    }
-    let slice_names = [];
-    for(let d3 = 0; d3 < c.slice.d1/3; d3 ++){
-        let slice = c.slice.copy();
-        slice.d3 = d3;
-        slice.d1 -= 3*d3;
-        slice_names.push(`\\(${slice.sliceName()}\\)`);
-    }
-    for(i = 0; i < slice_names.length; i+=5){
-        nc.addExtraInfo(slice_names.slice(i,i+5).join(", "));
-    }
-    nc.setNode(c.getNode());
-}
-
-
-function getTruncationClasses(k){
-    let out = [];
-    for(let c of BPC4.classes){
-        let incoming_differentials = c.getIncomingDifferentials();
-        let n = Math.floor((c.x + c.y)/k);
-        if(incoming_differentials.length > 0){
-            for(let i = 0; i < incoming_differentials.length; i++){
-                let d = incoming_differentials[i];
-                if(d.source.x + d.source.y < k*n && incoming_differentials[incoming_differentials.length - 1].page > 3){
-                    let c2 = Object.assign(new SseqClass(BPC4, c.x, c.y), c);
-                    c2.cut_length = d.page;
-                    let node = c.getNode(c2.cut_length - 1).copy();
-                    c2.node_list = [node];
-                    c2.page_list = [infinity];
-                    node.stroke = differential_colors[d.page];
-                    node.color = differential_colors[d.page];
-                    c2.slice = c.slice.copy();
-                    c2.slice.d1 -= n;
-                    c2.slice.d3 = n/3;
-                    c2.name = c2.slice.toString();
-                    c2.E2group = c.E2group;
-                    if(c.E2group === "Z4"){
-                        if(c.getOutgoingDifferentials().length > 0){
-                            node.fill = "red";
-                            c2.name = "2\\," + c.name;
-                            c2.group = "Z2";
-                        } else {
-                            if(i > 0){
-                                node.fill = "grey";
-                                c2.group = "Z2";
-                            } else {
-                                node.fill = "white";
-                                c2.group = "Z4";
-                            }
-                        }
-                    } else {
-                        c2.group = c2.E2group;
-                    }
-                    out.push(c2);
-                    break;
-                }
+    for(let e of json.history){
+        if(e.type === "normal"){
+            undo.startMutationTracking();
+            for(let kv of e.mutations){
+                undo.addMutation(differential_family.rec_id_map.get(kv[0]), kv[1], kv[1]);
             }
+            undo.addMutationsToUndoStack();
+        } else {
+            e.undoFunction = Interface.Undo.undoFunctions[e.type].bind(undo);
+            e.redoFunction = Interface.Undo.redoFunctions[e.type].bind(undo);
+            undo.undoStack.push(e);
         }
     }
-    return out;
+    if(json.history.length !== 0) {
+        undo.addLock();
+    }
+
+    differential_family.current_differential = undefined;
+    window.dss = sseq.getDisplaySseq();
+
+    dss.addEventHandler('s', function(event) {
+            const c = event.mouseover_class;
+            console.log(c);
+            if (!c) {
+                return
+            }
+            dss.temp_source_class = c;
+            display.updateNameHTML(c);
+            let name = c.name_html;
+            display.setStatus(`Adding differential. Source: ${name}`);
+        }
+    );
+
+
+    dss.addEventHandler('t', function (event) {
+        if(event.mouseover_class && dss.temp_source_class){
+            let s = dss.temp_source_class;
+            let t = event.mouseover_class;
+            if(s.x !== t.x + 1){
+                return;
+            }
+            let length = t.y - s.y;
+            display.updateNameHTML(s);
+            display.updateNameHTML(t);
+            let sourcename = s.name_html;
+            let targetname = t.name_html;
+            w2confirm(`Add d_${length} differential from ${sourcename} to ${targetname}`).yes(() =>{
+                let o = {
+                    page: length,
+                    source: [s.x, s.y],
+                    offset_vectors : [],
+                    offset_vector_ranges : []
+                };
+                let df = new differential_family(o);
+                undo.startMutationTracking();
+                let event = {action: "new", args : o};
+                undo.addMutation(df, event, event);
+                undo.addMutationsToUndoStack(event);
+                dss.update();
+                dss.temp_source_class = undefined;
+                display.setStatus("");
+                differential_family.selectNone();
+                df.select();
+            });
+        }
+    });
+
+
+
+    dss.addEventHandler('l',  (event) => {
+        let df = differential_family.current_differential;
+        let c = event.mouseover_class;
+        if (!c || !df) {
+            return;
+        }
+        let dx = c.x;// - dss.most_recent_differential.source.x;
+        let dy = c.y;// - dss.most_recent_differential.source.y;
+        if(df.offset_vectors.map(JSON.stringify).includes(JSON.stringify([dx, dy]))){
+            return;
+        }
+        if(confirm(`Leibniz along vector [${dx},${dy}]?`)){
+            undo.startMutationTracking();
+            df.offset_vectors.push([dx,dy]);
+            df.offset_vector_ranges.push([0,20]);
+            df.updateDifferentials();
+            let event = {action: "leibniz", args : {vector:[dx, dy], range: [0,20]}};
+            undo.addMutation(df, event, event);
+            undo.addMutationsToUndoStack(event);
+            sseq.update();
+        }
+    });
+
+
+
+    dss.addEventHandler("d", (event) => {
+        display.setStatus("Saving...");
+        console.log(differential_family.list);
+        IO.saveToLocalStore("BPC4-2-differentials", differential_family.getSaveObject());
+        // IO.download("BPC4-2-differentials.json", differential_family.getSaveObject());
+        console.log("Saved.");
+        display.setStatus("Saved.");
+        display.delayedSetStatus("", 2000);
+    });
+
+    dss.addEventHandler("D", (event) => {
+        display.setStatus("Saving...");
+        console.log(differential_family.list);
+        IO.saveToLocalStore("BPC4-2-differentials", differential_family.getSaveObject());
+        IO.download("BPC4-2-differentials.json", differential_family.getSaveObject());
+        console.log("Saved.");
+        display.setStatus("Saved.");
+        display.delayedSetStatus("", 2000);
+    });
+
+
+
+
+
+    dss.addEventHandler('o', (event) => {
+        openGrid();
+    });
+
+    dss.addEventHandler('z', (event) => {
+        undo.undo();
+    });
+
+    dss.addEventHandler("ctrl+z", undo.undo);
+    dss.addEventHandler("ctrl+shift+z", undo.redo);
+
+    sseq.updateAll();
+    dss.display();
+    setTimeout(() => differential_family.refreshRecords(), 500);
+    w2ui.layout.onResize = function onResize(event) {
+        event.onComplete = function onResizeComplete(){
+            display.resize();
+        }
+    };
 }
 
-let msgs = 0;
-for(c of getTruncationClasses(4)){
-    let nc = truncation_sseq.addClass(c.x,c.y);
-    Util.assignFields(nc, c, ["name", "cut_length", "slice","group","E2group"]);
-    nc.setNode(c.getNode());
-    //partitionList(c.slice.getSliceNames()).forEach((s) => nc.addExtraInfo(`\\(${s}\\)`));
-//    nc.addToMap(classes);
-}
-
-
-
-
-truncation_sseq.display();

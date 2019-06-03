@@ -151,7 +151,7 @@ class Undo {
     constructor(sseq){
         this.sseq = sseq;
         this.undoStack = [];
-        this.undoObjStack = []
+        this.undoObjStack = [];
         this.redoStack = [];
         this.redoObjStack = [];
         this.undo = this.undo.bind(this);
@@ -178,7 +178,7 @@ class Undo {
     }
 
     add(mutations, event_obj) {
-        this.undoStack.push({type:"normal", mutations: mutations});
+        this.undoStack.push({type:"normal", mutations: mutations, undoFunction : Undo.undoNormal, redoFunction : Undo.redoNormal});
         this.undoObjStack.push(event_obj);
         this.redoStack = [];
         this.redoObjStack = [];
@@ -219,15 +219,11 @@ class Undo {
         this.redoStack.push(e);
         let obj = this.undoObjStack.pop();
         this.redoObjStack.push(obj);
-        if(e.type === "custom"){
-            e.undoFunction();
-            return;
-        } else if(e.type === "normal"){
-            Undo.undoNormal(e.mutations);
-        }
+        e.undoFunction(e);
     };
 
-    static undoNormal(mutations){
+    static undoNormal(obj){
+        let mutations = obj.mutations;
         for(let m of mutations.values()){
             if(m.obj.undoFromMemento){
                 m.obj.undoFromMemento(m.before);
@@ -247,15 +243,11 @@ class Undo {
         this.undoStack.push(e);
         let obj = this.redoObjStack.pop();
         this.undoObjStack.push(obj);
-        if(e.type === "custom"){
-            e.redoFunction();
-            return;
-        } else if(e.type === "normal"){
-            Undo.redoNormal(e.mutations);
-        }
+        e.redoFunction(e);
     };
 
-    static redoNormal(mutations){
+    static redoNormal(obj){
+        let mutations = obj.mutations;
         for(let m of mutations.values()){
             if(m.obj.redoFromMemento){
                 m.obj.redoFromMemento(m.after);
@@ -268,21 +260,15 @@ class Undo {
     }
 
     addLock(msg){
+        let d = new Date();
         if(msg === undefined){
-            msg = Undo.defaultLockMessage;
+            msg = `Undo events before save at ${d.getFullYear()}-${d.getMonth()}-${d.getDay()} ${d.getHours()}:${d.getMinutes()}?`;
         }
         this.undoStack.push({
-            type : "custom",
-            undoFunction : function(){
-                w2confirm(msg)
-                    .yes(() => {
-                        this.redoStack.pop();
-                    })
-                    .no(() => {
-                        let e = this.redoStack.pop();
-                        this.undoStack.push(e);
-                    });
-            }.bind(this)
+            type : "lock",
+            msg : msg,
+            date : d,
+            undoFunction : lockFunction.bind(this)
         })
     }
 
@@ -290,6 +276,35 @@ class Undo {
         return this.undoObjStack;
     }
 
+    toJSON(){
+        return this.undoStack.map(function(e) {
+            if(e.type === "normal"){
+                return {
+                    "type" : "normal",
+                    "mutations" : Array.from(e.mutations.entries()).map(kv => [kv[0].recid, kv[1].before])
+                };
+            } else {
+                return e;
+            }
+        });
+    }
+}
+
+Undo.undoFunctions = {};
+Undo.redoFunctions = {};
+Undo.undoFunctions["lock"] = lockFunction;
+Undo.redoFunctions["lock"] = function() {};
+
+
+function lockFunction(obj){
+    w2confirm(obj.msg)
+        .yes(() => {
+            this.redoStack.pop();
+        })
+        .no(() => {
+            let e = this.redoStack.pop();
+            this.undoStack.push(e);
+        });
 }
 
 Undo.defaultLockMessage = "Undo events before loaded page?";
