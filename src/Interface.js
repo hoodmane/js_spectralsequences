@@ -281,7 +281,7 @@ class Undo {
             if(e.type === "normal"){
                 return {
                     "type" : "normal",
-                    "mutations" : Array.from(e.mutations.entries()).map(kv => [kv[0].recid, kv[1].before])
+                    "mutations" : Array.from(e.mutations.entries()).map(([k,v]) => [k.recid, v.before])
                 };
             } else {
                 return e;

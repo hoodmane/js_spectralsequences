@@ -1,6 +1,8 @@
 // Name: Slice SS $BP^{((C_4))}\langle 2\rangle$
 // Description: The slice spectral sequence for the $C_4$ fixed points of $BP^{((C_4))}\langle 2\rangle$.
 
+let VERSION = 0;
+
 
 let t0 = performance.now();
 let tp5 = t0;
@@ -112,7 +114,7 @@ w2ui.grid.on('delete', function(event) {
 function onDeleteQuery(){
     setTimeout(function () {
         $(w2ui.grid.box).find('input, textarea, select, button').on('keydown.message', function (evt) {
-            if (evt.keyCode == 27) { // esc
+            if (evt.keyCode === 27) { // esc
                 w2ui.grid.message();
             }
             if(evt.keyCode === 13) {// enter
@@ -140,21 +142,27 @@ function openGrid() {
 }
 
 class differential_family {
+    // o.source and o.target are DISPLAY classes. This is so they are serializable.
     constructor(o){
+        console.log(o);
         this.recid = differential_family.next_rec_id;
         differential_family.next_rec_id ++;
         this.page = o.page;
-        this.source = o.source;
+        this.source_type = o.source_type;
+        this.source_position = o.source_position;
+        this.source_index = o.source_index;
+        this.target_type = o.target_type;
+        this.target_position = o.target_position;
+        this.target_index = o.target_index;
         this.offset_vectors = o.offset_vectors || [];
         this.offset_vector_ranges = o.offset_vector_ranges || [];
         this.liebnized_differentials = [];
         this.invalid = false;
 
-        let source_degree = this.source;
-        let target_degree = vectorSum(source_degree, [-1,this.page]);
-        let sourceClass = classes.all.get(source_degree);
-        let targetClass = classes.all.get(target_degree);
-        this.root_differential  = sseq.addDifferential(sourceClass, targetClass, this.page);
+        let source = classes[this.source_type].get(this.source_position)[this.source_index];
+        let target = classes[this.target_type].get(this.target_position)[this.target_index];
+
+        this.root_differential  = sseq.addDifferential(source, target, this.page);
         this.color = this.root_differential.color;
         differential_family.list.push(this);
         differential_family.rec_id_map.set(this.recid, this);
@@ -170,7 +178,12 @@ class differential_family {
         let o = {};
         o.recid = this.recid;
         o.page = this.page;
-        o.source = this.source;
+        o.source_position = this.source_position;
+        o.source_type = this.source_type;
+        o.source_index = this.source_index;
+        o.target_position = this.target_position;
+        o.target_type = this.target_type;
+        o.target_index = this.target_index;
         o.offset_vectors = this.offset_vectors;
         o.offset_vector_ranges = this.offset_vector_ranges;
         o.invalid = this.invalid;
@@ -250,11 +263,21 @@ class differential_family {
             return; // Note the early return -- any logic that should always happen needs to go up top.
         }
         for(let exponent_vector of product(...this.offset_vectors.map( v => range(0,50)))){
-            let cur_source = [this.source[0], this.source[1]];
+            let cur_source = this.source_position;
             let source_degree = vectorSum(cur_source, vectorLinearCombination(this.offset_vectors, exponent_vector));
             let target_degree = vectorSum(source_degree, [-1,this.page]);
-            let sourceClass = classes.all.get(source_degree);
-            let targetClass = classes.all.get(target_degree);
+            let source_class_list = classes[this.source_type].get(source_degree);
+            let target_class_list = classes[this.target_type].get(target_degree);
+            console.log("source_class_list:", source_class_list);
+            let source_index = Math.min(this.source_index, source_class_list.length - 1);
+            let target_index = Math.min(this.target_index, target_class_list.length - 1);
+            console.log("source_index:", source_index);
+            console.log("target_index:", target_index);
+            if(source_index < 0 || target_index < 0){
+                continue;
+            }
+            let sourceClass = source_class_list[source_index];
+            let targetClass = target_class_list[target_index];
             let d = sseq.addDifferential(sourceClass, targetClass, this.page);
             this.liebnized_differentials.push(d);
             if(this.selected){
@@ -359,6 +382,7 @@ class differential_family {
 
     static getSaveObject(){
         let result = {};
+        result.version = VERSION;
         result.history = undo.toJSON();
         result.differentials = differential_family.list;
         result.next_rec_id = differential_family.next_rec_id;
@@ -427,6 +451,7 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
     classes.surviving = new StringifyingMap();
     classes.truncation = new StringifyingMap();
     window.sseq = new Sseq();
+    sseq.name = "BPC8-1";
     window.max_x = json.max_x;
     window.max_y = json.max_y;
     window.max_diagonal = json.max_diagonal;
@@ -469,6 +494,7 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
         c.original_obj = o;
         c.name = o.name;
         c.extra_info = o.extra_info;
+        c.type = o.type;
         c.getNode().setColor(o.color).setFill(o.fill);
         if(o.y === 0){
             c.setShape(Shapes.square);
@@ -479,8 +505,12 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
         } else {
             c.group = "Z/2";
         }
-        classes.all.set([c.x,c.y], c);
-        classes[o.type].set([c.x,c.y], c);
+        if(!classes[o.type].has([c.x, c.y])){
+            classes[o.type].set([c.x, c.y], []);
+        }
+        let entry = classes[o.type].get([c.x,c.y]);
+        c.classes_index = entry.length;
+        entry.push(c);
     }
     Display.addLoadingMessage(`Added classes in ${getTime()} seconds.`);
 
@@ -542,11 +572,8 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
 
     // addDifferentialsLogic();
     for(let o of json.differentials){
-        o.target = [];
-        o.target[0] = o.source[0] - 1;
-        o.target[1] = o.source[1] + o.page;
-        let source = classes[o.source_type].get(o.source);
-        let target = classes[o.target_type].get(o.target);
+        let source = classes[o.source_type].get(o.source_position)[o.source_index];
+        let target = classes[o.target_type].get(o.target_position)[o.target_index];
         sseq.addDifferential(source, target, o.page);
     }
     Display.addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
@@ -618,7 +645,11 @@ window.saveTruncationSseq = function saveTruncationSseq(){
 
 
 function setupDifferentialInterface(json){
-    if(!json){
+    if(!json || json.version === undefined || json.version < VERSION){
+        if(json) {
+            console.log("discarding old version.");
+            console.log(json);
+        }
         json = {history : [], differentials : []};
     }
     window.json = json;
@@ -673,10 +704,17 @@ function setupDifferentialInterface(json){
             display.updateNameHTML(t);
             let sourcename = s.name_html;
             let targetname = t.name_html;
+            let source = sseq.display_class_to_real_class.get(s);
+            let target = sseq.display_class_to_real_class.get(t);
             w2confirm(`Add d_${length} differential from ${sourcename} to ${targetname}`).yes(() =>{
                 let o = {
                     page: length,
-                    source: [s.x, s.y],
+                    source_type: source.type,
+                    source_position: [source.x, source.y],
+                    source_index: source.classes_index,
+                    target_type: target.type,
+                    target_position: [target.x, target.y],
+                    target_index: target.classes_index,
                     offset_vectors : [],
                     offset_vector_ranges : []
                 };
@@ -741,9 +779,9 @@ function setupDifferentialInterface(json){
         display.delayedSetStatus("", 2000);
     });
 
-
-
-
+    dss.addEventHandler("Q",(event)=>{
+        sseq.downloadSVG();
+    });
 
     dss.addEventHandler('o', (event) => {
         openGrid();

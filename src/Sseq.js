@@ -1026,8 +1026,11 @@ class Sseq {
     }
 
     // TODO: add check that this spectral sequence is the one being displayed?
-    toSVG(filename){
-       IO.download(filename,display.toSVG());
+    downloadSVG(filename){
+        if(filename === undefined){
+            filename = `${this.name}_x-${display.xmin}-${display.xmax}_y-${display.ymin}-${display.ymax}.svg`
+        }
+        IO.download(filename, display.toSVG());
     }
 
 }
