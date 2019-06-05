@@ -32,6 +32,9 @@ exports.product = monomial_basisjs.product;
 exports.vectorSum = monomial_basisjs.vectorSum;
 exports.vectorScale = monomial_basisjs.vectorScale;
 exports.vectorLinearCombination = monomial_basisjs.vectorLinearCombination;
+exports.dictionaryVectorSum = monomial_basisjs.dictionaryVectorSum;
+exports.dictionaryVectorScale = monomial_basisjs.dictionaryVectorScale;
+exports.dictionaryVectorLinearCombination = monomial_basisjs.dictionaryVectorLinearCombination;
 
 
 
@@ -357,7 +360,7 @@ class Sseq {
     }
 
     deleteEdge(e){
-        e.delete();
+        return e.delete();
     }
 
     reviveEdge(e){
@@ -397,6 +400,7 @@ class Sseq {
             this.on_structline_added(struct);
         }
         this.setupDisplayEdge(struct);
+        this.addMutation(struct, {delete: true}, struct.getMemento());
         return struct;
     }
 
@@ -429,9 +433,11 @@ class Sseq {
        //      return Differential.getDummy();
        //  }
         if(source.isDummy() || target.isDummy()){
+            console.log("source or target is dummy");
             return Differential.getDummy();
         }
         if(this.duplicateEdge(Differential, source, target, page)){
+            console.log("duplicate edge");
             return Differential.getDummy();
         }
         if(page <= 0){
@@ -441,6 +447,8 @@ class Sseq {
         }
 
         let differential = new Differential(this, source, target, page);
+        let source_pre = source.getMemento();
+        let target_pre = target.getMemento();
         source._addOutgoingDifferential(differential, set_pages);
         target._addIncomingDifferential(differential, set_pages);
         differential.edge_list_index = this.edges.length;
@@ -454,6 +462,9 @@ class Sseq {
             this.on_differential_added(differential);
         }
         this.setupDisplayEdge(differential);
+        this.addMutation(differential, {delete: true}, differential.getMemento());
+        this.addMutation(source, source_pre, source.getMemento());
+        this.addMutation(target, target_pre, target.getMemento());
         return differential;
     }
 
@@ -480,6 +491,7 @@ class Sseq {
             this.on_extension_added(ext);
         }
         this.setupDisplayEdge(ext);
+        this.addMutation(ext, {delete: true}, ext.getMemento());
         return ext;
     }
 
@@ -610,7 +622,6 @@ class Sseq {
         display_edge.type = edge.constructor.name;
         this.display_edge_to_real_edge.set(edge.display_edge, edge);
         this.updateEdge(edge);
-        this.addMutation(edge, {delete: true}, edge.getMemento());
         //this.display_sseq.update();
     }
 

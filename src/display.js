@@ -440,6 +440,7 @@ class Display {
         let yMinOffset = scale > 1 ? 10 * scale : 10;
         let yMaxOffset = yMinOffset;
 
+        // This is the offset between the margin and the maximum distance you can pan.
         this.xMinOffset = xMinOffset;
         this.xMaxOffset = xMaxOffset;
         this.yMinOffset = yMinOffset;
@@ -451,6 +452,7 @@ class Display {
         // In order to prevent this, temporarily unset the zoom handler.
         // TODO: See if we can make the behaviour here less jank.
         this.zoom.on("zoom", null);
+        // Prevent user from panning off the side.
         if (!this.old_scales_maxed) {
             if (sseq.xRange) {
                 if (xScale(sseq.xRange[0]) > this.leftMargin + xMinOffset) {
@@ -989,15 +991,11 @@ class Display {
 
         ctx.save(); // clip
         //this._clipLayer(ctx);
+        this._updateClasses(); 
         for (let c of this.sseq._getClassesToDisplay()) {
             let s = c.canvas_shape;
             ctx.save();
-            //ctx.transform(1,0,0,-1,50,50);
             ctx.transform(...s.getAbsoluteTransform().m);
-            let node = this.sseq.getClassNode(c, display.page);
-            let o = {};
-            o.setAttrs = () => false;
-            this._updateClasses();
             ctx.fillStyle = s.fill();
             ctx.strokeStyle = s.stroke();
             s.sceneFunc().call(s, ctx);

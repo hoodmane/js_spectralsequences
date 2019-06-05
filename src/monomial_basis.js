@@ -98,11 +98,33 @@ function vectorSum(k){
 }
 exports.vectorSum = vectorSum;
 
+function dictionaryVectorSum(){
+    let out = {};
+    for(let l of arguments){
+        for(let [k, v] of Object.entries(l)){
+            let entry = out[k] || 0;
+            entry += v;
+            out[k] = entry;
+        }
+    }
+    return out;
+}
+exports.dictionaryVectorSum = dictionaryVectorSum;
+
+
 function vectorScale(c, v){
     return v.map((x) => c*x);
 }
-
 exports.vectorScale = vectorScale;
+
+function dictionaryVectorScale(c, vector){
+    let result = {};
+    for(let [k, v] of Object.entries(vector)){
+        result[k] = c*v;
+    }
+    return result;
+}
+exports.dictionaryVectorScale = dictionaryVectorScale;
 
 function vectorLinearCombination(vector_list, coefficient_list){
     let scaled_list = [];
@@ -112,6 +134,15 @@ function vectorLinearCombination(vector_list, coefficient_list){
     return vectorSum(...scaled_list);
 }
 exports.vectorLinearCombination = vectorLinearCombination;
+
+function dictionaryVectorLinearCombination(vector_list, coefficient_list){
+    let scaled_list = [];
+    for(let i = 0; i < vector_list.length; i++){
+        scaled_list.push(dictionaryVectorScale(coefficient_list[i], vector_list[i]));
+    }
+    return dictionaryVectorSum(...scaled_list);
+}
+exports.dictionaryVectorLinearCombination = dictionaryVectorLinearCombination;
 
 
 class monomial_ring {

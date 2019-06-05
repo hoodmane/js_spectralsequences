@@ -262,7 +262,7 @@ class Undo {
     addLock(msg){
         let d = new Date();
         if(msg === undefined){
-            msg = `Undo events before save at ${d.getFullYear()}-${d.getMonth()}-${d.getDay()} ${d.getHours()}:${d.getMinutes()}?`;
+            msg = `Undo events before save at ${d.getFullYear()}-${d.getMonth()}-${d.getDay()} ${d.getHours()}:${d.getMinutes().toString().padStart(2,"0")}?`;
         }
         this.undoStack.push({
             type : "lock",

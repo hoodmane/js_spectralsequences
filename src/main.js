@@ -42,6 +42,10 @@ window.product = Sseqjs.product;
 window.vectorSum = Sseqjs.vectorSum;
 window.vectorScale = Sseqjs.vectorScale;
 window.vectorLinearCombination = Sseqjs.vectorLinearCombination;
+window.dictionaryVectorSum = Sseqjs.dictionaryVectorSum;
+window.dictionaryVectorScale = Sseqjs.dictionaryVectorScale;
+window.dictionaryVectorLinearCombination = Sseqjs.dictionaryVectorLinearCombination;
+
 
 window.on_public_website = new URL(document.location).hostname === "math.mit.edu";
 

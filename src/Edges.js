@@ -231,20 +231,21 @@ class Differential extends Edge {
             && this.source.page_list[this.source.page_list.length-1] === infinity
         ){
             pop_pagelists.push(() => this.source.page_list.pop());
-        } else if (this.source.page_list.indexOf(this.page) !== -1 && this.source.page_list.indexOf(this.page) !== this.source.page_list.length - 1) {
-            console.log("Cannot remove differential, source has done stuff since.");
-            return;
         }
+        // else if (this.source.page_list.indexOf(this.page) !== -1 && this.source.page_list.indexOf(this.page) !== this.source.page_list.length - 1) {
+        //     console.log("Cannot remove differential, source has done stuff since.");
+        //     return false;
+        // }
         if(this.target.page_list.length !== 1
             && this.target.page_list.indexOf(this.page) === (this.target.page_list.length - 2)
             && this.target.page_list[this.target.page_list.length-1] === infinity
         ){
-
             pop_pagelists.push(() => this.target.page_list.pop());
-        } else if (this.target.page_list.indexOf(this.page) !== -1 && this.target.page_list.indexOf(this.page) !== this.target.page_list.length - 1) {
-            console.log("Cannot remove differential, target has done stuff since.");
-            return;
         }
+        // else if (this.target.page_list.indexOf(this.page) !== -1 && this.target.page_list.indexOf(this.page) !== this.target.page_list.length - 1) {
+        //     console.log("Cannot remove differential, target has done stuff since.");
+        //     return false;
+        // }
         this.revive_source_page_list = this.source.page_list.slice();
         this.revive_target_page_list = this.target.page_list.slice();
         pop_pagelists.forEach(f => f());
@@ -255,6 +256,7 @@ class Differential extends Edge {
             this.target.page_list[this.target.page_list.length - 1] = infinity;
         }
         Edge.prototype.delete.call(this);
+        return true;
     }
 
     revive(){

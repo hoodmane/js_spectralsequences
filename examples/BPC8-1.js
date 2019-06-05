@@ -1,6 +1,9 @@
 // Name: Slice SS $BP^{((C_4))}\langle 2\rangle$
 // Description: The slice spectral sequence for the $C_4$ fixed points of $BP^{((C_4))}\langle 2\rangle$.
 
+let sseq_name = "BPC8-1";
+let differential_local_store_key = `${sseq_name}-differentials`;
+
 let VERSION = 0;
 
 
@@ -150,19 +153,27 @@ class differential_family {
         this.page = o.page;
         this.source_type = o.source_type;
         this.source_position = o.source_position;
-        this.source_index = o.source_index;
+        this.source_slice = o.source_slice;
         this.target_type = o.target_type;
         this.target_position = o.target_position;
-        this.target_index = o.target_index;
+        this.target_slice = o.target_slice;
         this.offset_vectors = o.offset_vectors || [];
         this.offset_vector_ranges = o.offset_vector_ranges || [];
+        this.leibniz_slices = o.leibniz_slices || [];
         this.liebnized_differentials = [];
         this.invalid = false;
 
-        let source = classes[this.source_type].get(this.source_position)[this.source_index];
-        let target = classes[this.target_type].get(this.target_position)[this.target_index];
+        console.log(classes[this.source_type].get(this.source_position));
+        console.log(this.source_slice);
+
+        let source = classes[this.source_type].get(this.source_position).get(this.source_slice);
+        let target = classes[this.target_type].get(this.target_position).get(this.target_slice);
 
         this.root_differential  = sseq.addDifferential(source, target, this.page);
+        if(this.root_differential.isDummy()){
+            console.log("source: ", source);
+            console.log("target: ", target);
+        }
         this.color = this.root_differential.color;
         differential_family.list.push(this);
         differential_family.rec_id_map.set(this.recid, this);
@@ -180,10 +191,11 @@ class differential_family {
         o.page = this.page;
         o.source_position = this.source_position;
         o.source_type = this.source_type;
-        o.source_index = this.source_index;
+        o.source_slice = this.source_slice;
         o.target_position = this.target_position;
         o.target_type = this.target_type;
-        o.target_index = this.target_index;
+        o.target_slice = this.target_slice;
+        o.leibniz_slices = this.leibniz_slices;
         o.offset_vectors = this.offset_vectors;
         o.offset_vector_ranges = this.offset_vector_ranges;
         o.invalid = this.invalid;
@@ -255,6 +267,8 @@ class differential_family {
         w2ui.grid.refresh();
 
         for(let d of this.liebnized_differentials){
+            d.source.group_list.pop();
+            d.target.group_list.pop();
             d.delete();
         }
 
@@ -266,18 +280,36 @@ class differential_family {
             let cur_source = this.source_position;
             let source_degree = vectorSum(cur_source, vectorLinearCombination(this.offset_vectors, exponent_vector));
             let target_degree = vectorSum(source_degree, [-1,this.page]);
-            let source_class_list = classes[this.source_type].get(source_degree);
-            let target_class_list = classes[this.target_type].get(target_degree);
-            console.log("source_class_list:", source_class_list);
-            let source_index = Math.min(this.source_index, source_class_list.length - 1);
-            let target_index = Math.min(this.target_index, target_class_list.length - 1);
-            console.log("source_index:", source_index);
-            console.log("target_index:", target_index);
-            if(source_index < 0 || target_index < 0){
+            // It's possible that the root source class is a "permanent cycle".
+            // We probably should check both possibilities.
+            let source_type = this.source_type;
+            if(exponent_vector.every(e => e===0)){
                 continue;
             }
-            let sourceClass = source_class_list[source_index];
-            let targetClass = target_class_list[target_index];
+            if(source_degree[1] > this.source_position[1]){
+                source_type = "truncation";
+            }
+            let source_class_map = classes[source_type].get(source_degree);
+            let target_class_map = classes[this.target_type].get(target_degree);
+            if(!source_class_map || !target_class_map){
+                continue;
+            }
+
+            let source_slice = dictionaryVectorSum(this.source_slice, dictionaryVectorLinearCombination(this.leibniz_slices, exponent_vector));
+            let target_slice = dictionaryVectorSum(this.target_slice, dictionaryVectorLinearCombination(this.leibniz_slices, exponent_vector));
+
+            let sourceClass = source_class_map.get(source_slice);
+            let targetClass = target_class_map.get(target_slice);
+            
+
+            if(!sourceClass){
+                console.log(`Failed to find Leibniz source with da0 = ${source_slice.da0} and da1 = ${source_slice.da1}.`);
+                continue;
+            }
+            if(!targetClass){
+                console.log(`Failed to find Leibniz target with da0 = ${target_slice.da0} and da1 = ${target_slice.da1}.`);
+                continue;
+            }
             let d = sseq.addDifferential(sourceClass, targetClass, this.page);
             this.liebnized_differentials.push(d);
             if(this.selected){
@@ -351,8 +383,10 @@ class differential_family {
                 df.delete()
             },
             leibniz : function(e){
+                console.log("undo leibniz??");
                 df.offset_vectors.pop();
                 df.offset_vector_ranges.pop();
+                df.leibniz_slices.pop();
                 df.updateDifferentials();
             },
             delete : function(){
@@ -371,6 +405,7 @@ class differential_family {
             leibniz : function(e){
                 df.offset_vectors.push(e.args.vector);
                 df.offset_vector_ranges.push(e.args.range);
+                df.leibniz_slices.push(e.args.slice);
                 df.updateDifferentials();
             },
             delete : function(){
@@ -451,14 +486,14 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
     classes.surviving = new StringifyingMap();
     classes.truncation = new StringifyingMap();
     window.sseq = new Sseq();
-    sseq.name = "BPC8-1";
+    sseq.name = sseq_name;
     window.max_x = json.max_x;
     window.max_y = json.max_y;
     window.max_diagonal = json.max_diagonal;
     sseq.xRange = [0, max_x];
     sseq.yRange = [0, max_y];
 
-    y_initial = 120;
+    y_initial = 30;
     sseq.initialxRange = [0, Math.floor(16/9 * y_initial)];
     sseq.initialyRange = [0, y_initial];
     sseq.class_scale = 0.4;
@@ -495,6 +530,7 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
         c.name = o.name;
         c.extra_info = o.extra_info;
         c.type = o.type;
+        c.slice = o.slice;
         c.getNode().setColor(o.color).setFill(o.fill);
         if(o.y === 0){
             c.setShape(Shapes.square);
@@ -505,33 +541,40 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
         } else {
             c.group = "Z/2";
         }
+        c.group_list = [c.group];
         if(!classes[o.type].has([c.x, c.y])){
-            classes[o.type].set([c.x, c.y], []);
+            classes[o.type].set([c.x, c.y], new StringifyingMap(JSON.stringify));
         }
         let entry = classes[o.type].get([c.x,c.y]);
         c.classes_index = entry.length;
-        entry.push(c);
+        entry.set(c.slice, c);
     }
     Display.addLoadingMessage(`Added classes in ${getTime()} seconds.`);
 
     sseq.onDifferentialAdded(d => {
         d.addInfoToSourceAndTarget();
-        if (d.source.group === "Z/4") {
-            d.source.group = "Z/2";
+        let source_group = d.source.group_list[d.source.group_list.length - 1];
+        let target_group = d.target.group_list[d.target.group_list.length - 1];
+        if ( source_group === "Z/4") {
+            d.source.group_list.push("Z/2");
             d.source.replace(Groups.Z2sup, (name) => "2\\," + name);
             d.source.setColor(d.source.getColor(0));
-        } else if (d.source.group === "Z") {
-            d.source.group = "2Z";
+        } else if ( source_group === "Z") {
+            d.source.group_list.push("2Z");
             d.source.replace(Groups.Zsup, (name) => "2\\," + name);
-        } else if (d.source.group === "2Z") {
-            d.source.group = "4Z";
+        } else if ( source_group === "2Z") {
+            d.source.group_list.push("4Z");
             d.source.replace(Groups.Zsupsup);
+        } else if(source_group === "Z/2"){
+            d.source.group_list.push("0");
         }
 
-        if (d.target.group === "Z/4") {
-            d.target.group = "Z/2";
+        if (target_group === "Z/4") {
+            d.target.group_list.push("Z/2");
             d.target.replace(Groups.Z2hit);
             d.target.setColor(d.target.getColor(0));
+        } else if(target_group === "Z/2"){
+            d.target.group_list.push("0");
         }
         d.color = differential_colors[d.page];
     });
@@ -572,8 +615,8 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
 
     // addDifferentialsLogic();
     for(let o of json.differentials){
-        let source = classes[o.source_type].get(o.source_position)[o.source_index];
-        let target = classes[o.target_type].get(o.target_position)[o.target_index];
+        let source = classes[o.source_type].get(o.source_position).get(o.source_slice);
+        let target = classes[o.target_type].get(o.target_position).get(o.target_slice);
         sseq.addDifferential(source, target, o.page);
     }
     Display.addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
@@ -583,7 +626,7 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
     Display.addLoadingMessage(`Displayed in ${getTime()} seconds.`);
     let t1 = performance.now();
     console.log("Rendered in " + (t1 - t0)/1000 + " seconds.");
-}).catch((err) => console.log(err)).then(() => IO.loadFromLocalStore("BPC4-2-differentials"))
+}).catch((err) => console.log(err)).then(() => IO.loadFromLocalStore(differential_local_store_key)) // 
     .then((json) =>{
         setupDifferentialInterface(json);
     }).catch(err => {
@@ -711,10 +754,10 @@ function setupDifferentialInterface(json){
                     page: length,
                     source_type: source.type,
                     source_position: [source.x, source.y],
-                    source_index: source.classes_index,
+                    source_slice: source.slice,
                     target_type: target.type,
                     target_position: [target.x, target.y],
-                    target_index: target.classes_index,
+                    target_slice: target.slice,
                     offset_vectors : [],
                     offset_vector_ranges : []
                 };
@@ -742,6 +785,7 @@ function setupDifferentialInterface(json){
         }
         let dx = c.x;// - dss.most_recent_differential.source.x;
         let dy = c.y;// - dss.most_recent_differential.source.y;
+        let slice = sseq.display_class_to_real_class.get(c).slice;
         if(df.offset_vectors.map(JSON.stringify).includes(JSON.stringify([dx, dy]))){
             return;
         }
@@ -749,8 +793,10 @@ function setupDifferentialInterface(json){
             undo.startMutationTracking();
             df.offset_vectors.push([dx,dy]);
             df.offset_vector_ranges.push([0,20]);
+            df.leibniz_slices.push(slice);
+
             df.updateDifferentials();
-            let event = {action: "leibniz", args : {vector:[dx, dy], range: [0,20]}};
+            let event = {action: "leibniz", args : {vector:[dx, dy], range: [0,20], slice : slice}};
             undo.addMutation(df, event, event);
             undo.addMutationsToUndoStack(event);
             sseq.update();
@@ -762,7 +808,7 @@ function setupDifferentialInterface(json){
     dss.addEventHandler("d", (event) => {
         display.setStatus("Saving...");
         console.log(differential_family.list);
-        IO.saveToLocalStore("BPC4-2-differentials", differential_family.getSaveObject());
+        IO.saveToLocalStore(differential_local_store_key, differential_family.getSaveObject());
         // IO.download("BPC4-2-differentials.json", differential_family.getSaveObject());
         console.log("Saved.");
         display.setStatus("Saved.");
@@ -772,8 +818,8 @@ function setupDifferentialInterface(json){
     dss.addEventHandler("D", (event) => {
         display.setStatus("Saving...");
         console.log(differential_family.list);
-        IO.saveToLocalStore("BPC4-2-differentials", differential_family.getSaveObject());
-        IO.download("BPC4-2-differentials.json", differential_family.getSaveObject());
+        IO.saveToLocalStore(differential_local_store_key, differential_family.getSaveObject());
+        IO.download(differential_local_store_key, differential_family.getSaveObject());
         console.log("Saved.");
         display.setStatus("Saved.");
         display.delayedSetStatus("", 2000);
@@ -789,6 +835,12 @@ function setupDifferentialInterface(json){
 
     dss.addEventHandler('z', (event) => {
         undo.undo();
+    });
+
+    dss.addEventHandler('backspace', (event) => {
+        w2confirm("Delete saved differentials?").yes(() => {
+            IO.saveToLocalStore(differential_local_store_key,"");
+        });
     });
 
     dss.addEventHandler("ctrl+z", undo.undo);
