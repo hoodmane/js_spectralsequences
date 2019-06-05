@@ -178,7 +178,7 @@ class SseqClass {
 
     getMemento(){
         let res = Util.copyFields({}, this);
-        res.node_list = res.node_list.map( n => n.copy());
+        res.node_list = res.node_list.map( n => new Node(n));
         return res;
     }
 
