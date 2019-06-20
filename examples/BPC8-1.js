@@ -1,10 +1,10 @@
 // Name: Slice SS $BP^{((C_4))}\langle 2\rangle$
 // Description: The slice spectral sequence for the $C_4$ fixed points of $BP^{((C_4))}\langle 2\rangle$.
 
+let VERSION = 0;
 let sseq_name = "BPC8-1";
 let differential_local_store_key = `${sseq_name}-differentials`;
-
-let VERSION = 0;
+let differential_filename = differential_local_store_key + ".json";
 
 
 let t0 = performance.now();
@@ -147,7 +147,6 @@ function openGrid() {
 class differential_family {
     // o.source and o.target are DISPLAY classes. This is so they are serializable.
     constructor(o){
-        console.log(o);
         this.recid = differential_family.next_rec_id;
         differential_family.next_rec_id ++;
         this.page = o.page;
@@ -162,9 +161,6 @@ class differential_family {
         this.leibniz_slices = o.leibniz_slices || [];
         this.liebnized_differentials = [];
         this.invalid = false;
-
-        console.log(classes[this.source_type].get(this.source_position));
-        console.log(this.source_slice);
 
         let source = classes[this.source_type].get(this.source_position).get(this.source_slice);
         let target = classes[this.target_type].get(this.target_position).get(this.target_slice);
@@ -276,7 +272,11 @@ class differential_family {
         if(this.offset_vectors.length === 0){
             return; // Note the early return -- any logic that should always happen needs to go up top.
         }
-        for(let exponent_vector of product(...this.offset_vectors.map( v => range(0,50)))){
+        let ranges = product(...this.offset_vectors.map( v => range(0,15)));
+        if(this.offset_vectors[0][0] == 1){
+            ranges = product(range(0,50));
+        }
+        for(let exponent_vector of ranges){
             let cur_source = this.source_position;
             let source_degree = vectorSum(cur_source, vectorLinearCombination(this.offset_vectors, exponent_vector));
             let target_degree = vectorSum(source_degree, [-1,this.page]);
@@ -383,7 +383,6 @@ class differential_family {
                 df.delete()
             },
             leibniz : function(e){
-                console.log("undo leibniz??");
                 df.offset_vectors.pop();
                 df.offset_vector_ranges.pop();
                 df.leibniz_slices.pop();
@@ -626,13 +625,24 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
     Display.addLoadingMessage(`Displayed in ${getTime()} seconds.`);
     let t1 = performance.now();
     console.log("Rendered in " + (t1 - t0)/1000 + " seconds.");
-}).catch((err) => console.log(err)).then(() => IO.loadFromLocalStore(differential_local_store_key)) // 
+}).catch((err) => console.log(err))
+    .then(() => IO.loadFromLocalStore(differential_local_store_key)) // 
     .then((json) =>{
-        setupDifferentialInterface(json);
+        return json
     }).catch(err => {
-    console.log(err);
-    setupDifferentialInterface();
-});
+        console.log(err);
+        return false;
+    }).then((json) => {
+        if(json){ // If we succeeded in loading from local store use that
+            console.log("Loaded from local store");
+            return json;
+        }
+        console.log("Trying to load from server");
+        return IO.loadFromServer(getJSONFilename(differential_local_store_key))
+    }).then(json => setupDifferentialInterface(json))
+    .catch(err => {
+        console.log(err);
+    });
 
 window.saveTruncationSseq = function saveTruncationSseq(){
     max_x = sseq.xRange[1];
@@ -688,6 +698,8 @@ window.saveTruncationSseq = function saveTruncationSseq(){
 
 
 function setupDifferentialInterface(json){
+    console.log(json);
+    // json = undefined;
     if(!json || json.version === undefined || json.version < VERSION){
         if(json) {
             console.log("discarding old version.");
@@ -713,9 +725,6 @@ function setupDifferentialInterface(json){
             e.redoFunction = Interface.Undo.redoFunctions[e.type].bind(undo);
             undo.undoStack.push(e);
         }
-    }
-    if(json.history.length !== 0) {
-        undo.addLock();
     }
 
     differential_family.current_differential = undefined;
@@ -803,26 +812,38 @@ function setupDifferentialInterface(json){
         }
     });
 
+    dss.addEventHandler("onclick", (event) => {
+        let c = event.mouseover_class;
+        if (!c) {
+            return;
+        }
+        c = sseq.display_class_to_real_class.get(c);
+        copyToClipboard(c.name);
+    });
 
 
     dss.addEventHandler("d", (event) => {
         display.setStatus("Saving...");
         console.log(differential_family.list);
+        undo.addLock();
         IO.saveToLocalStore(differential_local_store_key, differential_family.getSaveObject());
         // IO.download("BPC4-2-differentials.json", differential_family.getSaveObject());
         console.log("Saved.");
         display.setStatus("Saved.");
         display.delayedSetStatus("", 2000);
+        undo.undoStack.pop();
     });
 
     dss.addEventHandler("D", (event) => {
         display.setStatus("Saving...");
         console.log(differential_family.list);
+        undo.addLock();
         IO.saveToLocalStore(differential_local_store_key, differential_family.getSaveObject());
-        IO.download(differential_local_store_key, differential_family.getSaveObject());
+        IO.download(differential_filename, differential_family.getSaveObject());
         console.log("Saved.");
         display.setStatus("Saved.");
         display.delayedSetStatus("", 2000);
+        undo.undoStack.pop();
     });
 
     dss.addEventHandler("Q",(event)=>{
@@ -856,3 +877,26 @@ function setupDifferentialInterface(json){
     };
 }
 
+
+
+function copyToClipboard(text) {
+    if (window.clipboardData && window.clipboardData.setData) {
+        // IE specific code path to prevent textarea being shown while dialog is visible.
+        return clipboardData.setData("Text", text); 
+
+    } else if (document.queryCommandSupported && document.queryCommandSupported("copy")) {
+        var textarea = document.createElement("textarea");
+        textarea.textContent = text;
+        textarea.style.position = "fixed";  // Prevent scrolling to bottom of page in MS Edge.
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            return document.execCommand("copy");  // Security exception may be thrown by some browsers.
+        } catch (ex) {
+            console.warn("Copy to clipboard failed.", ex);
+            return false;
+        } finally {
+            document.body.removeChild(textarea);
+        }
+    }
+}
