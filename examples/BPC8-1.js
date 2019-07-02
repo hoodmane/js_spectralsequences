@@ -237,6 +237,7 @@ class differential_family {
 
         this.root_differential  = sseq.addDifferential(source, target, this.page);
         if(this.root_differential.isDummy()){
+            console.log(this);
             console.log("source: ", source);
             console.log("target: ", target);
         }
@@ -272,6 +273,11 @@ class differential_family {
         let o = {};
         o.recid = this.recid;
         o.page = this.page;
+        if(!this.root_differential.source || !this.root_differential.target){
+            console.log("problem");
+            console.log(this);
+            return;
+        }
         display.updateNameHTML(this.root_differential.source);
         display.updateNameHTML(this.root_differential.target);
         o.source = this.root_differential.source.name_html;

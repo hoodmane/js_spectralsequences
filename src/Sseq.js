@@ -436,9 +436,11 @@ class Sseq {
             console.log("source or target is dummy");
             return Differential.getDummy();
         }
-        if(this.duplicateEdge(Differential, source, target, page)){
+        let possible_duplicate_edges = this.duplicateEdge(Differential, source, target, page);
+        if(possible_duplicate_edges.length > 0){
             console.log("duplicate edge");
-            return Differential.getDummy();
+            console.log(possible_duplicate_edges);
+            return possible_duplicate_edges[0];
         }
         if(page <= 0){
             console.log([source, target, page]);
@@ -496,7 +498,7 @@ class Sseq {
     }
 
     duplicateEdge(type, source, target, page){
-        return this.edges.some(e =>
+        return this.edges.filter(e =>
             e.constructor === type
             && e.source === source
             && e.target === target
