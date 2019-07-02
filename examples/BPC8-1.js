@@ -6,6 +6,76 @@ let sseq_name = "BPC8-1";
 let differential_local_store_key = `${sseq_name}-differentials`;
 let differential_filename = differential_local_store_key + ".json";
 
+class sliceMonomial {
+    constructor(slice){
+        this.da0 = 0;
+        this.da1 = 0;
+        this.d1 = 0;
+        this.s1 = 0;
+        this.sa1 = 0;
+        this.sa0 = 0;
+        this.as2 = 0;
+        this.al = 0;
+        this.as = 0;
+
+        if(this.as > 0 || this.as2 > 0){
+            this._group = "Z2";
+        } else if(this.al > 0 ){
+            this._group = "Z4";
+        } else {
+            this._group = "Z";
+        }
+    }
+
+    copy(){
+        let out = Object.create(sliceMonomial);
+        out.__proto__ = sliceMonomial.prototype;
+        Object.assign(out, this);
+        return out;
+    }
+
+    degree(){
+        return [this.stem, this.filtration];
+    }
+
+    getTuple(){
+        return [this.da0, this.da1, this.s1, this.as2, this.al, this.as];
+    }
+
+    group(){
+        return this._group;
+    }
+
+    is_induced(){
+        return this._induced;
+    }
+
+    toString() {
+        return monomialString(["\\overline{\\mathfrak{d}}_{a_0}","\\overline{\\mathfrak{d}}_{a_1}", "\\overline{s}_{a_0}", "\\overline{s}_{a_1}", "(\\overline{s}_{a_0}+\\overline{s}_{a_1})"],[this.da0, this.da1,this.sa0, this.sa1, this.s1]);
+    }
+
+    sliceName(){
+        return monomialString(["\\overline{\\mathfrak{d}}_{a_0}","\\overline{\\mathfrak{d}}_{a_1}", "\\overline{s}_{a_0}", "\\overline{s}_{a_1}", "(\\overline{s}_{a_0}+\\overline{s}_{a_1})"],[this.da0, this.da1,this.sa0, this.sa1, this.s1]);
+    }
+}
+
+function partitionList(list, part_size) {
+    let out = [];
+    for (i = 0; i < list.length; i += part_size) {
+        out.push(list.slice(i, i + part_size).join(", "));
+    }
+    return out;
+}
+
+function ensureMath(str){
+    if(str.startsWith("\\(") || str.startsWith("$")){
+        return str;
+    }
+    if(!str){
+        return "";
+    }
+    return "$" + str + "$";
+}
 
 let t0 = performance.now();
 let tp5 = t0;
@@ -498,6 +568,21 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
     sseq.class_scale = 0.4;
     dss = sseq.getDisplaySseq();
     dss.squareAspectRatio = true;
+    // this is to change the names of the induced classes after d15.
+    dss.getClassTooltip = function(c, page){
+        let tooltip = dss.getClassTooltipFirstLine(c);
+        let extra_info = "";
+        if(typeof c.extra_info == "string"){
+            extra_info = c.extra_info;
+        } else if(page <= 15){
+            extra_info = c.extra_info[0];
+        } else {
+            extra_info = c.extra_info[1];
+        }
+        extra_info = extra_info.split("\n").map( x => ensureMath(x)).join("\n");
+        tooltip += extra_info;
+        return tooltip;
+    };
 
     // sseq.initialxRange = [0, Math.floor(16 / 9 * 40)];
     // sseq.initialyRange = [0, 40];
@@ -547,6 +632,44 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
         let entry = classes[o.type].get([c.x,c.y]);
         c.classes_index = entry.length;
         entry.set(c.slice, c);
+        if(c.type == "induced" && (c.x - c.y) % 32 === 16){
+            c.setPage(15);
+        } 
+        if(c.type == "induced" && (c.x - c.y) % 32 === 0){
+            let s = new sliceMonomial();
+            let slices = [];
+            if( (c.x + c.y) % 4 === 0){
+                let i = (c.x+c.y)/4;
+                slices = [[{ da0 : 3, da1 : i-4, sa0 : 2}, { da0 : 2, da1 : i-3, sa0 : 2},
+                 { da0 : 1, da1 : i-2, sa0 : 2}, { da0 : 0, da1 : i-1, sa0 : 2}],
+                 [{ da0 : 3, da1 : i-4, sa0 : 1, sa1 : 1}, { da0 : 2, da1 : i-3, sa0 : 1, sa1 : 1},
+                 { da0 : 1, da1 : i-2, sa0 : 1, sa1 : 1}, { da0 : 0, da1 : i-1, sa0 : 1, sa1 : 1}],
+                 [{ da0 : 1, da1 : i-3, sa0 : 3, sa1 : 1}, { da0 : 0, da1 : i-2, sa0 : 3, sa1 : 1}]
+                ]
+            } else {
+                let i = (c.x+c.y-2)/4;
+                slices = [
+                    [{ da0 : 4, da1 : i-4, sa0 : 1}, { da0 : 3, da1 : i-3, sa0 : 1}, { da0 : 2, da1 : i-2, sa0 : 1},
+                    { da0 : 1, da1 : i-1, sa0 : 1}, { da0 : 0, da1 : i, sa0 : 1}],
+                    [{ da0 : 2, da1 : i-3, sa0 : 3}, { da0 : 1, da1 : i-2, sa0 : 3}, 
+                    { da0 : 0, da1 : i-1, sa0 : 3}], 
+                    [{ da0 : 2, da1 : i-3, sa0 : 2, sa1 : 1}, { da0 : 1, da1 : i-2, sa0 : 2, sa1 : 1}, 
+                    { da0 : 0, da1 : i-1, sa0 : 2, sa1 : 1}]
+                ]
+            }
+            let extra_info_page_15 = c.extra_info;
+            c.extra_info = "";
+            for(let slice_list of slices){
+                let slice_names = [];
+                for(let slice of slice_list){
+                    Object.assign(s, slice);
+                    slice_names.push(s.toString());
+                }
+                let str = slice_names.join(", ");
+                c.addExtraInfo(`\\(${str}\\)`);
+            }
+            c.extra_info = [extra_info_page_15, c.extra_info];
+        }
     }
     Display.addLoadingMessage(`Added classes in ${getTime()} seconds.`);
 
