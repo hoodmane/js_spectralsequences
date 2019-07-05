@@ -403,7 +403,7 @@ class Differential extends Edge {
     setStructlinePages(){
         let res1 = this.source.setStructlinePages(this.page);
         let res2 = this.target.setStructlinePages(this.page);
-        return res1.concat(res2);
+        return this;
     }
 
     toString(highlight_source, highlight_target){
