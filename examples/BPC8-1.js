@@ -827,7 +827,6 @@ window.saveTruncationSseq = function saveTruncationSseq(){
 
 
 function setupDifferentialInterface(json){
-    console.log(json);
     // json = undefined;
     if(!json || json.version === undefined || json.version < VERSION){
         if(json) {
@@ -837,10 +836,12 @@ function setupDifferentialInterface(json){
         json = {history : [], differentials : []};
     }
     window.json = json;
-    let dfamilies = json.differentials;
-    dfamilies = dfamilies.map( o => new differential_family(o));
-    for(let df of dfamilies){
-        df.updateDifferentials();
+    let dfamilies = [];
+    json.differentials.sort((a,b)=>a.page - b.page);
+    for(let d of json.differentials){
+        let df = new differential_family(d);
+        dfamilies.push(df);
+        df.updateDifferentials();    
     }
     for(let e of json.history){
         if(e.type === "normal"){
