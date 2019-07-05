@@ -1,5 +1,6 @@
-// Name: Slice SS $BP^{((C_4))}\langle 2\rangle$
-// Description: The slice spectral sequence for the $C_4$ fixed points of $BP^{((C_4))}\langle 2\rangle$.
+
+// Name: Slice SS $BP^{((C_8))}\langle 1\rangle$
+// Description: The slice spectral sequence for the $C_8$ fixed points of $BP^{((C_8))}\langle 1\rangle$ (computation in progress).
 
 let VERSION = 0;
 let sseq_name = "BPC8-1";

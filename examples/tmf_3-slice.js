@@ -1,3 +1,4 @@
+
 // Name: Slice SS $\tmf_{(3)}(2)$
 // Description: The slice spectral sequence for $\tmf_{(3)}(2)^{hC_3}$. This is a truncated version of HFPSS $EO(3,1)$.
 
