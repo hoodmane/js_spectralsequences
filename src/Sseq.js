@@ -480,7 +480,7 @@ class Sseq {
         if(!source || !target || source.isDummy() || target.isDummy()){
             return Extension.getDummy();
         }
-        if(this.duplicateEdge(Extension, source, target)){
+        if(this.duplicateEdge(Extension, source, target).length){
             return Extension.getDummy();
         }
         let ext = new Extension(this, source, target);
