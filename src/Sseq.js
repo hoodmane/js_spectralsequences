@@ -381,7 +381,7 @@ class Sseq {
 //        } else if(target == undefined){
 //            target = this.last_classes[0]
 //        }
-        if(this.duplicateEdge(Structline, source, target)){
+        if(this.duplicateEdge(Structline, source, target).length > 0){
             return Structline.getDummy();
         }
         if(!source || !target || source.isDummy() || target.isDummy()){
