@@ -161,8 +161,7 @@ class DisplaySseq {
      * Display this spectral sequence. Gets overridden if you call `some_other_sseq.display()`.
      */
     display(div) {
-        this.display = Display.displaySseq(this, div);
-        return this;
+        Display.displaySseq(this, div);
     }
 
 
