@@ -28,4 +28,4 @@ for(let v=-10; v<=11; v++){
     }
 }
 
-sseq.display();
+sseq.display("main");

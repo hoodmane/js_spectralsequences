@@ -43,7 +43,7 @@ Sseq.loadFromServer(file_name)
         });
 
         if(on_public_website){
-            dss.display();
+            dss.display("main");
             return;
         }
 
@@ -209,5 +209,5 @@ Sseq.loadFromServer(file_name)
         //     add_g1_name_if_possible(real_class);
         // });
 
-        dss.display();
+        dss.display("main");
     });

@@ -534,7 +534,7 @@ function newSseq(type, cells){
     type.update(sseq);
     sseq.getDisplaySseq();
     setUpSseq(sseq, dss);
-    sseq.display();
+    sseq.display("main");
 }
 
 async function openSseq(key){
@@ -556,7 +556,7 @@ async function openSseq(key){
     type.onOpen(sseq);
     type.update(sseq);
     setUpSseq(sseq, dss);
-    sseq.display();
+    sseq.display("main");
     return true;
 }
 
@@ -659,6 +659,6 @@ setRange(sseq);
 dss.type = "AHSS";
 sseq.undo = new Interface.Undo(sseq);
 addEventHandlers(sseq, dss);
-sseq.display();
+sseq.display("main");
 // display.addEventHandler("ctrl+z", undo.undo);
 // display.addEventHandler("ctrl+shift+z", undo.redo);

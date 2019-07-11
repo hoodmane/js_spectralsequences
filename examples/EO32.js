@@ -104,7 +104,7 @@ for(let v of d3.range(-36,121,6)){
 
 
 
-sseq.display();
+sseq.display("main");
 
 
 

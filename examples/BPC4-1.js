@@ -293,4 +293,4 @@ let dss = BPC4.getDisplaySseq();
 dss.addEventHandler("p", () => {
     BPC4.toSVG("BPC4-1.svg");
 });
-dss.display();
+dss.display("main");
