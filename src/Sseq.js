@@ -627,10 +627,10 @@ class Sseq {
         //this.display_sseq.update();
     }
 
-    display(){
+    display(div){
         let dss = this.getDisplaySseq();
         this.updateAll();
-        dss.display();
+        dss.display(div);
         return dss;
     }
 

@@ -181,7 +181,7 @@ IO.loadFromServer(getJSONFilename("BPC4-2-E13")).then(function(json){
     }
     Display.addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
     document.getElementById("loading").style.display =  "none";
-    sseq.display();
+    sseq.display("main");
     Display.addLoadingMessage(`Displayed in ${getTime()} seconds.`);
     let t1 = performance.now();
     console.log("Rendered in " + (t1 - t0)/1000 + " seconds.");

@@ -750,7 +750,7 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
     }
     Display.addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
     document.getElementById("loading").style.display =  "none";
-    sseq.display();
+    sseq.display("main");
     // IO.download("BPC8-1.svg", display.toSVG());
     Display.addLoadingMessage(`Displayed in ${getTime()} seconds.`);
     let t1 = performance.now();
@@ -999,7 +999,7 @@ function setupDifferentialInterface(json){
     dss.addEventHandler("ctrl+shift+z", undo.redo);
 
     sseq.updateAll();
-    dss.display();
+    dss.display("main");
     setTimeout(() => differential_family.refreshRecords(), 500);
     w2ui.layout.onResize = function onResize(event) {
         event.onComplete = function onResizeComplete(){

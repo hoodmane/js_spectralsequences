@@ -13,6 +13,8 @@ const gridChess = "chess";
 Konva.Factory.addGetterSetter(Konva.Shape, 'size');
 Konva.Shape.prototype.setNode = setNode;
 
+window.sseqDisplay = {};
+
 /**
  * Sets the drawing parameters for the class.
  * We have to do any necessary translation here between the naming convention for Konva and the naming conventions
@@ -52,17 +54,17 @@ function setNode(node) {
 
 class Display {
 
-    constructor(ss) {
+    constructor(ss, container_id) {
         // Drawing elements
-        this.body = d3.select("body");
-        this.container = d3.select("#main");
-        this.container.style("overflow", "hidden")
+        this.container = d3.select(`#${container_id}`);
+        this.container_id = container_id;
+        this.container_DOM = document.getElementById(this.container_id);
 
         this.xScaleInit = d3.scaleLinear();
         this.yScaleInit = d3.scaleLinear();
 
         this.stage = new Konva.Stage({
-            container: 'main'
+            container: container_id
         });
 
         // This defines "this.nameLayer" and "this.nameLayerContext" etc.
@@ -77,24 +79,24 @@ class Display {
 
         let tooltip_divs = ["tooltip_div", "tooltip_div_dummy"].map(id =>
             this.container.append("div")
-                .attr("id", id)
+                .attr("id", `${id}_${this.container_id}`)
                 .attr("class", "tooltip")
                 .style("opacity", 0)
         );
 
 
-        this.status_div = this.body.append("div")
-            .attr("id", "status")
-            .style("position", "absolute")
-            .style("left", `20px`)
-            .style("bottom",`20px`)
-            .style("z-index", 1000);
-
+//        this.status_div = this.body.append("div")
+//            .attr("id", "status")
+//            .style("position", "absolute")
+//            .style("left", `20px`)
+//            .style("bottom",`20px`)
+//            .style("z-index", 1000);
+//
         this.page_indicator_div = this.container.append("div")
-            .attr("id", "page_indicator")
+            .attr("id", `page_indicator_${this.container_id}`)
             .style("position", "absolute")
-            .style("left", "120px")
-            .style("top","10px")
+            .style("left", "20px")
+            .style("top","0px")
             .style("font-family","Arial")
             .style("font-size","15px");
 
@@ -113,7 +115,7 @@ class Display {
         this.zoom = d3.zoom().scaleExtent([0, 4]);
         this.updateBatch = this.updateBatch.bind(this);
         this.zoom.on("zoom", this.updateBatch);
-        this.zoomDomElement = d3.select("#supermarginLayer");
+        this.zoomDomElement = d3.select(`#supermarginLayer_${this.container_id}`);
         this.zoomDomElement.call(this.zoom).on("dblclick.zoom", null);
 
         this.nextPage = this.nextPage.bind(this);
@@ -169,7 +171,7 @@ class Display {
         this.gridStrokeWidth = 0.3;
         this.TICK_STEP_LOG_BASE = 1.1; // Used for deciding when to change tick step.
 
-        const boundingRectangle = document.getElementById("main").getBoundingClientRect();
+        const boundingRectangle = this.container_DOM.getBoundingClientRect();
         const canvasWidth = width || 0.99*boundingRectangle.width;
         const canvasHeight = height || 0.97*boundingRectangle.height;
 
@@ -238,9 +240,9 @@ class Display {
     _makeLayer(layerName){
         let layer = new Konva.Layer();
         this.stage.add(layer);
-        let canvasDOMList = document.getElementsByTagName("canvas");
-        canvasDOMList[canvasDOMList.length - 1].setAttribute("id", layerName);
-        let context = d3.select("#" + layerName).node().getContext("2d");
+        let canvasDOMList = this.container_DOM.getElementsByTagName("canvas");
+        canvasDOMList[canvasDOMList.length - 1].setAttribute("id", `${layerName}_${this.container_id}`);
+        let context = d3.select(`#${layerName}_${this.container_id}`).node().getContext("2d");
         this[layerName] = layer;
         this[layerName + "Context"] = context;
         this[layerName + "DOM"] = canvasDOMList[canvasDOMList.length - 1];
@@ -929,14 +931,14 @@ class Display {
     }
 
     setStatus(html){
-        if(this.status_div.timer_id){
-            clearTimeout(this.status_div.timer_id);
-        }
-        this.status_div.html(html);
+//        if(this.status_div.timer_id){
+//            clearTimeout(this.status_div.timer_id);
+//        }
+//        this.status_div.html(html);
     }
 
     delayedSetStatus(html, delay){
-        this.status_div.timer_id = setTimeout(() => this.status_div.html(html), delay);
+//        this.status_div.timer_id = setTimeout(() => this.status_div.html(html), delay);
     }
 
     /**
@@ -1186,4 +1188,14 @@ class Display {
     }
 }
 
+function displaySseq(ss, name) {
+    if (window.sseqDisplay[name]) {
+        window.sseqDisplay[name].setSseq(ss);
+        window.sseqDisplay[name].update();
+    } else {
+        window.sseqDisplay[name] = new Display(ss, name);
+    }
+}
+
 exports.Display = Display;
+exports.displaySseq = displaySseq;
