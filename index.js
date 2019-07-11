@@ -14,7 +14,6 @@ function addLoadingMessage(message){
     console.log(message);
 }
 
-
 url = new URL(document.location)
 jsFile = url.searchParams.get("sseq");
 if(jsFile){
