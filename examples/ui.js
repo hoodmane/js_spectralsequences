@@ -110,9 +110,9 @@ $('#layout').w2layout({
 });
 
 let el = w2ui['layout'].el('main');
-el.id = "main";
+el.id = "#main";
 
-sseq.display("main");
+sseq.display("#main");
 
 
 w2ui.layout.onResize = function onResize(event) {

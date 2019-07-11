@@ -14,7 +14,7 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
     dss._getYOffset = (c) => c.y_offset || 0;
 
     if (on_public_website) {
-        dss.display("main");
+        dss.display("#main");
         return;
     }
 
@@ -149,7 +149,7 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
         }
     });
 
-    dss.display("main");
+    dss.display("#main");
     // dss.classes.forEach( c => c.recid = c.unique_id);
     // w2ui['myGrid'].add(dss.classes);
 
