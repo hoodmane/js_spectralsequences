@@ -59,6 +59,9 @@ class Display {
         this.container = d3.select(container);
         this.container_DOM = this.container.node();
 
+        // Clear everything in container
+        this.container.selectAll().remove();
+
         this.xScaleInit = d3.scaleLinear();
         this.yScaleInit = d3.scaleLinear();
 
