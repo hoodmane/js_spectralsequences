@@ -122,22 +122,6 @@ class Display {
         this.update();
     }
 
-    static addLoadingMessage(message){
-        let msg_div = document.getElementById('loading');
-        if(msg_div == null){
-            msg_div = document.createElement("div");
-            msg_div.id = "loading";
-            msg_div.style.position = "absolute";
-            msg_div.style.top = "10pt";
-            msg_div.style.left = "10pt";
-            document.body.appendChild(msg_div);
-        }
-        if(typeof display === "undefined"){
-            msg_div.innerHTML += `<p>${message}</p>`;
-        }
-        console.log(message);
-    }
-
     /**
      *
      * @param width Optional width. Default to 97% of width of bounding element.

@@ -553,7 +553,7 @@ Groups.Zsupsup = Groups.Z.copy();
 Groups.Zsupsup.fill = "black";
 
 IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
-    Display.addLoadingMessage(`Read JSON in ${getTime()} seconds.`);
+    addLoadingMessage(`Read JSON in ${getTime()} seconds.`);
     window.classes = {};
     classes.all = new StringifyingMap();
     classes.induced = new StringifyingMap();
@@ -676,7 +676,7 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
             c.extra_info = [extra_info_page_15, c.extra_info];
         }
     }
-    Display.addLoadingMessage(`Added classes in ${getTime()} seconds.`);
+    addLoadingMessage(`Added classes in ${getTime()} seconds.`);
 
     sseq.onDifferentialAdded(d => {
         d.addInfoToSourceAndTarget();
@@ -746,11 +746,11 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
         let target = classes[o.target_type].get(o.target_position).get(o.target_slice);
         sseq.addDifferential(source, target, o.page);
     }
-    Display.addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
+    addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
     document.getElementById("loading").style.display =  "none";
     sseq.display(w2ui.layout.el('main'));
     // IO.download("BPC8-1.svg", display.toSVG());
-    Display.addLoadingMessage(`Displayed in ${getTime()} seconds.`);
+    addLoadingMessage(`Displayed in ${getTime()} seconds.`);
     let t1 = performance.now();
     console.log("Rendered in " + (t1 - t0)/1000 + " seconds.");
 }).catch((err) => console.log(err))
