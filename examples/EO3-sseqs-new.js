@@ -475,7 +475,7 @@ let new_sseq_form = new Interface.PopupForm(
         },
         onSuccess: function(event){
             newSseq(this.record['sseq-type'], this.cells);
-            sseq.display();
+            sseq.display("#main");
         }
     },
     {
@@ -582,7 +582,7 @@ async function openSseq(key){
     }
     let type = sseq_types[loaded_sseq.type];
     newSseq(loaded_sseq.type, []);
-    sseq.display();
+    sseq.display("#main");
     sseq.name = loaded_sseq.name;
     if(loaded_sseq.events.constructor !== Array){
         loaded_sseq.events = loaded_sseq.events.events;
@@ -600,7 +600,7 @@ async function openSseq(key){
     dss.type = sseq.type;
     addEventHandlers(sseq, dss);
     setRange(sseq);
-    sseq.display();
+    sseq.display("#main");
     sseq.fully_loaded = true;
     return true;
 }
@@ -693,6 +693,6 @@ setRange(sseq);
 dss.type = "AHSS";
 sseq.undo = new Interface.Undo(sseq);
 addEventHandlers(sseq, dss);
-sseq.display();
+sseq.display("#main");
 // display.addEventHandler("ctrl+z", undo.undo);
 // display.addEventHandler("ctrl+shift+z", undo.redo);
