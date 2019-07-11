@@ -236,7 +236,7 @@ IO.loadFromServer(getJSONFilename("BPC8-truncations")).catch(err => console.log(
 
     Display.addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
     document.getElementById("loading").style.display =  "none";
-    sseq.display("main");
+    sseq.display("#main");
     Display.addLoadingMessage(`Displayed in ${getTime()} seconds.`);
     let t1 = performance.now();
     console.log("Rendered in " + (t1 - t0)/1000 + " seconds.");

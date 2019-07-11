@@ -20,7 +20,7 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
 
 
     if (on_public_website) {
-        dss.display("main");
+        dss.display("#main");
         return;
     }
 
@@ -145,7 +145,7 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
     });
 
 
-    dss.display("main");
+    dss.display("#main");
 }).catch(err => console.log(err));
 
 

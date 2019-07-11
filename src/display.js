@@ -53,18 +53,17 @@ function setNode(node) {
 
 
 class Display {
-
-    constructor(ss, container_id) {
+    // container is either an id (e.g. "#main") or a DOM object
+    constructor(ss, container) {
         // Drawing elements
-        this.container = d3.select(`#${container_id}`);
-        this.container_id = container_id;
-        this.container_DOM = document.getElementById(this.container_id);
+        this.container = d3.select(container);
+        this.container_DOM = this.container.node();
 
         this.xScaleInit = d3.scaleLinear();
         this.yScaleInit = d3.scaleLinear();
 
         this.stage = new Konva.Stage({
-            container: container_id
+            container: this.container_DOM
         });
 
         // This defines "this.nameLayer" and "this.nameLayerContext" etc.
@@ -79,7 +78,6 @@ class Display {
 
         let tooltip_divs = ["tooltip_div", "tooltip_div_dummy"].map(id =>
             this.container.append("div")
-                .attr("id", `${id}_${this.container_id}`)
                 .attr("class", "tooltip")
                 .style("opacity", 0)
         );
@@ -93,7 +91,6 @@ class Display {
 //            .style("z-index", 1000);
 //
         this.page_indicator_div = this.container.append("div")
-            .attr("id", `page_indicator_${this.container_id}`)
             .style("position", "absolute")
             .style("left", "20px")
             .style("top","0px")
@@ -115,7 +112,7 @@ class Display {
         this.zoom = d3.zoom().scaleExtent([0, 4]);
         this.updateBatch = this.updateBatch.bind(this);
         this.zoom.on("zoom", this.updateBatch);
-        this.zoomDomElement = d3.select(`#supermarginLayer_${this.container_id}`);
+        this.zoomDomElement = d3.select(this.supermarginLayerDOM);
         this.zoomDomElement.call(this.zoom).on("dblclick.zoom", null);
 
         this.nextPage = this.nextPage.bind(this);
@@ -241,11 +238,11 @@ class Display {
         let layer = new Konva.Layer();
         this.stage.add(layer);
         let canvasDOMList = this.container_DOM.getElementsByTagName("canvas");
-        canvasDOMList[canvasDOMList.length - 1].setAttribute("id", `${layerName}_${this.container_id}`);
-        let context = d3.select(`#${layerName}_${this.container_id}`).node().getContext("2d");
+        let canvasDOM = canvasDOMList[canvasDOMList.length - 1];
+        let context = canvasDOM.getContext("2d");
         this[layerName] = layer;
         this[layerName + "Context"] = context;
-        this[layerName + "DOM"] = canvasDOMList[canvasDOMList.length - 1];
+        this[layerName + "DOM"] = canvasDOM;
     }
 
     _clipLayer(context){

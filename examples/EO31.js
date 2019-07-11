@@ -64,4 +64,4 @@ for(let v = vmin; v < vmax; v++){
     }
 }
 
-sseq.display("main");
+sseq.display("#main");
