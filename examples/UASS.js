@@ -88,7 +88,7 @@ function setupDSS(dss, dss_list){
     });
 
     if (on_public_website) {
-        dss.display();
+        dss.display("#main");
         return;
     }
 
