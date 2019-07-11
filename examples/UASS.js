@@ -123,11 +123,9 @@ function setupDSS(dss, dss_list){
     });
 
     dss.addEventHandler('a', (event) => sseq.saveToLocalStore(sseq.path));
-
+    dss.display();
     return dss;
 }
-;
-let ready_dss_list = new Array(dss_promises.length).fill(undefined);
 
 let sphere_div = document.createElement("div");
 sphere_div.style.setProperty("position", "absolute");
