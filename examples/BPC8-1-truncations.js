@@ -142,7 +142,7 @@ Groups.Zsupsup = Groups.Z.copy();
 Groups.Zsupsup.fill = "black";
 
 IO.loadFromServer(getJSONFilename("BPC8-truncations")).catch(err => console.log(err)).then(function(json){
-    Display.addLoadingMessage(`Read JSON in ${getTime()} seconds.`);
+    addLoadingMessage(`Read JSON in ${getTime()} seconds.`);
     window.classes = new StringifyingMap();
     window.sseq = new Sseq();
     window.max_x = json.max_x;
@@ -185,7 +185,7 @@ IO.loadFromServer(getJSONFilename("BPC8-truncations")).catch(err => console.log(
         c.save_node_list = c.node_list;
         classes.set([c.x, c.y], c);
     }
-    Display.addLoadingMessage(`Added classes in ${getTime()} seconds.`);
+    addLoadingMessage(`Added classes in ${getTime()} seconds.`);
     for(let o of json.differentials){
         o.target = [];
         o.target[0] = o.source[0] - 1;
@@ -234,10 +234,10 @@ IO.loadFromServer(getJSONFilename("BPC8-truncations")).catch(err => console.log(
     sseq.initial_page_idx = 0;
 
 
-    Display.addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
+    addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
     document.getElementById("loading").style.display =  "none";
     sseq.display("#main");
-    Display.addLoadingMessage(`Displayed in ${getTime()} seconds.`);
+    addLoadingMessage(`Displayed in ${getTime()} seconds.`);
     let t1 = performance.now();
     console.log("Rendered in " + (t1 - t0)/1000 + " seconds.");
 
