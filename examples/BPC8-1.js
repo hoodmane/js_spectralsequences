@@ -870,7 +870,7 @@ function setupDifferentialInterface(json){
             dss.temp_source_class = c;
             display.updateNameHTML(c);
             let name = c.name_html;
-            display.setStatus(`Adding differential. Source: ${name}`);
+            setStatus(`Adding differential. Source: ${name}`);
         }
     );
 
@@ -908,7 +908,7 @@ function setupDifferentialInterface(json){
                 undo.addMutationsToUndoStack(event);
                 dss.update();
                 dss.temp_source_class = undefined;
-                display.setStatus("");
+                setStatus("");
                 differential_family.selectNone();
                 df.select();
             });
@@ -954,26 +954,26 @@ function setupDifferentialInterface(json){
 
 
     dss.addEventHandler("d", (event) => {
-        display.setStatus("Saving...");
+        setStatus("Saving...");
         console.log(differential_family.list);
         undo.addLock();
         IO.saveToLocalStore(differential_local_store_key, differential_family.getSaveObject());
         // IO.download("BPC4-2-differentials.json", differential_family.getSaveObject());
         console.log("Saved.");
-        display.setStatus("Saved.");
-        display.delayedSetStatus("", 2000);
+        setStatus("Saved.");
+        delayedSetStatus("", 2000);
         undo.undoStack.pop();
     });
 
     dss.addEventHandler("D", (event) => {
-        display.setStatus("Saving...");
+        setStatus("Saving...");
         console.log(differential_family.list);
         undo.addLock();
         IO.saveToLocalStore(differential_local_store_key, differential_family.getSaveObject());
         IO.download(differential_filename, differential_family.getSaveObject());
         console.log("Saved.");
-        display.setStatus("Saved.");
-        display.delayedSetStatus("", 2000);
+        setStatus("Saved.");
+        delayedSetStatus("", 2000);
         undo.undoStack.pop();
     });
 

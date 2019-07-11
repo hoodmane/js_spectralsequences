@@ -85,14 +85,6 @@ class Display {
                 .style("opacity", 0)
         );
 
-
-//        this.status_div = this.body.append("div")
-//            .attr("id", "status")
-//            .style("position", "absolute")
-//            .style("left", `20px`)
-//            .style("bottom",`20px`)
-//            .style("z-index", 1000);
-//
         this.page_indicator_div = this.container.append("div")
             .style("position", "absolute")
             .style("left", "20px")
@@ -914,16 +906,6 @@ class Display {
             .style("opacity", 0);
     }
 
-    setStatus(html){
-//        if(this.status_div.timer_id){
-//            clearTimeout(this.status_div.timer_id);
-//        }
-//        this.status_div.html(html);
-    }
-
-    delayedSetStatus(html, delay){
-//        this.status_div.timer_id = setTimeout(() => this.status_div.html(html), delay);
-    }
 
     /**
      * Draw an svg onto the canvas.
