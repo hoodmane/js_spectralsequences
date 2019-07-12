@@ -391,9 +391,6 @@ class Display extends EventEmitter {
             this.page = this.pageRange;
         }
         this.page_indicator_div.html(this.sseq.getPageDescriptor(this.pageRange));
-        if(this.sseq.pageChangeHandler){
-            this.sseq.pageChangeHandler(this.page);
-        }
     }
 
     /**
