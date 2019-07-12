@@ -112,11 +112,13 @@ $('#layout').w2layout({
     ]
 });
 
-$('#main')[0].id = '';
 $('#layout_layout_panel_right').css('border-left', '1px solid silver');
+<<<<<<< HEAD
 let el = w2ui['layout'].el('main');
 el.id = "#main";
 
+=======
+>>>>>>> c4af95cf821ff05f6a7b847e9b2d226d500c8aaf
 
 let grid_config = {
     name: 'grid',
@@ -555,7 +557,7 @@ Groups.Zsupsup = Groups.Z.copy();
 Groups.Zsupsup.fill = "black";
 
 IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
-    Display.addLoadingMessage(`Read JSON in ${getTime()} seconds.`);
+    addLoadingMessage(`Read JSON in ${getTime()} seconds.`);
     window.classes = {};
     classes.all = new StringifyingMap();
     classes.induced = new StringifyingMap();
@@ -678,7 +680,7 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
             c.extra_info = [extra_info_page_15, c.extra_info];
         }
     }
-    Display.addLoadingMessage(`Added classes in ${getTime()} seconds.`);
+    addLoadingMessage(`Added classes in ${getTime()} seconds.`);
 
     sseq.onDifferentialAdded(d => {
         d.addInfoToSourceAndTarget();
@@ -748,11 +750,15 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
         let target = classes[o.target_type].get(o.target_position).get(o.target_slice);
         sseq.addDifferential(source, target, o.page);
     }
-    Display.addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
+    addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
     document.getElementById("loading").style.display =  "none";
+<<<<<<< HEAD
     sseq.display("#main");
+=======
+    sseq.display(w2ui.layout.el('main'));
+>>>>>>> c4af95cf821ff05f6a7b847e9b2d226d500c8aaf
     // IO.download("BPC8-1.svg", display.toSVG());
-    Display.addLoadingMessage(`Displayed in ${getTime()} seconds.`);
+    addLoadingMessage(`Displayed in ${getTime()} seconds.`);
     let t1 = performance.now();
     console.log("Rendered in " + (t1 - t0)/1000 + " seconds.");
 }).catch((err) => console.log(err))
@@ -870,7 +876,7 @@ function setupDifferentialInterface(json){
             dss.temp_source_class = c;
             display.updateNameHTML(c);
             let name = c.name_html;
-            display.setStatus(`Adding differential. Source: ${name}`);
+            setStatus(`Adding differential. Source: ${name}`);
         }
     );
 
@@ -908,7 +914,7 @@ function setupDifferentialInterface(json){
                 undo.addMutationsToUndoStack(event);
                 dss.update();
                 dss.temp_source_class = undefined;
-                display.setStatus("");
+                setStatus("");
                 differential_family.selectNone();
                 df.select();
             });
@@ -954,26 +960,26 @@ function setupDifferentialInterface(json){
 
 
     dss.addEventHandler("d", (event) => {
-        display.setStatus("Saving...");
+        setStatus("Saving...");
         console.log(differential_family.list);
         undo.addLock();
         IO.saveToLocalStore(differential_local_store_key, differential_family.getSaveObject());
         // IO.download("BPC4-2-differentials.json", differential_family.getSaveObject());
         console.log("Saved.");
-        display.setStatus("Saved.");
-        display.delayedSetStatus("", 2000);
+        setStatus("Saved.");
+        delayedSetStatus("", 2000);
         undo.undoStack.pop();
     });
 
     dss.addEventHandler("D", (event) => {
-        display.setStatus("Saving...");
+        setStatus("Saving...");
         console.log(differential_family.list);
         undo.addLock();
         IO.saveToLocalStore(differential_local_store_key, differential_family.getSaveObject());
         IO.download(differential_filename, differential_family.getSaveObject());
         console.log("Saved.");
-        display.setStatus("Saved.");
-        display.delayedSetStatus("", 2000);
+        setStatus("Saved.");
+        delayedSetStatus("", 2000);
         undo.undoStack.pop();
     });
 
@@ -999,7 +1005,11 @@ function setupDifferentialInterface(json){
     dss.addEventHandler("ctrl+shift+z", undo.redo);
 
     sseq.updateAll();
+<<<<<<< HEAD
     dss.display("#main");
+=======
+    dss.display(w2ui.layout.el('main'));
+>>>>>>> c4af95cf821ff05f6a7b847e9b2d226d500c8aaf
     setTimeout(() => differential_family.refreshRecords(), 500);
     w2ui.layout.onResize = function onResize(event) {
         event.onComplete = function onResizeComplete(){

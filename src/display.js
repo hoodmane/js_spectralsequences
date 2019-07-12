@@ -58,6 +58,12 @@ class Display {
         // Drawing elements
         this.container = d3.select(container);
         this.container_DOM = this.container.node();
+<<<<<<< HEAD
+=======
+
+        // Clear everything in container
+        this.container.selectAll().remove();
+>>>>>>> c4af95cf821ff05f6a7b847e9b2d226d500c8aaf
 
         this.xScaleInit = d3.scaleLinear();
         this.yScaleInit = d3.scaleLinear();
@@ -82,6 +88,7 @@ class Display {
                 .style("opacity", 0)
         );
 
+<<<<<<< HEAD
 
 //        this.status_div = this.body.append("div")
 //            .attr("id", "status")
@@ -90,6 +97,8 @@ class Display {
 //            .style("bottom",`20px`)
 //            .style("z-index", 1000);
 //
+=======
+>>>>>>> c4af95cf821ff05f6a7b847e9b2d226d500c8aaf
         this.page_indicator_div = this.container.append("div")
             .style("position", "absolute")
             .style("left", "20px")
@@ -120,22 +129,6 @@ class Display {
         this.gridStyle = gridGo;
         this.setSseq(ss, true);
         this.update();
-    }
-
-    static addLoadingMessage(message){
-        let msg_div = document.getElementById('loading');
-        if(msg_div == null){
-            msg_div = document.createElement("div");
-            msg_div.id = "loading";
-            msg_div.style.position = "absolute";
-            msg_div.style.top = "10pt";
-            msg_div.style.left = "10pt";
-            document.body.appendChild(msg_div);
-        }
-        if(typeof display === "undefined"){
-            msg_div.innerHTML += `<p>${message}</p>`;
-        }
-        console.log(message);
     }
 
     /**
@@ -927,6 +920,7 @@ class Display {
             .style("opacity", 0);
     }
 
+<<<<<<< HEAD
     setStatus(html){
 //        if(this.status_div.timer_id){
 //            clearTimeout(this.status_div.timer_id);
@@ -937,6 +931,8 @@ class Display {
     delayedSetStatus(html, delay){
 //        this.status_div.timer_id = setTimeout(() => this.status_div.html(html), delay);
     }
+=======
+>>>>>>> c4af95cf821ff05f6a7b847e9b2d226d500c8aaf
 
     /**
      * Draw an svg onto the canvas.

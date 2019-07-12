@@ -1,3 +1,30 @@
+function addLoadingMessage(message){
+    let msg_div = document.getElementById('loading');
+    if(msg_div == null){
+        msg_div = document.createElement("div");
+        msg_div.id = "loading";
+        msg_div.style.position = "absolute";
+        msg_div.style.top = "10pt";
+        msg_div.style.left = "10pt";
+        document.body.appendChild(msg_div);
+    }
+    if(typeof display === "undefined"){
+        msg_div.innerHTML += `<p>${message}</p>`;
+    }
+    console.log(message);
+}
+
+function setStatus(html){
+    if(window.status_div_timer){
+        clearTimeout(window.status_div_timer);
+    }
+    document.getElementById("status").html(html);
+}
+
+function delayedSetStatus(html, delay){
+    window.status_div_timer = setTimeout(() => setStatus(html), delay);
+}
+
 url = new URL(document.location)
 jsFile = url.searchParams.get("sseq");
 if(jsFile){

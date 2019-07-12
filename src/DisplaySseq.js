@@ -112,9 +112,6 @@ class DisplaySseq {
 
     pageChangeHandler(page) {
         this.page_change_handler(page);
-        if (this.real_sseq) {
-            this.real_sseq.update();
-        }
     }
 
     getPageDescriptor(pageRange) {
@@ -161,8 +158,7 @@ class DisplaySseq {
      * Display this spectral sequence. Gets overridden if you call `some_other_sseq.display()`.
      */
     display(div) {
-        this.display = Display.displaySseq(this, div);
-        return this;
+        Display.displaySseq(this, div);
     }
 
 
