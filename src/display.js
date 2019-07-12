@@ -58,12 +58,8 @@ class Display {
         // Drawing elements
         this.container = d3.select(container);
         this.container_DOM = this.container.node();
-<<<<<<< HEAD
-=======
-
         // Clear everything in container
         this.container.selectAll().remove();
->>>>>>> c4af95cf821ff05f6a7b847e9b2d226d500c8aaf
 
         this.xScaleInit = d3.scaleLinear();
         this.yScaleInit = d3.scaleLinear();
@@ -88,17 +84,6 @@ class Display {
                 .style("opacity", 0)
         );
 
-<<<<<<< HEAD
-
-//        this.status_div = this.body.append("div")
-//            .attr("id", "status")
-//            .style("position", "absolute")
-//            .style("left", `20px`)
-//            .style("bottom",`20px`)
-//            .style("z-index", 1000);
-//
-=======
->>>>>>> c4af95cf821ff05f6a7b847e9b2d226d500c8aaf
         this.page_indicator_div = this.container.append("div")
             .style("position", "absolute")
             .style("left", "20px")
@@ -254,7 +239,11 @@ class Display {
             this.eventHandlerLayer.oncontextmenu = undefined;
             Mousetrap.reset();
         }
+        if(this.sseq){
+            this.sseq.display_object = null;
+        }
         this.sseq = ss;
+        ss.display_object = this;
         // The sseq object contains the list of valid pages. Always includes at least 0 and infinity.
         if(this.sseq.initial_page_idx){
             this.page_idx = this.sseq.initial_page_idx;
@@ -919,20 +908,6 @@ class Display {
             .duration(500)
             .style("opacity", 0);
     }
-
-<<<<<<< HEAD
-    setStatus(html){
-//        if(this.status_div.timer_id){
-//            clearTimeout(this.status_div.timer_id);
-//        }
-//        this.status_div.html(html);
-    }
-
-    delayedSetStatus(html, delay){
-//        this.status_div.timer_id = setTimeout(() => this.status_div.html(html), delay);
-    }
-=======
->>>>>>> c4af95cf821ff05f6a7b847e9b2d226d500c8aaf
 
     /**
      * Draw an svg onto the canvas.

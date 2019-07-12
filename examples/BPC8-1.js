@@ -99,6 +99,8 @@ d3.select("#layout")
     .style("height", "100vh")
     .style("width", "100vw");
 
+document.getElementById("main").style.display = "none";
+
 $('#layout').w2layout({
     name: 'layout',
     panels: [
@@ -113,12 +115,6 @@ $('#layout').w2layout({
 });
 
 $('#layout_layout_panel_right').css('border-left', '1px solid silver');
-<<<<<<< HEAD
-let el = w2ui['layout'].el('main');
-el.id = "#main";
-
-=======
->>>>>>> c4af95cf821ff05f6a7b847e9b2d226d500c8aaf
 
 let grid_config = {
     name: 'grid',
@@ -281,8 +277,8 @@ class differential_family {
             console.log(this);
             return;
         }
-        display.updateNameHTML(this.root_differential.source);
-        display.updateNameHTML(this.root_differential.target);
+        dss.display_object.updateNameHTML(this.root_differential.source);
+        dss.display_object.updateNameHTML(this.root_differential.target);
         o.source = this.root_differential.source.name_html;
         o.target = this.root_differential.target.name_html;
         o.offset_vectors = JSON.stringify(this.offset_vectors).slice(1,-1);
@@ -752,11 +748,7 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
     }
     addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
     document.getElementById("loading").style.display =  "none";
-<<<<<<< HEAD
-    sseq.display("#main");
-=======
     sseq.display(w2ui.layout.el('main'));
->>>>>>> c4af95cf821ff05f6a7b847e9b2d226d500c8aaf
     // IO.download("BPC8-1.svg", display.toSVG());
     addLoadingMessage(`Displayed in ${getTime()} seconds.`);
     let t1 = performance.now();
@@ -1005,11 +997,7 @@ function setupDifferentialInterface(json){
     dss.addEventHandler("ctrl+shift+z", undo.redo);
 
     sseq.updateAll();
-<<<<<<< HEAD
-    dss.display("#main");
-=======
     dss.display(w2ui.layout.el('main'));
->>>>>>> c4af95cf821ff05f6a7b847e9b2d226d500c8aaf
     setTimeout(() => differential_family.refreshRecords(), 500);
     w2ui.layout.onResize = function onResize(event) {
         event.onComplete = function onResizeComplete(){

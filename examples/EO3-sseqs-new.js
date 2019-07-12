@@ -629,7 +629,7 @@ function setEdgeSource(event){
         console.log(c);
         let sc = sseq.display_class_to_real_class.get(c);
         console.log(sc);
-        display.status_div.html(`Adding differential. Source: ${tools.getClassExpression(c)}`);
+        setStatus(`Adding differential. Source: ${tools.getClassExpression(c)}`);
     }
 }
 
@@ -657,7 +657,7 @@ function addEventHandlers(sseq, dss) {
             let c = event.mouseover_class;
             dss.temp_source_class = c;
             let sc = sseq.display_class_to_real_class.get(c);
-            display.status_div.html(`Adding differential. Source: ${tools.getClassExpression(c)}`);
+            setStatus(`Adding differential. Source: ${tools.getClassExpression(c)}`);
         }
     });
 

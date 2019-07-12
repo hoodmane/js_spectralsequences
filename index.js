@@ -18,7 +18,7 @@ function setStatus(html){
     if(window.status_div_timer){
         clearTimeout(window.status_div_timer);
     }
-    document.getElementById("status").html(html);
+    document.getElementById("status").innerHTML = html;
 }
 
 function delayedSetStatus(html, delay){
