@@ -64,9 +64,7 @@ class Tooltip {
     }
 
     _onMouseover (shape, c) {
-        console.log("mouseover", c);
         let tooltip_html = this.display.sseq.getClassTooltipHTML(c, this.display.page);
-        console.log("html: ", tooltip_html);
         let rect = this.tooltip_div.node().getBoundingClientRect();
         let tooltip_width = rect.width;
         let tooltip_height = rect.height;
