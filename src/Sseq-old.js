@@ -32,9 +32,6 @@ exports.product = monomial_basisjs.product;
 exports.vectorSum = monomial_basisjs.vectorSum;
 exports.vectorScale = monomial_basisjs.vectorScale;
 exports.vectorLinearCombination = monomial_basisjs.vectorLinearCombination;
-exports.dictionaryVectorSum = monomial_basisjs.dictionaryVectorSum;
-exports.dictionaryVectorScale = monomial_basisjs.dictionaryVectorScale;
-exports.dictionaryVectorLinearCombination = monomial_basisjs.dictionaryVectorLinearCombination;
 
 
 
@@ -360,7 +357,7 @@ class Sseq {
     }
 
     deleteEdge(e){
-        return e.delete();
+        e.delete();
     }
 
     reviveEdge(e){
@@ -381,7 +378,7 @@ class Sseq {
 //        } else if(target == undefined){
 //            target = this.last_classes[0]
 //        }
-        if(this.duplicateEdge(Structline, source, target).length > 0){
+        if(this.duplicateEdge(Structline, source, target)){
             return Structline.getDummy();
         }
         if(!source || !target || source.isDummy() || target.isDummy()){
@@ -400,7 +397,6 @@ class Sseq {
             this.on_structline_added(struct);
         }
         this.setupDisplayEdge(struct);
-        this.addMutation(struct, {delete: true}, struct.getMemento());
         return struct;
     }
 
@@ -433,14 +429,10 @@ class Sseq {
        //      return Differential.getDummy();
        //  }
         if(source.isDummy() || target.isDummy()){
-            console.log("source or target is dummy");
             return Differential.getDummy();
         }
-        let possible_duplicate_edges = this.duplicateEdge(Differential, source, target, page);
-        if(possible_duplicate_edges.length > 0){
-            console.log("duplicate edge");
-            console.log(possible_duplicate_edges);
-            return possible_duplicate_edges[0];
+        if(this.duplicateEdge(Differential, source, target, page)){
+            return Differential.getDummy();
         }
         if(page <= 0){
             console.log([source, target, page]);
@@ -449,8 +441,6 @@ class Sseq {
         }
 
         let differential = new Differential(this, source, target, page);
-        let source_pre = source.getMemento();
-        let target_pre = target.getMemento();
         source._addOutgoingDifferential(differential, set_pages);
         target._addIncomingDifferential(differential, set_pages);
         differential.edge_list_index = this.edges.length;
@@ -464,9 +454,6 @@ class Sseq {
             this.on_differential_added(differential);
         }
         this.setupDisplayEdge(differential);
-        this.addMutation(differential, {delete: true}, differential.getMemento());
-        this.addMutation(source, source_pre, source.getMemento());
-        this.addMutation(target, target_pre, target.getMemento());
         return differential;
     }
 
@@ -480,7 +467,7 @@ class Sseq {
         if(!source || !target || source.isDummy() || target.isDummy()){
             return Extension.getDummy();
         }
-        if(this.duplicateEdge(Extension, source, target).length){
+        if(this.duplicateEdge(Extension, source, target)){
             return Extension.getDummy();
         }
         let ext = new Extension(this, source, target);
@@ -493,12 +480,11 @@ class Sseq {
             this.on_extension_added(ext);
         }
         this.setupDisplayEdge(ext);
-        this.addMutation(ext, {delete: true}, ext.getMemento());
         return ext;
     }
 
     duplicateEdge(type, source, target, page){
-        return this.edges.filter(e =>
+        return this.edges.some(e =>
             e.constructor === type
             && e.source === source
             && e.target === target
@@ -624,13 +610,14 @@ class Sseq {
         display_edge.type = edge.constructor.name;
         this.display_edge_to_real_edge.set(edge.display_edge, edge);
         this.updateEdge(edge);
+        this.addMutation(edge, {delete: true}, edge.getMemento());
         //this.display_sseq.update();
     }
 
-    display(div){
+    display(){
         let dss = this.getDisplaySseq();
         this.updateAll();
-        dss.display(div);
+        dss.display();
         return dss;
     }
 
@@ -1040,10 +1027,12 @@ class Sseq {
 
     // TODO: add check that this spectral sequence is the one being displayed?
     downloadSVG(filename){
-        if(filename === undefined){
-            filename = `${this.name}_x-${display.xmin}-${display.xmax}_y-${display.ymin}-${display.ymax}.svg`
-        }
-        IO.download(filename, display.toSVG());
+       let xRange = display.xRange;
+       let yRange = display.yRange;
+       if(filename === undefined){
+           filename = `${this.name}_x-${this.xRange[0]}-${this.xRange[1]}_y-${this.yRange[0]}-${this.yRange[1]}.svg`
+       }
+       // IO.download(filename,display.toSVG());
     }
 
 }
@@ -1059,9 +1048,4 @@ Sseq.serializeClassFields = [
 Sseq.serializeEdgeFields = [
     "color", "bend", "dash", "lineWidth", "opacity", "page_min", "page", "type", "mult",
     "source_name", "target_name"
-]; // "source" and "target" are dealt with separately.
-
-exports.Sseq = Sseq;
-//window.SseqNode = Node;
-
-
+]; // "source" and "target" are deal 

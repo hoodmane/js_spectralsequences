@@ -88,7 +88,7 @@ function setupDSS(dss, dss_list){
     });
 
     if (on_public_website) {
-        dss.display();
+        dss.display("#main");
         return;
     }
 
@@ -123,7 +123,7 @@ function setupDSS(dss, dss_list){
     });
 
     dss.addEventHandler('a', (event) => sseq.saveToLocalStore(sseq.path));
-    dss.display();
+    dss.display("#main");
     return dss;
 }
 
@@ -152,7 +152,7 @@ function switchToSseq(index){
             if(index + 1 === dss_promises.length){
                 msg = "Stable ASS";
             }
-            sphere_div.innerHTML = display.renderLaTeX(msg);
+            sphere_div.innerHTML = dss.display_object.renderLaTeX(msg);
             pm_div.innerText = "Press +/- to change sphere.";
         }).catch(err => console.log(err));
         return;

@@ -1,3 +1,4 @@
+
 // Name: Slice SS $BP^{((C_4))}\langle 2\rangle$
 // Description: The slice spectral sequence for the $C_4$ fixed points of $BP^{((C_4))}\langle 2\rangle$.
 
@@ -60,7 +61,7 @@ Groups.Zsupsup = Groups.Z.copy();
 Groups.Zsupsup.fill = "black";
 
 IO.loadFromServer(getJSONFilename("BPC4-2-E13")).then(function(json){
-    Display.addLoadingMessage(`Read JSON in ${getTime()} seconds.`);
+    addLoadingMessage(`Read JSON in ${getTime()} seconds.`);
     window.classes = {};
     classes.induced = new StringifyingMap();
     classes.surviving = new StringifyingMap();
@@ -112,7 +113,7 @@ IO.loadFromServer(getJSONFilename("BPC4-2-E13")).then(function(json){
         }
         classes[o.type].set([c.x,c.y], c);
     }
-    Display.addLoadingMessage(`Added classes in ${getTime()} seconds.`);
+    addLoadingMessage(`Added classes in ${getTime()} seconds.`);
 
     sseq.onDifferentialAdded(d => {
         d.addInfoToSourceAndTarget();
@@ -179,10 +180,10 @@ IO.loadFromServer(getJSONFilename("BPC4-2-E13")).then(function(json){
         let target = classes[o.target_type].get(o.target);
         sseq.addDifferential(source, target, o.page);
     }
-    Display.addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
+    addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
     document.getElementById("loading").style.display =  "none";
-    sseq.display();
-    Display.addLoadingMessage(`Displayed in ${getTime()} seconds.`);
+    sseq.display("#main");
+    addLoadingMessage(`Displayed in ${getTime()} seconds.`);
     let t1 = performance.now();
     console.log("Rendered in " + (t1 - t0)/1000 + " seconds.");
 }).catch((err) => console.log(err));

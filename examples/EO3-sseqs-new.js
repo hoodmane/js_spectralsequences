@@ -475,7 +475,7 @@ let new_sseq_form = new Interface.PopupForm(
         },
         onSuccess: function(event){
             newSseq(this.record['sseq-type'], this.cells);
-            sseq.display();
+            sseq.display("#main");
         }
     },
     {
@@ -582,7 +582,7 @@ async function openSseq(key){
     }
     let type = sseq_types[loaded_sseq.type];
     newSseq(loaded_sseq.type, []);
-    sseq.display();
+    sseq.display("#main");
     sseq.name = loaded_sseq.name;
     if(loaded_sseq.events.constructor !== Array){
         loaded_sseq.events = loaded_sseq.events.events;
@@ -600,7 +600,7 @@ async function openSseq(key){
     dss.type = sseq.type;
     addEventHandlers(sseq, dss);
     setRange(sseq);
-    sseq.display();
+    sseq.display("#main");
     sseq.fully_loaded = true;
     return true;
 }
@@ -629,7 +629,7 @@ function setEdgeSource(event){
         console.log(c);
         let sc = sseq.display_class_to_real_class.get(c);
         console.log(sc);
-        display.status_div.html(`Adding differential. Source: ${tools.getClassExpression(c)}`);
+        setStatus(`Adding differential. Source: ${tools.getClassExpression(c)}`);
     }
 }
 
@@ -657,7 +657,7 @@ function addEventHandlers(sseq, dss) {
             let c = event.mouseover_class;
             dss.temp_source_class = c;
             let sc = sseq.display_class_to_real_class.get(c);
-            display.status_div.html(`Adding differential. Source: ${tools.getClassExpression(c)}`);
+            setStatus(`Adding differential. Source: ${tools.getClassExpression(c)}`);
         }
     });
 
@@ -693,6 +693,6 @@ setRange(sseq);
 dss.type = "AHSS";
 sseq.undo = new Interface.Undo(sseq);
 addEventHandlers(sseq, dss);
-sseq.display();
+sseq.display("#main");
 // display.addEventHandler("ctrl+z", undo.undo);
 // display.addEventHandler("ctrl+shift+z", undo.redo);

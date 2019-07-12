@@ -1,5 +1,6 @@
 "use strict";
 
+let Display = require("./display.js");
 let Sseq = require("./Sseq.js");
 let SseqClassjs = require("./SseqClass.js");
 let SseqClass = SseqClassjs.SseqClass;
@@ -111,9 +112,6 @@ class DisplaySseq {
 
     pageChangeHandler(page) {
         this.page_change_handler(page);
-        if (this.real_sseq) {
-            this.real_sseq.update();
-        }
     }
 
     getPageDescriptor(pageRange) {
@@ -159,18 +157,8 @@ class DisplaySseq {
     /**
      * Display this spectral sequence. Gets overridden if you call `some_other_sseq.display()`.
      */
-    display() {
-        if (typeof window === "undefined") {
-            console.log("Can only display in browser.");
-            return;
-        }
-        if (window.display) {
-            window.display.setSseq(this);
-            display.update();
-        } else {
-            window.display = new Display(this);
-        }
-        return this;
+    display(div) {
+        Display.displaySseq(this, div);
     }
 
 
