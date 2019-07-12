@@ -21,26 +21,20 @@ Sseq.loadFromServer(file_name)
         sseq.addPageRangeToPageList([3,infinity]);
         dss.initial_page_idx = 1;
 
-        dss.setPageChangeHandler((page) => {
-            if(page === infinity){
-                for(let sl of sseq.getStructlines()){
-                    sl.visible = true;
-                    sseq.updateEdge(sl);
-                }
-            } else {
-                let visible_mults;
-                if(page > 2 || page[0] > 2){
-                    visible_mults = ["a_0", "h_0", "v_1", "b"]; // "<h_0,h_0,->"];
-                } else {
-                    visible_mults = ["a_0", "h_0", "b"]; //"<h_0,h_0,->"];
-                }
-
-                for(let sl of sseq.getStructlines()){
-                    sl.visible = visible_mults.includes(sl.mult);
-                    sseq.updateEdge(sl);
-                }
+        for (let sl of sseq.getStructlines()) {
+            switch (sl.mult) {
+                case "a_0":
+                case "h_0":
+                case "b":
+                    continue;
+                case "v_1":
+                    sl._drawOnPageQ = pageRange => pageRange[0] > 2 && Structline.prototype._drawOnPageQ.call(sl, pageRange);
+                    break;
+                default:
+                    sl._drawOnPageQ = pageRange => pageRange[0] === infinity && Structline.prototype._drawOnPageQ.call(sl, pageRange);
             }
-        });
+            sseq.updateEdge(sl);
+        }
 
         if(on_public_website){
             dss.display("#main");

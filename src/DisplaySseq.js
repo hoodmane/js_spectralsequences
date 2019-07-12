@@ -50,7 +50,6 @@ class DisplaySseq {
         this.class_scale = 1;
         this.eventHandlers = {};
         this.class_tooltip_fields = ["extra_info"];
-        this.page_change_handler = () => true;
         this.serializeSseqFields = Sseq.serializeSseqFields;
         this.serializeClassFields = Sseq.serializeClassFields;
         this.serializeEdgeFields = Sseq.serializeEdgeFields;
@@ -104,14 +103,6 @@ class DisplaySseq {
         if(window.display){
             window.display._updateEventHandlers();
         }
-    }
-
-    setPageChangeHandler(f) {
-        this.page_change_handler = f;
-    }
-
-    pageChangeHandler(page) {
-        this.page_change_handler(page);
     }
 
     getPageDescriptor(pageRange) {
