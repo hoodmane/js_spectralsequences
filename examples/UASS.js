@@ -123,7 +123,7 @@ function setupDSS(dss, dss_list){
     });
 
     dss.addEventHandler('a', (event) => sseq.saveToLocalStore(sseq.path));
-    dss.display();
+    dss.display("#main");
     return dss;
 }
 
