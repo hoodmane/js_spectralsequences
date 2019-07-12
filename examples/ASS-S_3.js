@@ -17,16 +17,13 @@ Sseq.loadFromServer(file_name)
         let sseq = Sseq.getSseqFromDisplay(dss);
         window.dss = dss;
         window.sseq = sseq;
-        sseq.addPageToPageList(1);
-        sseq.addPageRangeToPageList([3,infinity]);
-        dss.initial_page_idx = 1;
 
         for (let sl of sseq.getStructlines()) {
             switch (sl.mult) {
                 case "a_0":
                 case "h_0":
-                case "b":
                     continue;
+                case "b":
                 case "v_1":
                     sl._drawOnPageQ = pageRange => pageRange[0] > 2 && Structline.prototype._drawOnPageQ.call(sl, pageRange);
                     break;
