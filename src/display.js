@@ -4,7 +4,6 @@ let EventEmitter = require("events");
 let d3 = require("d3");
 let Mousetrap = require("mousetrap");
 let Konva = require("konva");
-let katex = require("katex");
 
 document.documentElement.style.overflow = 'hidden'; // prevent scrollbars
 
@@ -50,14 +49,7 @@ function setNode(node) {
     }
 }
 
-// This should be moved out of this file
-function renderLaTeX(html) {
-    let html_list = html.split(/(?:\\\[)|(?:\\\()|(?:\\\))|(?:\\\])|(?:\$)/);
-    for(let i = 1; i < html_list.length; i+=2){
-        html_list[i] = katex.renderToString(html_list[i]);
-    }
-    return html_list.join("\n")
-}
+
 
 
 class Tooltip {
@@ -65,25 +57,21 @@ class Tooltip {
         this.display = display;
         this.tooltip_div = d3.select("body").append("div")
                 .attr("class", "tooltip")
-                .style("opacity", 0);
+                .style("opacity", 0)
+                .style("z-index", 999999);
         this.display.on("mouseover", this._onMouseover.bind(this));
         this.display.on("mouseout", this._onMouseout.bind(this));
     }
 
     _onMouseover (shape, c) {
-        // Is the result cached?
-        let tooltip = this.display.sseq.getClassTooltip(c, this.display.page).replace(/\n/g, "\n<hr>\n");
-        let html = renderLaTeX(tooltip);
-
+        console.log("mouseover", c);
+        let tooltip_html = this.display.sseq.getClassTooltipHTML(c, this.display.page);
+        console.log("html: ", tooltip_html);
         let rect = this.tooltip_div.node().getBoundingClientRect();
         let tooltip_width = rect.width;
         let tooltip_height = rect.height;
-        if (!html.includes("\\(")) {
-            // Cache the result of KaTeX so we can display this tooltip faster next time.
-            c.tooltip_html = html;
-        }
 
-        this.tooltip_div.html(html);
+        this.tooltip_div.html(tooltip_html);
         this.tooltip_div.style("left", (shape.x() + 25) + "px")
             .style("top", (shape.y() - tooltip_height) + "px")
             .style("right", null).style("bottom", null);
@@ -888,17 +876,11 @@ class Display extends EventEmitter {
             this.emit("mouseover", shape, c)
             this.mouseover_class = c;
         }
-        // Why are we doing this?
-        this.updateNameHTML(c);
     }
 
     _handleMouseout() {
         this.mouseover_class = null;
         this.emit("mouseout");
-    }
-
-    updateNameHTML(c){
-        c.name_html = renderLaTeX(this.sseq.getClassTooltipFirstLine(c));
     }
 
 

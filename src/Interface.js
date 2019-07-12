@@ -1,3 +1,5 @@
+let katex = require("katex");
+
 applyAttributesToElement = function applyAttributesToElement(element, attributes){
     if(!element || !attributes){
         return;
@@ -6,6 +8,17 @@ applyAttributesToElement = function applyAttributesToElement(element, attributes
         element.setAttribute(kv[0], kv[1]);
     }
 };
+
+function renderLatex(html) {
+    html = html.replace(/\n/g, "\n<hr>\n")
+    let html_list = html.split(/(?:\\\[)|(?:\\\()|(?:\\\))|(?:\\\])|(?:\$)/);
+    for(let i = 1; i < html_list.length; i+=2){
+        html_list[i] = katex.renderToString(html_list[i]);
+    }
+    return html_list.join("\n")
+}
+exports.renderLatex = renderLatex;
+exports.renderLaTeX = renderLatex;
 
 fixFormHTML = {};
 fixFormHTML.radio = function(doc, field){
@@ -142,7 +155,7 @@ PopupForm.default_popup_obj = {
     style   : 'padding: 15px 0px 0px 0px opacity: 0',
     width   : 500,
     height  : 220
-};//hi
+};
 
 exports.PopupForm = PopupForm;
 

@@ -152,7 +152,7 @@ function switchToSseq(index){
             if(index + 1 === dss_promises.length){
                 msg = "Stable ASS";
             }
-            sphere_div.innerHTML = dss.display_object.renderLaTeX(msg);
+            sphere_div.innerHTML = Interface.renderLaTeX(msg);
             pm_div.innerText = "Press +/- to change sphere.";
         }).catch(err => console.log(err));
         return;

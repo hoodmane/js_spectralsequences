@@ -368,6 +368,10 @@ class DisplaySseq {
         return tooltip;
     }
 
+    getNameHTML(c){
+        return Interface.renderLatex(this.getClassTooltipFirstLine(c));
+    }
+
     /**
      * Gets the tooltip for the current class on the given page (currently ignores the page).
      * @param c
@@ -388,6 +392,10 @@ class DisplaySseq {
         tooltip += extra_info;
         return tooltip;
     }
+
+    getClassTooltipHTML(c, page) {
+        return Interface.renderLatex(this.getClassTooltip(c,page));
+    }    
 
     static toTooltipString(obj, page) {
         if (!obj) {

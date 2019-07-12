@@ -277,10 +277,8 @@ class differential_family {
             console.log(this);
             return;
         }
-        dss.display_object.updateNameHTML(this.root_differential.source);
-        dss.display_object.updateNameHTML(this.root_differential.target);
-        o.source = this.root_differential.source.name_html;
-        o.target = this.root_differential.target.name_html;
+        o.source = this.root_differential.source.getNameHTML();
+        o.target = this.root_differential.target.getNameHTML();
         o.offset_vectors = JSON.stringify(this.offset_vectors).slice(1,-1);
         return o;
     }
@@ -860,14 +858,13 @@ function setupDifferentialInterface(json){
     window.dss = sseq.getDisplaySseq();
 
     dss.addEventHandler('s', function(event) {
-            const c = event.mouseover_class;
-            console.log(c);
-            if (!c) {
+            const cdss = event.mouseover_class;
+            if (!cdss) {
                 return
             }
-            dss.temp_source_class = c;
-            display.updateNameHTML(c);
-            let name = c.name_html;
+            dss.temp_source_class = cdss;
+            let c = sseq.display_class_to_real_class.get(cdss);
+            let name = c.getNameHTML();
             setStatus(`Adding differential. Source: ${name}`);
         }
     );
@@ -881,12 +878,10 @@ function setupDifferentialInterface(json){
                 return;
             }
             let length = t.y - s.y;
-            display.updateNameHTML(s);
-            display.updateNameHTML(t);
-            let sourcename = s.name_html;
-            let targetname = t.name_html;
             let source = sseq.display_class_to_real_class.get(s);
             let target = sseq.display_class_to_real_class.get(t);
+            let sourcename = source.getNameHTML();
+            let targetname = target.getNameHTML();            
             w2confirm(`Add d_${length} differential from ${sourcename} to ${targetname}`).yes(() =>{
                 let o = {
                     page: length,
@@ -947,7 +942,7 @@ function setupDifferentialInterface(json){
             return;
         }
         c = sseq.display_class_to_real_class.get(c);
-        copyToClipboard(c.name);
+        copyToClipboard(c.getNameHTML());
     });
 
 

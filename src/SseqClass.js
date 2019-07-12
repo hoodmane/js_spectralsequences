@@ -260,6 +260,11 @@ class SseqClass {
         return this;
     }
 
+    getNameHTML(){
+        this.display_class.name = this.name;
+        this.sseq.display_sseq.getNameHTML(this);
+    }
+
     /**
      * @returns {int} The page this class dies on (or infinity if it lives forever).
      */
