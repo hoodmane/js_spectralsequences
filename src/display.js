@@ -1,5 +1,6 @@
 "use strict";
 
+let EventEmitter = require("events");
 let d3 = require("d3");
 let Mousetrap = require("mousetrap");
 let Konva = require("konva");
@@ -49,12 +50,69 @@ function setNode(node) {
     }
 }
 
+// This should be moved out of this file
+function renderLaTeX(html) {
+    let html_list = html.split(/(?:\\\[)|(?:\\\()|(?:\\\))|(?:\\\])|(?:\$)/);
+    for(let i = 1; i < html_list.length; i+=2){
+        html_list[i] = katex.renderToString(html_list[i]);
+    }
+    return html_list.join("\n")
+}
 
 
+class Tooltip {
+    constructor(display) {
+        this.display = display;
+        this.tooltip_div = d3.select("body").append("div")
+                .attr("class", "tooltip")
+                .style("opacity", 0);
+        this.display.on("mouseover", this._onMouseover.bind(this));
+        this.display.on("mouseout", this._onMouseout.bind(this));
+    }
 
-class Display {
+    _onMouseover (shape, c) {
+        // Is the result cached?
+        let tooltip = this.display.sseq.getClassTooltip(c, this.display.page).replace(/\n/g, "\n<hr>\n");
+        let html = renderLaTeX(tooltip);
+
+        let rect = this.tooltip_div.node().getBoundingClientRect();
+        let tooltip_width = rect.width;
+        let tooltip_height = rect.height;
+        if (!html.includes("\\(")) {
+            // Cache the result of KaTeX so we can display this tooltip faster next time.
+            c.tooltip_html = html;
+        }
+
+        this.tooltip_div.html(html);
+        this.tooltip_div.style("left", (shape.x() + 25) + "px")
+            .style("top", (shape.y() - tooltip_height) + "px")
+            .style("right", null).style("bottom", null);
+        let bounding_rect = this.tooltip_div.node().getBoundingClientRect();
+        if (bounding_rect.right > this.display.canvasWidth) {
+            this.tooltip_div.style("left", null)
+                .style("right", (this.display.canvasWidth - shape.x() + 10) + "px")
+        }
+        if (bounding_rect.top < 0) {
+            this.tooltip_div.style("top", (shape.y() + 10) + "px")
+        }
+
+        this.tooltip_div.transition()
+            .duration(200)
+            .style("opacity", .9);
+
+    }
+    _onMouseout () {
+        this.tooltip_div.transition()
+            .duration(500)
+            .style("opacity", 0);
+    }
+}
+
+class Display extends EventEmitter {
     // container is either an id (e.g. "#main") or a DOM object
     constructor(ss, container) {
+        super();
+
         // Drawing elements
         this.container = d3.select(container);
         this.container_DOM = this.container.node();
@@ -78,12 +136,6 @@ class Display {
         this._makeLayer("supermarginLayer");
         this.eventHandlerLayer = this.supermarginLayerDOM;
 
-        let tooltip_divs = ["tooltip_div", "tooltip_div_dummy"].map(id =>
-            this.container.append("div")
-                .attr("class", "tooltip")
-                .style("opacity", 0)
-        );
-
         this.page_indicator_div = this.container.append("div")
             .style("position", "absolute")
             .style("left", "20px")
@@ -91,9 +143,7 @@ class Display {
             .style("font-family","Arial")
             .style("font-size","15px");
 
-        this.tooltip_div       = tooltip_divs[0];
-        this.tooltip_div_dummy = tooltip_divs[1];
-
+        this.tooltip = new Tooltip(this);
 
         // TODO: improve window resize handling. Currently the way that the domain changes is suboptimal.
         // I think the best would be to maintain the x and y range by scaling.
@@ -331,7 +381,7 @@ class Display {
         if (this.page_idx > this.sseq.min_page_idx) {
             this.setPage(this.page_idx - 1);
             this.update();
-            // If the page change has added a class underneath the mouse, display the tooltip.
+            // If the page change has added a class underneath the mouse, emit mouseover event
             if (this.stage.getPointerPosition() && this.stage.getIntersection(this.stage.getPointerPosition())) {
                 this._handleMouseover(this.stage.getIntersection(this.stage.getPointerPosition()));
             }
@@ -380,8 +430,7 @@ class Display {
                 this.stage._setPointerPosition(d3.event.sourceEvent);
             }
 
-            // If there is a tooltip being displayed and the zoom event has modified the canvas so that the cursor is no
-            // longer over the object the tooltip is attached to, hide the tooltip.
+            // If the zoom event has modified the canvas so that the cursor is no longer over the object, emit a mouseout event.
             if (this.stage.getPointerPosition() === undefined || this.stage.getIntersection(this.stage.getPointerPosition()) === null) {
                 this._handleMouseout();
             }
@@ -828,7 +877,6 @@ class Display {
         edge.targetOffset = {x: (targetPt.x - source_shape.x()), y: (targetPt.y - source_shape.y())};
     }
 
-    // Tooltips
     /**
      *
      * @param shape
@@ -836,78 +884,23 @@ class Display {
      */
     _handleMouseover(shape) {
         let c = shape.sseq_class;
-        if(!c){
-            return;
+        if (c) {
+            this.emit("mouseover", shape, c)
+            this.mouseover_class = c;
         }
-        this.mouseover_class = c;
-        // Is the result cached?
-        let tooltip = this.sseq.getClassTooltip(c, this.page).replace(/\n/g, "\n<hr>\n");
-        // if (c.tooltip_html) {
-        //     this._setupTooltipDiv(shape, c.tooltip_html); // Display right away
-        //     // Now recompute in case things have changed
-        //     this.updateNameHTML(c);
-        //     this.mathjaxHTML(tooltip).then(html => {
-        //         if (html && !html.includes("\\(")) {
-        //             // Cache the result of the MathJax so we can display this tooltip faster next time.
-        //             c.tooltip_html = html;
-        //         }
-        //     });
-        // } else {
-            let html = this.renderLaTeX(tooltip);
-            this._setupTooltipDiv(shape, html);
-            this.updateNameHTML(c);
-        // }
-        if(this.sseq.onmouseoverClass){
-            this.sseq.onmouseoverClass(c);
-        }
-        if(c.onmouseover){
-            c.onmouseover();
-        }
+        // Why are we doing this?
+        this.updateNameHTML(c);
+    }
+
+    _handleMouseout() {
+        this.mouseover_class = null;
+        this.emit("mouseout");
     }
 
     updateNameHTML(c){
-        c.name_html = this.renderLaTeX(this.sseq.getClassTooltipFirstLine(c));
+        c.name_html = renderLaTeX(this.sseq.getClassTooltipFirstLine(c));
     }
 
-    renderLaTeX(html){
-        let html_list = html.split(/(?:\\\[)|(?:\\\()|(?:\\\))|(?:\\\])|(?:\$)/);
-        for(let i = 1; i < html_list.length; i+=2){
-            html_list[i] = katex.renderToString(html_list[i]);
-        }
-        return html_list.join("\n")
-    }
-
-    _setupTooltipDiv(shape, html) {
-        let rect = this.tooltip_div.node().getBoundingClientRect();
-        let tooltip_width = rect.width;
-        let tooltip_height = rect.height;
-        if (!html.includes("\\(")) {
-            // Cache the result of the MathJax so we can display this tooltip faster next time.
-            shape.sseq_class.tooltip_html = html;
-        }
-        this.tooltip_div.html(html);
-        this.tooltip_div.style("left", (shape.x() + 25) + "px")
-            .style("top", (shape.y() - tooltip_height) + "px")
-            .style("right", null).style("bottom", null);
-        let bounding_rect = this.tooltip_div.node().getBoundingClientRect();
-        if (bounding_rect.right > this.canvasWidth) {
-            this.tooltip_div.style("left", null)
-                .style("right", (this.canvasWidth - shape.x() + 10) + "px")
-        }
-        if (bounding_rect.top < 0) {
-            this.tooltip_div.style("top", (shape.y() + 10) + "px")
-        }
-
-        this.tooltip_div.transition()
-            .duration(200)
-            .style("opacity", .9);
-    }
-    _handleMouseout() {
-        this.mouseover_class = null;
-        this.tooltip_div.transition()
-            .duration(500)
-            .style("opacity", 0);
-    }
 
     /**
      * Draw an svg onto the canvas.
