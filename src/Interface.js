@@ -9,6 +9,16 @@ applyAttributesToElement = function applyAttributesToElement(element, attributes
     }
 };
 
+function ensureMath(str){
+    if(str.startsWith("\\(") || str.startsWith("$")){
+        return str;
+    }
+    if(!str){
+        return "";
+    }
+    return "$" + str + "$";
+}
+
 function renderLatex(html) {
     html = html.replace(/\n/g, "\n<hr>\n")
     let html_list = html.split(/(?:\\\[)|(?:\\\()|(?:\\\))|(?:\\\])|(?:\$)/);
@@ -19,6 +29,7 @@ function renderLatex(html) {
 }
 exports.renderLatex = renderLatex;
 exports.renderLaTeX = renderLatex;
+exports.ensureMath = ensureMath;
 
 fixFormHTML = {};
 fixFormHTML.radio = function(doc, field){

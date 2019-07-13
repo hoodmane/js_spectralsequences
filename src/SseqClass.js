@@ -7,7 +7,6 @@ let infinity = Util.infinity;
 
 /**
  * The Node class controls the display of SseqClass's.
- * The behavior of a Node's fields is controlled by the method Konva.Shape.prototype.setNode defined in display.js.
  * The fields are:
  *    color -- the color to draw with. Default black.
  *    fill -- either a boolean or a color. "true" means fill it, and use the color field to decide what color.
@@ -80,6 +79,35 @@ class Node {
 
     isDummy(){
         return false;
+    }
+
+    setPosition(x, y, scale) {
+        this.x = x;
+        this.y = y;
+        this.scale = scale;
+    }
+
+    draw(context) {
+        context.save();
+
+        if (this.opacity) {
+            context.opacity = this.opacity;
+        }
+        if (this.color) {
+            context.fillStyle = this.color;
+            context.strokeStyle = this.color;
+        }
+        if (this.stroke) {
+            context.strokeStyle = this.stroke;
+        }
+        if (this.fill) {
+            context.fillStyle = this.fill;
+        }
+        context.lineWidth = this.scale * 2;
+
+        this.path = this.shape.draw(context, this.x, this.y, this.size * this.scale, this);
+
+        context.restore();
     }
 
     static getDummy(){
@@ -195,7 +223,6 @@ class SseqClass {
         }
         let res = Util.copyFields(this, memento);
         this.node_list = this.node_list.map( n => n.copy());
-        this.sseq.updateClass(this);
         return this;
     }
 
@@ -218,7 +245,6 @@ class SseqClass {
         dummy.toString = dummy.getName;
         dummy.constructor = SseqClass.constructor;
 
-        dummy.update = chainableNoOp;
         dummy.replace = chainableNoOp;
         dummy.addExtraInfo = chainableNoOp;
         dummy.isAlive = Util.getDummyConstantFunction(false);
@@ -244,10 +270,6 @@ class SseqClass {
         return false;
     }
 
-    update(){
-        this.sseq.updateClass(this);
-    }
-
     /* Public methods: */
 
     getName(){
@@ -260,9 +282,17 @@ class SseqClass {
         return this;
     }
 
-    getNameHTML(){
-        this.display_class.name = this.name;
-        return this.sseq.display_sseq.getNameHTML(this);
+    getNameCoord(){
+        let tooltip = "";
+        if (this.name !== "") {
+            tooltip = `\\(\\large ${this.name}\\)&nbsp;&mdash;&nbsp;`;
+        }
+        tooltip += `(${this.x}, ${this.y})`;
+        return tooltip;
+    }
+
+    getNameCoordHTML(){
+        return Interface.renderLatex(this.getNameCoord());
     }
 
     /**
@@ -354,7 +384,6 @@ class SseqClass {
                 sl.page = page;
                 let post = sl.getMemento();
                 this.sseq.addMutation(sl, pre, post);
-                this.sseq.updateEdge(sl);
             }
         }
         return this;

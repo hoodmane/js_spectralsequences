@@ -86,9 +86,14 @@ function getTime(){
     return (tp5 - t) / 1000;
 }
 
+// Enable fontawesome
+let fontAwesome = document.createElement('link');
+fontAwesome.rel = 'stylesheet';
+fontAwesome.href = 'https://use.fontawesome.com/releases/v5.6.3/css/all.css';
+fontAwesome.integrity = "sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/";
+fontAwesome.crossOrigin = "anonymous";
+document.head.appendChild(fontAwesome);
 
-
-Display.enableFontAwesome();
 window.sseq = new Sseq();
 window.undo = new Interface.Undo(sseq);
 
@@ -152,7 +157,7 @@ let grid_config = {
             recid = Number.parseInt(recid);
             differential_family.rec_id_map.get(recid).select();
         }
-        sseq.update();
+        sseq.emit("update");
     },
     onUnselect : function(event){
         console.log(event);
@@ -167,7 +172,7 @@ let grid_config = {
                 differential_family.current_differential = undefined;
             }
         }
-        sseq.update();
+        sseq.emit("update");
     }
 };
 w2ui.layout.content('right', $().w2grid(grid_config));
@@ -282,8 +287,8 @@ class differential_family {
             console.log(this);
             return;
         }
-        o.source = this.root_differential.source.getNameHTML();
-        o.target = this.root_differential.target.getNameHTML();
+        o.source = this.root_differential.source.getNameCoordHTML();
+        o.target = this.root_differential.target.getNameCoordHTML();
         o.offset_vectors = JSON.stringify(this.offset_vectors).slice(1,-1);
         return o;
     }
@@ -301,7 +306,7 @@ class differential_family {
             }
         }
         w2ui.grid.select(differential_family.list.filter(df => df.selected).map(df => df.recid));
-        sseq.update();
+        sseq.emit("update");
     }
 
 
@@ -311,10 +316,8 @@ class differential_family {
         }
         this.selected = true;
         this.root_differential.color = differential_family.root_selected_color;
-        sseq.updateEdge(this.root_differential);
         for(let d of this.liebnized_differentials){
             d.color = differential_family.selected_color;
-            sseq.updateEdge(d);
         }
     }
 
@@ -325,7 +328,6 @@ class differential_family {
         this.selected = false;
         for(let d of this.liebnized_differentials.concat([this.root_differential])){
             d.color = this.color;
-            sseq.updateEdge(d);
         }
     }
 
@@ -392,10 +394,9 @@ class differential_family {
             this.liebnized_differentials.push(d);
             if(this.selected){
                 d.color = differential_family.selected_color;
-                sseq.updateEdge(d);
             }
         }
-        sseq.update();
+        sseq.emit("update");
     }
 
     delete(){
@@ -410,7 +411,7 @@ class differential_family {
         w2ui.grid.remove(this.recid);
         differential_family.refreshRecords();
         w2ui.grid.refresh();
-        sseq.update();
+        sseq.emit("update");
     }
 
     restore(){
@@ -427,7 +428,7 @@ class differential_family {
         w2ui.grid.add(o);
         differential_family.refreshRecords();
         w2ui.grid.refresh();
-        sseq.update();
+        sseq.emit("update");
     }
 
     // getMemento(){
@@ -562,8 +563,11 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
     classes.induced = new StringifyingMap();
     classes.surviving = new StringifyingMap();
     classes.truncation = new StringifyingMap();
-    window.sseq = new Sseq();
+    sseq = new Sseq();
     sseq.name = sseq_name;
+
+    display = new BasicDisplay(w2ui.layout.el('main'));
+
     window.max_x = json.max_x;
     window.max_y = json.max_y;
     window.max_diagonal = json.max_diagonal;
@@ -574,11 +578,10 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
     sseq.initialxRange = [0, Math.floor(16/9 * y_initial)];
     sseq.initialyRange = [0, y_initial];
     sseq.class_scale = 0.4;
-    dss = sseq.getDisplaySseq();
-    dss.squareAspectRatio = true;
+    sseq.squareAspectRatio = true;
     // this is to change the names of the induced classes after d15.
-    dss.getClassTooltip = function(c, page){
-        let tooltip = dss.getClassTooltipFirstLine(c);
+    display.tooltip.getClassTooltip = function(c, page){
+        let tooltip = c.getNameCoord(c);
         let extra_info = "";
         if(typeof c.extra_info == "string"){
             extra_info = c.extra_info;
@@ -587,7 +590,7 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
         } else {
             extra_info = c.extra_info[1];
         }
-        extra_info = extra_info.split("\n").map( x => ensureMath(x)).join("\n");
+        extra_info = extra_info.split("\n").map( x => Interface.ensureMath(x)).join("\n");
         tooltip += extra_info;
         return tooltip;
     };
@@ -684,7 +687,7 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
 
     addLoadingMessage(`Added classes in ${getTime()} seconds.`);
 
-    sseq.onDifferentialAdded(d => {
+    sseq.on("differential-added", function(d) {
         d.addInfoToSourceAndTarget();
         let source_group = d.source.group_list[d.source.group_list.length - 1];
         let target_group = d.target.group_list[d.target.group_list.length - 1];
@@ -712,14 +715,15 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
         d.color = differential_colors[d.page];
     });
 
-    sseq.onDraw((display) => {
-        let context = display.edgeLayerContext;
+    // The function is bound to display
+    display.on("draw", function() {
+        let context = this.context;
         context.clearRect(0, 0, this.width, this.height);
         context.save();
         context.lineWidth = 0.3;
         context.strokeStyle = "#818181";
-        let xScale = display.xScale;
-        let yScale = display.yScale;
+        let xScale = this.xScale;
+        let yScale = this.yScale;
         // Truncation lines
         for (let diag = 4; diag < 2*json.max_diagonal; diag += 4) {
             context.moveTo(xScale(diag + 2), yScale(-2));
@@ -754,7 +758,9 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
     }
     addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
     document.getElementById("loading").style.display =  "none";
-    sseq.display(w2ui.layout.el('main'));
+
+    display.setSseq(sseq);
+
     // IO.download("BPC8-1.svg", display.toSVG());
     addLoadingMessage(`Displayed in ${getTime()} seconds.`);
     let t1 = performance.now();
@@ -841,6 +847,7 @@ function setupDifferentialInterface(json){
         json = {history : [], differentials : []};
     }
     window.json = json;
+
     let dfamilies = [];
     json.differentials.sort((a,b)=>a.page - b.page);
     for(let d of json.differentials){
@@ -863,42 +870,38 @@ function setupDifferentialInterface(json){
     }
 
     differential_family.current_differential = undefined;
-    window.dss = sseq.getDisplaySseq();
 
-    dss.addEventHandler('s', function(event) {
-            const cdss = event.mouseover_class;
-            if (!cdss) {
+    Mousetrap.bind('s', function() {
+            const c = display.mouseover_class;
+            if (!c) {
                 return
             }
-            dss.temp_source_class = cdss;
-            let c = sseq.display_class_to_real_class.get(cdss);
-            let name = c.getNameHTML();
-            setStatus(`Adding differential. Source: ${name}`);
+            display.temp_source_class = c;
+            let name = c.getNameCoordHTML();
+            display.setStatus(`Adding differential. Source: ${name}`);
         }
     );
 
 
-    dss.addEventHandler('t', function (event) {
-        if(event.mouseover_class && dss.temp_source_class){
-            let s = dss.temp_source_class;
-            let t = event.mouseover_class;
+    Mousetrap.bind('t', function() {
+        if(display.mouseover_class && display.temp_source_class){
+            let s = display.temp_source_class;
+            let t = display.mouseover_class;
             if(s.x !== t.x + 1){
                 return;
             }
             let length = t.y - s.y;
-            let source = sseq.display_class_to_real_class.get(s);
-            let target = sseq.display_class_to_real_class.get(t);
-            let sourcename = source.getNameHTML();
-            let targetname = target.getNameHTML();            
+            let sourcename = s.getNameCoordHTML();
+            let targetname = t.getNameCoordHTML();            
             w2confirm(`Add d_${length} differential from ${sourcename} to ${targetname}`).yes(() =>{
                 let o = {
                     page: length,
-                    source_type: source.type,
-                    source_position: [source.x, source.y],
-                    source_slice: source.slice,
-                    target_type: target.type,
-                    target_position: [target.x, target.y],
-                    target_slice: target.slice,
+                    source_type: s.type,
+                    source_position: [s.x, s.y],
+                    source_slice: s.slice,
+                    target_type: t.type,
+                    target_position: [t.x, t.y],
+                    target_slice: t.slice,
                     offset_vectors : [],
                     offset_vector_ranges : []
                 };
@@ -907,9 +910,9 @@ function setupDifferentialInterface(json){
                 let event = {action: "new", args : o};
                 undo.addMutation(df, event, event);
                 undo.addMutationsToUndoStack(event);
-                dss.update();
-                dss.temp_source_class = undefined;
-                setStatus("");
+                display.sseq.emit("update");
+                display.temp_source_class = undefined;
+                display.setStatus("");
                 differential_family.selectNone();
                 df.select();
             });
@@ -918,15 +921,15 @@ function setupDifferentialInterface(json){
 
 
 
-    dss.addEventHandler('l',  (event) => {
+    Moustrap.bind('l', function() {
         let df = differential_family.current_differential;
-        let c = event.mouseover_class;
+        let c = display.mouseover_class;
         if (!c || !df) {
             return;
         }
         let dx = c.x;// - dss.most_recent_differential.source.x;
         let dy = c.y;// - dss.most_recent_differential.source.y;
-        let slice = sseq.display_class_to_real_class.get(c).slice;
+        let slice = c.slice;
         if(df.offset_vectors.map(JSON.stringify).includes(JSON.stringify([dx, dy]))){
             return;
         }
@@ -940,67 +943,66 @@ function setupDifferentialInterface(json){
             let event = {action: "leibniz", args : {vector:[dx, dy], range: [0,20], slice : slice}};
             undo.addMutation(df, event, event);
             undo.addMutationsToUndoStack(event);
-            sseq.update();
+            sseq.emit("update");
         }
     });
 
-    dss.addEventHandler("onclick", (event) => {
-        let c = event.mouseover_class;
+    display.on("click", (node) => {
+        let c = node.c
         if (!c) {
             return;
         }
-        c = sseq.display_class_to_real_class.get(c);
-        copyToClipboard(c.getNameHTML());
+        copyToClipboard(c.getNameCoordHTML());
     });
 
 
-    dss.addEventHandler("d", (event) => {
-        setStatus("Saving...");
+    Moustrap.bind("d", function() {
+        display.setStatus("Saving...");
         console.log(differential_family.list);
         undo.addLock();
         IO.saveToLocalStore(differential_local_store_key, differential_family.getSaveObject());
         // IO.download("BPC4-2-differentials.json", differential_family.getSaveObject());
         console.log("Saved.");
-        setStatus("Saved.");
+        display.setStatus("Saved.");
         delayedSetStatus("", 2000);
         undo.undoStack.pop();
     });
 
-    dss.addEventHandler("D", (event) => {
-        setStatus("Saving...");
+    Mousetrap.bind("D", function() {
+        display.setStatus("Saving...");
         console.log(differential_family.list);
         undo.addLock();
         IO.saveToLocalStore(differential_local_store_key, differential_family.getSaveObject());
         IO.download(differential_filename, differential_family.getSaveObject());
         console.log("Saved.");
-        setStatus("Saved.");
+        display.setStatus("Saved.");
         delayedSetStatus("", 2000);
         undo.undoStack.pop();
     });
 
-    dss.addEventHandler("Q",(event)=>{
+    Moustrap.bind("Q", function() {
         sseq.downloadSVG();
     });
 
-    dss.addEventHandler('o', (event) => {
+    mouseTrap.bind('o', function() {
         openGrid();
     });
 
-    dss.addEventHandler('z', (event) => {
+    Moustrap.bind('z', function() {
         undo.undo();
     });
 
-    dss.addEventHandler('backspace', (event) => {
+    Moustrap.bind('backspace', function() {
         w2confirm("Delete saved differentials?").yes(() => {
             IO.saveToLocalStore(differential_local_store_key,"");
         });
     });
 
-    dss.addEventHandler("ctrl+z", undo.undo);
-    dss.addEventHandler("ctrl+shift+z", undo.redo);
+    Moustrap.bind("ctrl+z", undo.undo);
+    Moustrap.bind("ctrl+shift+z", undo.redo);
 
-    sseq.updateAll();
-    dss.display(w2ui.layout.el('main'));
+    sseq.emit("update");
+
     setTimeout(() => differential_family.refreshRecords(), 500);
     w2ui.layout.onResize = function onResize(event) {
         event.onComplete = function onResizeComplete(){

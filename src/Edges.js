@@ -45,7 +45,6 @@ class Edge {
             this.sseq.reviveEdge(this);
         }
         Util.copyFields(this, memento);
-        this.sseq.updateEdge(this);
         return this;
     }
 
@@ -93,9 +92,6 @@ class Edge {
         this.display_edge.invalid = true;
         this.source.edges = this.source.edges.filter(e => !e.invalid);
         this.target.edges = this.target.edges.filter(e => !e.invalid);
-        this.source.update();
-        this.target.update();
-        // this.source.sseq.update();
     }
 
     revive(){
@@ -103,9 +99,6 @@ class Edge {
         this.display_edge.invalid = false;
         this.source.edges.push(this);
         this.target.edges.push(this);
-        this.source.update();
-        this.target.update();
-        // this.source.sseq.update();
     }
 
     static getDummy(){
@@ -352,13 +345,11 @@ class Differential extends Edge {
 
     addInfoToSource(){
         this.source.addExtraInfo(this.toString(true,false));
-        this.source.update();
         return this;
     }
 
     addInfoToTarget(){
         this.target.addExtraInfo(this.toString(false,true));
-        this.target.update();
         return this;
     }
 
@@ -370,8 +361,6 @@ class Differential extends Edge {
     addInfoToSourceAndTarget(){
         this.source.addExtraInfo(this.toString(true,false));
         this.target.addExtraInfo(this.toString(false,true));
-        this.source.update();
-        this.target.update();
         return this;
     }
 

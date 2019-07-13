@@ -146,6 +146,7 @@ Groups.Zsupsup.fill = "black";
 IO.loadFromServer(getJSONFilename("BPC8-truncations")).catch(err => console.log(err)).then(function(json){
     addLoadingMessage(`Read JSON in ${getTime()} seconds.`);
     window.classes = new StringifyingMap();
+    window.display = new BasicDisplay("#main");
     window.sseq = new Sseq();
     window.max_x = json.max_x;
     window.max_y = json.max_y;
@@ -201,15 +202,15 @@ IO.loadFromServer(getJSONFilename("BPC8-truncations")).catch(err => console.log(
     window.da1 = 0;
     updateTruncation(da1);
 
-    sseq.onDraw((display) => {
-        let context = display.edgeLayerContext;
+    display.on("draw", function () {
+        let context = this.context;
         // context.beginPath();
         context.clearRect(0, 0, sseq.width, sseq.height);
         context.save();
         context.lineWidth = 0.3;
         context.strokeStyle = "#818181";
-        let xScale = display.xScale;
-        let yScale = display.yScale;
+        let xScale = this.xScale;
+        let yScale = this.yScale;
         // Truncation lines
         // for (let diag = 12; diag < json.max_diagonal; diag += 12) {
         //     context.moveTo(xScale(diag + 2), yScale(-2));
@@ -239,7 +240,7 @@ IO.loadFromServer(getJSONFilename("BPC8-truncations")).catch(err => console.log(
 
     addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
     document.getElementById("loading").style.display =  "none";
-    sseq.display("#main");
+    display.setSseq(sseq);
     addLoadingMessage(`Displayed in ${getTime()} seconds.`);
     let t1 = performance.now();
     console.log("Rendered in " + (t1 - t0)/1000 + " seconds.");
@@ -288,16 +289,16 @@ function updateTruncation(da1) {
     }
 
     for(let c of sseq.classes){
-        if(c.trunc_page){
-            for(let i = 0; i < c.node_list.length; i++){
-                c.node_list[i] = new Node(c.node_list[i]);
+        for(let i = 0; i < c.node_list.length; i++){
+            c.node_list[i] = new Node(c.node_list[i]);
+            if(c.trunc_page){
                 c.node_list[i].color = differential_colors[c.trunc_page];
             }
         }
         c._updateDifferentialStrings();
         c.extra_info = c.differential_strings.join("\n");
     }
-    sseq.updateAll();
+    sseq.emit("update");
     document.body.appendChild(truncation_div);
 }
 

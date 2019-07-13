@@ -21,19 +21,17 @@ let full_file_names = file_names.map(getJSONFilename);
 let file_idx = 0;
 let max_file_idx = file_names.length - 1;
 
-let dss_promises = full_file_names.map(Sseq.loadFromDataStoreOrServer);
+let sseq_promises = full_file_names.map(Sseq.loadFromDataStoreOrServer);
+let display = new BasicDisplay("#main");
 
 window.stem_groups_by_sphere = [];
 
-function setupDSS(dss, dss_list){
-    dss.xRange = [0, 50];
-    dss.yRange = [0, 20];
-    dss.name = displayNames[file_idx];
-    window.dss = dss;
-    window.sseq = Sseq.getSseqFromDisplay(dss);
-    dss.offset_size = 0.2;
+function setupSseq(sseq){
+    sseq.xRange = [0, 50];
+    sseq.yRange = [0, 20];
+    sseq.name = displayNames[file_idx];
+    sseq.offset_size = 0.2;
     sseq.class_scale = 0.7;
-    dss.class_scale = 0.7;
     // dss._getXOffset = tools.fixed_tower_xOffset.bind(dss);
     // dss._getYOffset = (c) => c.y_offset || 0;
 
@@ -63,24 +61,21 @@ function setupDSS(dss, dss_list){
     }
     stem_groups_by_sphere.push(stem_groups);
 
-
-
-
-    dss.addEventHandler('+', (event) => {
+    Mousetrap.bind('+', () => {
         if(file_idx < max_file_idx){
             file_idx ++;
             switchToSseq(file_idx);
         }
     });
 
-    dss.addEventHandler('-', (event) => {
+    Mousetrap.bind('-', () => {
         if(file_idx > 0) {
             file_idx --;
             switchToSseq(file_idx);
         }
     });
 
-    dss.addEventHandler('=', (event) => {
+    Mousetrap.bind('=', () => {
         if(file_idx < max_file_idx){
             file_idx ++;
             switchToSseq(file_idx);
@@ -88,12 +83,11 @@ function setupDSS(dss, dss_list){
     });
 
     if (on_public_website) {
-        dss.display("#main");
+        display.setSseq(sseq);
         return;
     }
 
-
-    tools.install_edit_handlers(dss, file_names[file_idx]);
+    tools.install_edit_handlers(sseq, file_names[file_idx]);
 
     let ext_colors = {"2": "orange", "\\eta": "purple", "\\nu": "brown"};
 
@@ -103,28 +97,29 @@ function setupDSS(dss, dss_list){
         }
     }
 
-    dss.addEventHandler('e', (event) => {
-        if (event.mouseover_class && dss.temp_source_class) {
-            let s = dss.temp_source_class;
-            let t = event.mouseover_class;
+    Mousetrap.bind('e', () => {
+        if (display.mouseover_class && display.temp_source_class) {
+            let s = display.temp_source_class;
+            let t = display.mouseover_class;
             let ext_type = {0: 2, 1: "\\eta", 3: "\\nu"}[t.x - s.x];
             if (!ext_type) {
                 return;
             }
             if (confirm(`Add *${ext_type} structline from ${tools.getClassExpression(s)} to ${tools.getClassExpression(t)}`)) {
-                let d = sseq.addStructline(sseq.display_class_to_real_class.get(s), sseq.display_class_to_real_class.get(t));
+                let d = sseq.addStructline(s, t);
                 d.color = ext_colors[ext_type];
                 d.mult = ext_type;
                 d.display_edge.mult = ext_type;
                 d.display_edge.color = d.color;
-                sseq.updateAll();
+                sseq.emit("update");
             }
         }
     });
 
-    dss.addEventHandler('a', (event) => sseq.saveToLocalStore(sseq.path));
-    dss.display("#main");
-    return dss;
+    Mousetrap.bind('a', () => sseq.saveToLocalStore(sseq.path));
+    display.setSseq(sseq);
+
+    return sseq;
 }
 
 let sphere_div = document.createElement("div");
@@ -146,10 +141,10 @@ document.body.appendChild(pm_div);
 
 function switchToSseq(index){
     // if(!ready_dss_list[index]){
-        dss_promises[index].then((dss) => {
-            let x = setupDSS(dss);
+        sseq_promises[index].then((sseq) => {
+            let x = setupSseq(sseq);
             let msg = `UASS for $S^{${2*index+3}}$`;
-            if(index + 1 === dss_promises.length){
+            if(index + 1 === sseq_promises.length){
                 msg = "Stable ASS";
             }
             sphere_div.innerHTML = Interface.renderLaTeX(msg);

@@ -14,17 +14,6 @@ function addLoadingMessage(message){
     console.log(message);
 }
 
-function setStatus(html){
-    if(window.status_div_timer){
-        clearTimeout(window.status_div_timer);
-    }
-    document.getElementById("status").innerHTML = html;
-}
-
-function delayedSetStatus(html, delay){
-    window.status_div_timer = setTimeout(() => setStatus(html), delay);
-}
-
 url = new URL(document.location)
 jsFile = url.searchParams.get("sseq");
 if(jsFile){

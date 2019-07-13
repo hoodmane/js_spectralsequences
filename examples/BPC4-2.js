@@ -62,11 +62,13 @@ Groups.Zsupsup.fill = "black";
 
 IO.loadFromServer(getJSONFilename("BPC4-2-E13")).then(function(json){
     addLoadingMessage(`Read JSON in ${getTime()} seconds.`);
-    window.classes = {};
+    classes = {};
     classes.induced = new StringifyingMap();
     classes.surviving = new StringifyingMap();
     classes.truncation = new StringifyingMap();
-    window.sseq = new Sseq();
+    sseq = new Sseq();
+    display = new BasicDisplay("#main");
+
     window.max_x = json.max_x;
     window.max_y = json.max_y;
     window.max_diagonal = json.max_diagonal;
@@ -115,7 +117,7 @@ IO.loadFromServer(getJSONFilename("BPC4-2-E13")).then(function(json){
     }
     addLoadingMessage(`Added classes in ${getTime()} seconds.`);
 
-    sseq.onDifferentialAdded(d => {
+    sseq.on("differntial-added", function (d) {
         d.addInfoToSourceAndTarget();
         if (d.source.group === "Z/4") {
             d.source.group = "Z/2";
@@ -137,14 +139,14 @@ IO.loadFromServer(getJSONFilename("BPC4-2-E13")).then(function(json){
         d.color = differential_colors[d.page];
     });
 
-    sseq.onDraw((display) => {
-        let context = display.edgeLayerContext;
+    display.on("draw", function() {
+        let context = this.context;
         context.clearRect(0, 0, this.width, this.height);
         context.save();
         context.lineWidth = 0.3;
         context.strokeStyle = "#818181";
-        let xScale = display.xScale;
-        let yScale = display.yScale;
+        let xScale = this.xScale;
+        let yScale = this.yScale;
         // Truncation lines
         for (let diag = 12; diag < json.max_diagonal; diag += 12) {
             context.moveTo(xScale(diag + 2), yScale(-2));
@@ -167,7 +169,6 @@ IO.loadFromServer(getJSONFilename("BPC4-2-E13")).then(function(json){
         context.lineTo(xScale(max_diagonal / 3), yScale(max_diagonal));
         context.stroke();
         context.restore();
-        context = display.supermarginLayerContext;
     });
     sseq.initial_page_idx = 0;
 
@@ -182,7 +183,9 @@ IO.loadFromServer(getJSONFilename("BPC4-2-E13")).then(function(json){
     }
     addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
     document.getElementById("loading").style.display =  "none";
-    sseq.display("#main");
+
+    display.setSseq(sseq);
+
     addLoadingMessage(`Displayed in ${getTime()} seconds.`);
     let t1 = performance.now();
     console.log("Rendered in " + (t1 - t0)/1000 + " seconds.");

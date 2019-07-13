@@ -26,7 +26,7 @@ Znode.size = 8;
 pZnode = Znode.copy();
 pZnode.fill = false;
 
-sseq.onDifferentialAdded((d) => d.addInfoToSourceAndTarget());
+sseq.on("differential-added", (d) => d.addInfoToSourceAndTarget());
 
 for(let v = vmin + 1; v < vmax; v++){
     if(classes.has({"v" : v})){
@@ -64,4 +64,4 @@ for(let v = vmin; v < vmax; v++){
     }
 }
 
-sseq.display("#main");
+new BasicDisplay("#main", sseq);

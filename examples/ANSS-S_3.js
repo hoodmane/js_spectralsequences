@@ -27,5 +27,4 @@ sseq.addClass(37,3).setName("x_{37}");
 window.classes = sseq.addPolynomialClasses(vars, var_spec_list,module_gens)
     .addStructline([-1,1]).addStructline([1,0]);
 
-
-sseq.display("#main");
+new BasicDisplay("#main", sseq);
