@@ -21,6 +21,7 @@
   },
   "scripts": {
     "start": "budo src/main.js:bundle.js --live -- --debug --standalone sseq_display",
-    "build": "browserify --debug -g uglifyify src/main.js > bundle.js"
+    "debug": "browserify --debug src/main.js > bundle.js",
+    "build": "browserify -g uglifyify src/main.js > bundle.js"
   }
 }
