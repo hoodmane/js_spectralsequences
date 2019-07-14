@@ -89,14 +89,12 @@ class Edge {
     // TODO: Should these methods even be here? I guess so....
     delete(){
         this.invalid = true;
-        this.display_edge.invalid = true;
         this.source.edges = this.source.edges.filter(e => !e.invalid);
         this.target.edges = this.target.edges.filter(e => !e.invalid);
     }
 
     revive(){
         this.invalid = false;
-        this.display_edge.invalid = false;
         this.source.edges.push(this);
         this.target.edges.push(this);
     }

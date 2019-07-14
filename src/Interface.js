@@ -30,6 +30,7 @@ function renderLatex(html) {
 exports.renderLatex = renderLatex;
 exports.renderLaTeX = renderLatex;
 exports.ensureMath = ensureMath;
+exports.renderMath = x => renderLatex(ensureMath(x));
 
 fixFormHTML = {};
 fixFormHTML.radio = function(doc, field){
