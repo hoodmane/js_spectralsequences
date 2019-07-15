@@ -1050,6 +1050,6 @@ class Sseq extends EventEmitter{
 Sseq.serializeSseqFields = ["min_page_idx", "page_list", "xRange", "yRange", "initialxRange", "initialyRange", "default_node", "class_scale", "offset_size", "serializeSseqFields", "serializeClassFields", "serializeEdgeFields", "serializeNodeFields"]; // classes and edges are dealt with separately.
 Sseq.serializeClassFields = ["x", "y", "name", "extra_info", "unique_id", "idx", "x_offset", "y_offset", "page_list", "visible"]; // "node_list" is dealt with separately
 Sseq.serializeEdgeFields = ["color", "bend", "dash", "lineWidth", "opacity", "page_min", "page", "type", "mult", "source_name", "target_name"]; // "source" and "target" are dealt with separately.
-Sseq.serializeNodeFields = ["opacity", "color", "fill", "stroke", "shape", "size"];
+Sseq.serializeNodeFields = ["opacity", "color", "fill", "stroke", "hcolor", "hfill", "hstroke", "shape", "size"];
 
 exports.Sseq = Sseq;

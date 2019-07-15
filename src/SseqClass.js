@@ -103,6 +103,18 @@ class Node {
         if (this.fill) {
             context.fillStyle = this.fill;
         }
+        if (this.highlight) {
+            if (this.hcolor) {
+                context.fillStyle = this.hcolor;
+                context.strokeStyle = this.hcolor;
+            }
+            if (this.hstroke) {
+                context.strokeStyle = this.hstroke;
+            }
+            if (this.hfill) {
+                context.fillStyle = this.hfill;
+            }
+        }
         context.lineWidth = this.scale * 2;
 
         this.path = this.shape.draw(context, this.x, this.y, this.size * this.scale, this);

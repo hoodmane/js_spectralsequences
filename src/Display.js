@@ -565,6 +565,8 @@ class Display extends EventEmitter {
         // If not yet set up 
         if (!this.nodes) return;
 
+        let redraw = false;
+
         // We cannot query for mouse position. We must remember it from
         // previous events. If update() is called, we call _onMousemove without
         // an event.
@@ -577,17 +579,23 @@ class Display extends EventEmitter {
             if (this.nodes.includes(this.mouseover_node) && this.context.isPointInPath(this.mouseover_node.path, this.x, this.y)) {
                 return;
             } else {
+                this.mouseover_node.highlight = false;
                 this.mouseover_node = null;
                 this.mouseover_class = null;
+                redraw = true;
                 this.emit("mouseout");
             }
         }
         let node = this.nodes.find(n => this.context.isPointInPath(n.path, this.x, this.y));
         if (node) {
+            redraw = true;
+            node.highlight = true;
             this.mouseover_node = node;
             this.mouseover_class = node.c;
             this.emit("mouseover", node);
         }
+
+        if (redraw) this._drawSseq(this.context);
     }
 
     /**
