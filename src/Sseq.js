@@ -155,6 +155,15 @@ class Sseq extends EventEmitter{
         return this;
    }
 
+   get minX() { return this.xRange[0]; }
+   get minY() { return this.yRange[0]; }
+   get maxX() { return this.xRange[1]; }
+   get maxY() { return this.yRange[1]; }
+   set minX(x) { this.xRange[0] = parseInt(x); }
+   set minY(y) { this.yRange[0] = parseInt(y); }
+   set maxX(x) { this.xRange[1] = parseInt(x); }
+   set maxY(y) { this.yRange[1] = parseInt(y); }
+
    add_to_shift(x, y){
         this.xshift += x;
         this.yshift += y;

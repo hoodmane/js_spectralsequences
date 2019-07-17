@@ -11,6 +11,42 @@ const STATE_RM_DIFFERENTIAL = 2;
 
 const LAYOUT = [
     {
+        name: "general_panel",
+        tag: "div",
+        children: [
+            {
+                tag: "div",
+                class: "form-inline card-body",
+                children: [
+                    {
+                        tag: "inputgroup",
+                        label: "Min X",
+                        type: "number",
+                        link: ["sseq", "minX"]
+                    },
+                    {
+                        tag: "inputgroup",
+                        label: "Max X",
+                        type: "number",
+                        link: ["sseq", "maxX"]
+                    },
+                    {
+                        tag: "inputgroup",
+                        label: "Min Y",
+                        type: "number",
+                        link: ["sseq", "minY"]
+                    },
+                    {
+                        tag: "inputgroup",
+                        label: "Max Y",
+                        type: "number",
+                        link: ["sseq", "maxY"]
+                    }
+                ]
+            }
+        ]
+    },
+    {
         name: "node_panel",
         tag: "div",
         children: [
@@ -54,7 +90,7 @@ const LAYOUT = [
                                 name: "title_edit_link",
                                 tag: "a",
                                 class: "card-link-body",
-                                "attr": { "href": "#" },
+                                attr: { "href": "#" },
                                 style: { "float" : "right" },
                                 content: "Edit",
                                 listen: { "click": "_onTitleEditClick" }
@@ -74,44 +110,16 @@ const LAYOUT = [
                         class: "form-inline card-body",
                         children: [
                             {
-                                tag: "div",
-                                class: "form-row mb-2",
-                                style: {"width": "100%"},
-                                children: [
-                                    {
-                                        tag: "label",
-                                        class: "col-form-label mr-sm-2",
-                                        content: "Color"
-                                    },
-                                    {
-                                        name: "node_color",
-                                        tag: "input",
-                                        class: "form-control",
-                                        style: { "flex-grow": "1" },
-                                        attr: { type: "text", size: "1" },
-                                        link: ["node", "color"]
-                                    },
-                                ]
+                                tag: "inputgroup",
+                                label: "Color",
+                                type: "text",
+                                link: ["node", "color"]
                             },
                             {
-                                tag: "div",
-                                class: "form-row mb-2",
-                                style: {"width": "100%"},
-                                children: [
-                                    {
-                                        tag: "label",
-                                        class: "col-form-label mr-sm-2",
-                                        content: "Size"
-                                    },
-                                    {
-                                        name: "node_size",
-                                        tag: "input",
-                                        class: "form-control",
-                                        style: { "flex-grow": "1", "width": "1px" },
-                                        attr: { type: "number", "min": "1" },
-                                        link: ["node", "size"]
-                                    }
-                                ]
+                                tag: "inputgroup",
+                                label: "Size",
+                                type: "number",
+                                link: ["node", "size"]
                             }
                         ]
                     }
@@ -184,8 +192,58 @@ class Sidebar {
         this.differential_list.appendChild(node);
     }
 
+    _createInputGroup(p, item) {
+        let o = document.createElement("div");
+        o.className = "form-row mb-2";
+        o.style.width = "100%";
+        p.appendChild(o);
+
+        let l = document.createElement("label");
+        l.className = "col-form-label mr-sm-2";
+        l.innerHTML = item.label;
+        o.appendChild(l);
+
+        let i = document.createElement("input");
+        i.style["flex-grow"] = 1;
+        i.setAttribute("type", item.type);
+        o.appendChild(i);
+
+        switch (item.type) {
+            case "text":
+                i.setAttribute("size", "1");
+                break;
+            case "number":
+                i.style.width = "1px";
+                break;
+            default:
+                break;
+        }
+        item.link.push(i);
+        this.links.push(item.link);
+        switch (item.link[0]){
+            case "node":
+                o.addEventListener("change", (e) => {
+                    this.display.selected[item.link[1]] = e.target.value;
+                    this.display.sseq.emit("update");
+                });
+                break;
+            case "sseq":
+                o.addEventListener("change", ((e) => {
+                    this.display.sseq[item.link[1]] = e.target.value;
+                    this.display.sseq.emit("update");
+                }).bind(this));
+                break;
+            default:
+                break;
+        }
+
+    }
     _processLayout(p, layout) {
         for (let item of layout) {
+            if (item.tag == "inputgroup") {
+                this._createInputGroup(p, item)
+                continue;
+            }
             let o = document.createElement(item.tag);
             p.appendChild(o);
 
@@ -227,6 +285,13 @@ class Sidebar {
 
     showGeneral() {
         this.node_panel.style.display = "none";
+        this.general_panel.style.removeProperty("display");
+
+        if (!this.display.sseq) return;
+
+        for (let l of this.links)
+            if (l[0] == "sseq")
+                l[2].value = this.display.sseq[l[1]];
     }
 
     updateNodePanel(e) {
@@ -246,6 +311,7 @@ class Sidebar {
     }
 
     showNode(c) {
+        this.general_panel.style.display = "none";
         this.node_panel.style.removeProperty("display");
 
         this.title_edit_link.innerHTML = "Edit";
@@ -260,15 +326,9 @@ class Sidebar {
 
         this.updateNodePanel();
 
-        for (let l of this.links) {
-            switch (l[0]) {
-                case "node":
-                    l[2].value = c.node[l[1]];
-                    break;
-                default:
-                    break;
-            }
-        }
+        for (let l of this.links)
+            if (l[0] == "node")
+                l[2].value = c.node[l[1]];
 
         while(this.differential_list.firstChild)
             this.differential_list.removeChild(this.differential_list.firstChild);
@@ -379,6 +439,7 @@ class EditorDisplay extends Display {
 
         super.setSseq(sseq)
 
+        this.sidebar.showGeneral();
         this.sseq.on("differential-added", this._onDifferentialAdded);
     }
 
