@@ -262,7 +262,7 @@ class SseqClass {
 
     getNameHTML(){
         this.display_class.name = this.name;
-        this.sseq.display_sseq.getNameHTML(this);
+        return this.sseq.display_sseq.getNameHTML(this);
     }
 
     /**

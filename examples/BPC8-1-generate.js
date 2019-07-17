@@ -32,18 +32,21 @@ function subnomialString(vars, exponents, module_generator = ""){
 
 class sliceMonomial {
     constructor(slice){
-        this.da0 = slice.da0;
-        this.da1 = slice.da1;
-        this.d1 = slice.d1;
-        this.s1 = slice.s1;
-        this.as2 = slice.as2;
-        this.al = slice.al;
-        this.as = slice.as;
-        this.us2 = slice.s1 - slice.as2;
-        this.ul = slice.da1 + slice.da0 - slice.al;
-        this.us = slice.da1 + slice.da0 - slice.as;
-        this.stem = 4*(slice.da1 + slice.da0) + 2*slice.s1 - 2*slice.al - slice.as2 - slice.as;
-        this.filtration = 2*slice.al + slice.as2 + slice.as;
+        slice = slice || {};
+        this.da0 = slice.da0 || 0;
+        this.da1 = slice.da1 || 0;
+        this.d1 = slice.d1 || 0;
+        this.s1 = slice.s1 || 0;
+        this.sa0 = slice.sa0 || 0;
+        this.sa1 = slice.sa1 || 0;
+        this.as2 = slice.as2 || 0;
+        this.al = slice.al || 0;
+        this.as = slice.as || 0;
+        this.us2 = (this.s1 + this.sa1 + this.sa0) - this.as2;
+        this.ul = this.da1 + this.da0 + this.d1 - this.al;
+        this.us = this.da1 + this.da0 + this.d1 - this.as;
+        this.stem = 4*(this.da1 + this.da0 + this.d1) + 2*(this.s1 + this.sa1 + this.sa0) - 2*this.al - this.as2 - this.as;
+        this.filtration = 2*this.al + this.as2 + this.as;
 
         if(this.as > 0 || this.as2 > 0){
             this._group = "Z2";
@@ -85,11 +88,11 @@ class sliceMonomial {
                 ["a","\\lambda"], ["a", "\\sigma"], ["a","\\sigma_2"]],
             [this.ul, this.us, this.us2,
                 this.al, this.as, this.as2],
-            monomialString(["\\overline{\\mathfrak{d}}_{a_0}","\\overline{\\mathfrak{d}}_{a_1}", "(\\overline{s}_{a_0}+\\overline{s}_{a_1})"],[this.da0, this.da1,this.s1]));
+            monomialString(["\\overline{\\mathfrak{d}}_{a_0}","\\overline{\\mathfrak{d}}_{a_1}", "\\overline{\\mathfrak{d}}_1", "(\\overline{s}_{a_0}+\\overline{s}_{a_1})", "\\overline{s}_{a_0}", "\\overline{s}_{a_1}"],[this.da0, this.da1,this.d1, this.s1, this.sa0, this.sa1]));
     }
 
     sliceName(){
-        return monomialString(["\\overline{\\mathfrak{d}}_{a_0}","\\overline{\\mathfrak{d}}_{a_1}", "(\\overline{s}_{a_0}+\\overline{s}_{a_1})"],[this.da0, this.da1,this.s1]);
+        return monomialString(["\\overline{\\mathfrak{d}}_{a_0}","\\overline{\\mathfrak{d}}_{a_1}", "\\overline{\\mathfrak{d}}_1", "(\\overline{s}_{a_0}+\\overline{s}_{a_1})", "\\overline{s}_{a_0}", "\\overline{s}_{a_1}"],[this.da0, this.da1,this.d1, this.s1, this.sa0, this.sa1]);
     }
 }
 
@@ -144,18 +147,18 @@ Groups.Zsupsup = Groups.Z.copy();
 Groups.Zsupsup.fill = "black";
 
 IO.loadFromServer(getJSONFilename("BPC8-truncations")).catch(err => console.log(err)).then(function(json){
-    addLoadingMessage(`Read JSON in ${getTime()} seconds.`);
+    // addLoadingMessage(`Read JSON in ${getTime()} seconds.`);
     window.classes = new StringifyingMap();
-    window.sseq = new Sseq();
+    window.truncation_sseq = new Sseq();
     window.max_x = json.max_x;
     window.max_y = json.max_y;
     window.max_diagonal = json.max_diagonal;
-    sseq.xRange = [0, max_x];
-    sseq.yRange = [0, max_y];
+    truncation_sseq.xRange = [0, max_x];
+    truncation_sseq.yRange = [0, max_y];
 
-    sseq.initialxRange = [0, Math.floor(16 / 9 * 40)];
-    sseq.initialyRange = [0, 40];
-    sseq.class_scale = 0.75;
+    truncation_sseq.initialxRange = [0, Math.floor(16 / 9 * 40)];
+    truncation_sseq.initialyRange = [0, 40];
+    truncation_sseq.class_scale = 0.75;
 
     let color_to_group = {
         "white" : "Z",
@@ -163,7 +166,7 @@ IO.loadFromServer(getJSONFilename("BPC8-truncations")).catch(err => console.log(
         "black" : "4Z"
     };
     for(let o of json.classes){
-        let c = sseq.addClass(o.x, o.y);
+        let c = truncation_sseq.addClass(o.x, o.y);
         c.original_obj = o;
         c.name = o.name;
         c.extra_info = o.extra_info;
@@ -187,67 +190,76 @@ IO.loadFromServer(getJSONFilename("BPC8-truncations")).catch(err => console.log(
         c.save_node_list = c.node_list;
         classes.set([c.x, c.y], c);
     }
-    addLoadingMessage(`Added classes in ${getTime()} seconds.`);
+    // addLoadingMessage(`Added classes in ${getTime()} seconds.`);
     for(let o of json.differentials){
         o.target = [];
         o.target[0] = o.source[0] - 1;
         o.target[1] = o.source[1] + o.page;
         let source = classes.get(o.source);
         let target = classes.get(o.target);
-        let d = sseq.addDifferential(source, target, o.page, false);
+        let d = truncation_sseq.addDifferential(source, target, o.page, false);
         d.color = o.color;
     }
-    sseq.page_list[0] = [5, infinity];
-    window.da1 = 0;
-    updateTruncation(da1);
+    
+    window.sseq = new Sseq();
+    sseq.xRange = [0, 250];
+    sseq.yRange = [0, 250];   
+    for(let c of truncation_sseq.classes){
+        if(c.getPage() < infinity){
+            continue;
+        }
+        let c_new = sseq.addClass(c.x, c.y);
+        c_new.setNode(c.getNode());
+        c_new.slice = new sliceMonomial(c.slice);
+        c_new.slice.da0 = 0;
+        c_new.slice.da1 = 0;
+        c_new.name = c_new.slice.toString();
 
-    sseq.onDraw((display) => {
-        let context = display.edgeLayerContext;
-        // context.beginPath();
-        context.clearRect(0, 0, sseq.width, sseq.height);
-        context.save();
-        context.lineWidth = 0.3;
-        context.strokeStyle = "#818181";
-        let xScale = display.xScale;
-        let yScale = display.yScale;
-        // Truncation lines
-        // for (let diag = 12; diag < json.max_diagonal; diag += 12) {
-        //     context.moveTo(xScale(diag + 2), yScale(-2));
-        //     context.lineTo(xScale(-2), yScale(diag + 2));
-        // }
-        // context.stroke();
-        // context.restore();
-        // context.save();
-        // context.beginPath();
-        // context.lineWidth = 1;
-        // context.strokeStyle = "#9d9d9d";
-        // // vanishing lines
-        // for (let y of [3, 7, 15, 31, 61]) {
-        //     context.moveTo(xScale(-2), yScale(y));
-        //     context.lineTo(xScale(max_diagonal), yScale(y));
-        // }
-        context.moveTo(xScale(0), yScale(0));
-        context.lineTo(xScale(max_diagonal), yScale(max_diagonal));
-        context.moveTo(xScale(0), yScale(0));
-        context.lineTo(xScale(max_diagonal / 3), yScale(max_diagonal));
-        context.stroke();
-        context.restore();
-        // context = display.supermarginLayerContext;
-    });
-    sseq.initial_page_idx = 0;
+        c_new = sseq.addClass(c.x, c.y);
+        c_new.setNode(c.getNode());
+        c_new.slice = new sliceMonomial(c.slice);
+        c_new.slice.da1 = c_new.slice.d1;
+        c_new.slice.d1 = 0;
+        c_new.setColor("blue");
+        c_new.name = c_new.slice.toString();
+
+    }    
+    
+    for(let da1 = 0; da1 < 135; da1++){
+        updateTruncation(truncation_sseq, da1);
+        for(let c of truncation_sseq.classes){
+            if(!c.visible){
+                continue;
+            }
+            if(c.getNode().color !== "black"){
+                let c_new = sseq.addClass(c.x, c.y);
+                c_new.setNode(c.getNode());
+                c_new.slice = c.slice.copy();
+                c_new.slice.d1 = 0;
+                c_new.name = c_new.slice.toString();
+                c_new.type = "truncation";
+            }
+        }
+    }
+
+    for(let i = 0; i < 125; i++){
+        for( let v = 0; v < 10; v++){
+            let slice = new sliceMonomial({sa0: 6, sa1: 3, da1 : i + 8*v, as2 : 9, al : i});
+            let c = sseq.addClass(slice.stem, slice.filtration);
+            c.type = "induced";
+            c.slice = slice;
+            c.setColor("pink");
+            c.group = "Z/2";
+            c.group_list = [c.group];
+            c.name = slice.toString();            
+        }
+    }    
+
+    sseq.display('#main');
+}).catch((err) => console.log(err));
 
 
-    addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
-    document.getElementById("loading").style.display =  "none";
-    sseq.display("#main");
-    addLoadingMessage(`Displayed in ${getTime()} seconds.`);
-    let t1 = performance.now();
-    console.log("Rendered in " + (t1 - t0)/1000 + " seconds.");
-
-
-});
-
-function updateTruncation(da1) {
+function updateTruncation(sseq, da1) {
     window.da1 = da1;
     for(let c of sseq.classes) {
         c.visible = !(
@@ -282,7 +294,6 @@ function updateTruncation(da1) {
         }
         c.slice.da1 = da1;
         c.slice.da0 = c.slice.d1 - da1;
-        // c.slice.d1 = 0;
         c.slice = new sliceMonomial(c.slice);
         c.name = c.slice.toString();
     }
@@ -297,37 +308,56 @@ function updateTruncation(da1) {
         c._updateDifferentialStrings();
         c.extra_info = c.differential_strings.join("\n");
     }
-    sseq.updateAll();
-    document.body.appendChild(truncation_div);
 }
 
-
-
-
-Mousetrap.bind("up", () => {
-    da1 ++;
-    truncation_input.innerText = da1;
-    updateTruncation(da1);
-});
-
-Mousetrap.bind("down", () => {
-    if(da1 === 0){
-        return;
+window.saveTruncationSseq = function saveTruncationSseq(){
+    max_x = sseq.xRange[1];
+    max_y = sseq.yRange[1];
+    let result = {};
+    result.max_diagonal = max_diagonal;
+    result.max_x = max_x;
+    result.max_y = max_y;
+    result.truncation_classes = [];
+    result.induced_classes = [];
+    result.surviving_classes = [];
+    result.differentials = [];
+    let class_map = new StringifyingMap();
+    let classes = new Set(sseq.getClasses().filter(c =>  c.x <= max_x && c.y <= max_y));
+    let differentials = sseq.getDifferentials().filter(d => d.source.x <= max_x + 1 && d.source.y <= max_y);
+    for(let d of differentials){
+        classes.add(d.target);
+        if(d.source.x === max_x + 1){
+            classes.add(d.source);
+        }
     }
-    da1 --;
-    truncation_input.innerText = da1;
-    updateTruncation(da1);
-});
+    classes = Array.from(classes);
 
-let truncation_div = document.createElement("div");
-truncation_div.innerText = "Truncation: ";
-let truncation_input = document.createElement("span");
-truncation_div.appendChild(truncation_input);
-window.da1 = 0;
-truncation_input.innerText = da1;
-truncation_div.style.setProperty("position", "absolute");
-truncation_div.style.setProperty("top", "10px");
-truncation_div.style.setProperty("left", "400px");
-truncation_div.style.setProperty("font-family", "Arial");
-truncation_div.style.setProperty("font-size","15px");
-
+    for(let c of classes) {
+        let o = {};
+        o.color = c.getColor(0);
+        o.fill = c.getNode(0).fill;
+        o.name = c.name;
+        o.x = c.x;
+        o.y = c.y;
+        o.slice = c.slice;
+        o.extra_info = c.extra_info.split("\n").filter(l => !l.startsWith("\\(d") && l !== "\\(\\)").join("\n");
+        if(c.getColor(0) === "pink"){
+            result.induced_classes.push(o);
+            class_map.set(c, "induced");
+        } else if(c.getColor(0) === "black"){
+            result.surviving_classes.push(o);
+        } else {
+            result.truncation_classes.push(o);
+            class_map.set(c, "truncation");
+        }
+    }
+    for(let d of differentials){
+        let o = {};
+        o.source = [d.source.x, d.source.y];
+        o.page = d.page;
+        o.source_type = class_map.get(d.source);
+        o.target_type = class_map.get(d.target);
+        result.differentials.push(o);
+    }
+    return result;
+};

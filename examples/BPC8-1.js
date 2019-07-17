@@ -231,9 +231,13 @@ class differential_family {
         this.liebnized_differentials = [];
         this.invalid = false;
 
+        if(!classes[this.target_type].get(this.target_position)){
+            console.log(this);
+        }
         let source = classes[this.source_type].get(this.source_position).get(this.source_slice);
         let target = classes[this.target_type].get(this.target_position).get(this.target_slice);
-
+        console.log(source);
+        console.log(target);
         this.root_differential  = sseq.addDifferential(source, target, this.page);
         if(this.root_differential.isDummy()){
             console.log(this);
@@ -245,6 +249,7 @@ class differential_family {
         differential_family.rec_id_map.set(this.recid, this);
         differential_family.current_differential = this;
         let rec_obj = this.getRecordObject();
+        console.log(this);
         w2ui.grid.add(rec_obj);
         if(!w2ui.layout.get("right").hidden){
             w2ui.grid.select(rec_obj.recid);
@@ -599,6 +604,7 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
     }
     for(let o of json.surviving_classes) {
         o.type = "surviving";
+        o.slice.da1 = o.slice.d1;
         if(o.color === "blue"){
             o.type = "truncation";
         }
@@ -630,7 +636,7 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
         }
         c.group_list = [c.group];
         if(!classes[o.type].has([c.x, c.y])){
-            classes[o.type].set([c.x, c.y], new StringifyingMap(JSON.stringify));
+            classes[o.type].set([c.x, c.y], new StringifyingMap((slice) => JSON.stringify({"da0" : slice.da0, "da1" : slice.da1 })));
         }
         let entry = classes[o.type].get([c.x,c.y]);
         c.classes_index = entry.length;
@@ -674,6 +680,8 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
             c.extra_info = [extra_info_page_15, c.extra_info];
         }
     }
+
+
     addLoadingMessage(`Added classes in ${getTime()} seconds.`);
 
     sseq.onDifferentialAdded(d => {
@@ -824,7 +832,7 @@ window.saveTruncationSseq = function saveTruncationSseq(){
 
 
 function setupDifferentialInterface(json){
-    // json = undefined;
+    json = undefined;
     if(!json || json.version === undefined || json.version < VERSION){
         if(json) {
             console.log("discarding old version.");
@@ -996,7 +1004,7 @@ function setupDifferentialInterface(json){
     setTimeout(() => differential_family.refreshRecords(), 500);
     w2ui.layout.onResize = function onResize(event) {
         event.onComplete = function onResizeComplete(){
-            display.resize();
+            // display.resize();
         }
     };
 }
