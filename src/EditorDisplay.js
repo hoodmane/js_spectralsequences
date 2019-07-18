@@ -579,14 +579,16 @@ class EditorDisplay extends Display {
                 }
                 let length = t.y - s.y;
                 this.sseq.addDifferential(s, t, length);
+                this.state = null;
                 display.sseq.emit('update');
                 this.sidebar.showNode(s);
                 break;
             case STATE_RM_DIFFERENTIAL:
                 for (let e of s.edges)
                     if (e.target == t)
-                        sseq.deleteEdge(e)
+                        sseq.deleteEdge(e);
 
+                this.state = null;
                 display.sseq.emit('update');
                 this.sidebar.showNode(s);
                 break;
