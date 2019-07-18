@@ -98,10 +98,8 @@ const LAYOUT = [
                             {
                                 name: "title_edit_input",
                                 tag: "input",
-                                class: "form-control",
-                                style: { "margin-top": "10px" },
+                                class: "form-control mt-2",
                                 attr: { "type": "text", "placeholder": "Enter class name" }
-
                             }
                         ]
                     },
@@ -137,7 +135,14 @@ const LAYOUT = [
         class: "card-body",
         children: [
             {
-                name: "save",
+                tag: "button",
+                class: "btn btn-primary mb-2",
+                style: { "width": "100%" },
+                content: "Download SVG",
+                listen: { "click": "_onDownloadSVG" },
+                attr: { "title": "Download SVG image of the current view of the spectral sequence" }
+            },
+            {
                 tag: "button",
                 class: "btn btn-primary",
                 style: { "width": "100%" },
@@ -378,6 +383,10 @@ class Sidebar {
     }
     _rmD() {
         this.display.state = STATE_RM_DIFFERENTIAL;
+    }
+
+    _onDownloadSVG() {
+        this.display.downloadSVG("sseq.svg");
     }
 
     _onSave() {
