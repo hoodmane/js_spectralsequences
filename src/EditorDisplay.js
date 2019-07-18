@@ -157,17 +157,35 @@ const NODE_TABS = new Map([["Node", "node"], ["Diff", "differentials"]]);
 
 class Sidebar {
     constructor(parentContainer) {
-        this.container = parentContainer.append("div")
+        this.parentContainer = parentContainer;
+
+        this.adjuster = parentContainer.append("div")
+            .style("background-color", "rgba(0,0,0,0.125)")
+            .style("height", "100%")
+            .style("cursor", "ew-resize")
+            .style("width", "2px");
+
+        this.resize = this.resize.bind(this);
+        this.stopResize = this.stopResize.bind(this);
+
+        this.adjuster.node().addEventListener("mousedown", (function(e) {
+            e.preventDefault();
+            window.addEventListener('mousemove', this.resize);
+            window.addEventListener('mouseup', this.stopResize);
+        }).bind(this));
+
+        this.sidebar = parentContainer.append("div")
             .style("height", "100%")
             .style("width", "240px")
             .style("overflow", "auto")
+            .style("border", "none")
             .attr("class", "card");
     }
 
     build(display) {
         this.links = [];
         this.display = display;
-        this._processLayout(this.container.node(), LAYOUT);
+        this._processLayout(this.sidebar.node(), LAYOUT);
 
         for (let [title, div] of NODE_TABS) {
             let li = document.createElement("li");
@@ -184,6 +202,16 @@ class Sidebar {
         }
         this.active = "Node";
         this.showGeneral();
+    }
+
+    resize(e) {
+        let width = this.sidebar.node().getBoundingClientRect().right - e.pageX;
+        this.sidebar.node().style.width = `${width}px`;
+    }
+    stopResize() {
+        window.removeEventListener('mousemove', this.resize);
+        window.removeEventListener('mouseup', this.stopResize);
+        this.display.resize();
     }
 
     addDLI(html, callback) {
