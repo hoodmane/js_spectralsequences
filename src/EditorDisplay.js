@@ -1,476 +1,114 @@
 "use strict"
 
-let Display = require("./Display.js").Display;
+let SidebarDisplay = require("./SidebarDisplay.js").SidebarDisplay;
+let Panel = require("./Panel.js");
 let Interface = require("./Interface.js");
 let Mousetrap = require("mousetrap");
-let d3 = require("d3");
-let tools = require("./ass_tools.js");
 
 const STATE_ADD_DIFFERENTIAL = 1;
 const STATE_RM_DIFFERENTIAL = 2;
 
-const LAYOUT = [
-  {
-    name: "general_panel",
-    tag: "div",
-    children: [
-      {
-        tag: "div",
-        class: "form-inline card-body",
-        children: [
-          {
-            tag: "inputgroup",
-            label: "Min X",
-            type: "number",
-            link: ["sseq", "minX"]
-          },
-          {
-            tag: "inputgroup",
-            label: "Max X",
-            type: "number",
-            link: ["sseq", "maxX"]
-          },
-          {
-            tag: "inputgroup",
-            label: "Min Y",
-            type: "number",
-            link: ["sseq", "minY"]
-          },
-          {
-            tag: "inputgroup",
-            label: "Max Y",
-            type: "number",
-            link: ["sseq", "maxY"]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    name: "node_panel",
-    tag: "div",
-    children: [
-      {
-        tag: "div",
-        class: "card-header",
-        children: [
-          {
-            name: "node_header",
-            tag: "ul",
-            class: "nav nav-tabs card-header-tabs"
-          }
-        ]
-      },
-      {
-        name: "differentials",
-        tag: "div",
-        children: [
-          {
-            name: "differential_list",
-            tag: "ul",
-            class: "list-group list-group-flush",
-            style: {"text-align": "center"}
-          }
-        ]
-      },
-      {
-        name: "node",
-        tag: "div",
-        children: [
-          {
-            name: "title",
-            tag: "div",
-            class: "card-body",
-            children: [
-              {
-                name: "title_text",
-                tag: "span"
-              },
-              {
-                name: "title_edit_link",
-                tag: "a",
-                class: "card-link-body",
-                attr: { "href": "#" },
-                style: { "float" : "right" },
-                content: "Edit",
-                listen: { "click": "_onTitleEditClick" }
-              },
-              {
-                name: "title_edit_input",
-                tag: "input",
-                class: "form-control mt-2",
-                attr: { "type": "text", "placeholder": "Enter class name" }
-              }
-            ]
-          },
-          {
-            tag: "div",
-            class: "form-inline card-body",
-            children: [
-              {
-                tag: "inputgroup",
-                label: "Color",
-                type: "text",
-                link: ["node", "color"]
-              },
-              {
-                tag: "inputgroup",
-                label: "Size",
-                type: "number",
-                link: ["node", "size"]
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    tag: "div",
-    class: "card-body",
-    style: { "height": "100%", "padding": "0", "margin": "0" } // fill space
-  },
-  {
-    tag: "div",
-    class: "card-body",
-    children: [
-      {
-        tag: "button",
-        class: "btn btn-primary mb-2",
-        style: { "width": "100%" },
-        content: "Download SVG",
-        listen: { "click": "_onDownloadSVG" },
-        attr: { "title": "Download SVG image of the current view of the spectral sequence" }
-      },
-      {
-        tag: "button",
-        class: "btn btn-primary",
-        style: { "width": "100%" },
-        content: "Save",
-        listen: { "click": "_onSave" }
-      }
-    ]
-  }
-]
-
-const NODE_TABS = new Map([["Node", "node"], ["Diff", "differentials"]]);
-
-class Sidebar {
-    constructor(parentContainer) {
-        this.parentContainer = parentContainer;
-
-        this.adjuster = parentContainer.append("div")
-            .style("background-color", "rgba(0,0,0,0.125)")
-            .style("height", "100%")
-            .style("cursor", "ew-resize")
-            .style("width", "2px");
-
-        this.resize = this.resize.bind(this);
-        this.stopResize = this.stopResize.bind(this);
-
-        this.adjuster.node().addEventListener("mousedown", (function(e) {
-            e.preventDefault();
-            window.addEventListener('mousemove', this.resize);
-            window.addEventListener('mouseup', this.stopResize);
-        }).bind(this));
-
-        this.sidebar = parentContainer.append("div")
-            .style("height", "100%")
-            .style("width", "240px")
-            .style("overflow", "auto")
-            .style("border", "none")
-            .attr("class", "card");
-    }
-
-    build(display) {
-        this.links = [];
-        this.display = display;
-        this._processLayout(this.sidebar.node(), LAYOUT);
-
-        for (let [title, div] of NODE_TABS) {
-            let li = document.createElement("li");
-            li.className = "nav-item";
-
-            let a = document.createElement("a");
-            a.className = "nav-link";
-            a.href = "#";
-            a.innerHTML = title;
-            a.addEventListener("click", this.updateNodePanel.bind(this));
-
-            li.appendChild(a);
-            this.node_header.appendChild(li);
-        }
-        this.active = "Node";
-        this.showGeneral();
-    }
-
-    resize(e) {
-        let width = this.sidebar.node().getBoundingClientRect().right - e.pageX;
-        this.sidebar.node().style.width = `${width}px`;
-    }
-    stopResize() {
-        window.removeEventListener('mousemove', this.resize);
-        window.removeEventListener('mouseup', this.stopResize);
-        this.display.resize();
-    }
-
-    addDLI(html, callback) {
-        let node = document.createElement("li");
-        node.className = "list-group-item";
-        node.style = "padding: 0.75rem 0";
-        node.innerHTML = html;
-        if (callback)
-            node.addEventListener("click", callback);
-        this.differential_list.appendChild(node);
-    }
-
-    _createInputGroup(p, item) {
-        let o = document.createElement("div");
-        o.className = "form-row mb-2";
-        o.style.width = "100%";
-        p.appendChild(o);
-
-        let l = document.createElement("label");
-        l.className = "col-form-label mr-sm-2";
-        l.innerHTML = item.label;
-        o.appendChild(l);
-
-        let i = document.createElement("input");
-        i.style["flex-grow"] = 1;
-        i.setAttribute("type", item.type);
-        o.appendChild(i);
-
-        switch (item.type) {
-            case "text":
-                i.setAttribute("size", "1");
-                break;
-            case "number":
-                i.style.width = "1px";
-                break;
-            default:
-                break;
-        }
-        item.link.push(i);
-        this.links.push(item.link);
-        switch (item.link[0]){
-            case "node":
-                o.addEventListener("change", (e) => {
-                    this.display.selected[item.link[1]] = e.target.value;
-                    this.display.sseq.emit("update");
-                });
-                break;
-            case "sseq":
-                o.addEventListener("change", ((e) => {
-                    this.display.sseq[item.link[1]] = e.target.value;
-                    this.display.sseq.emit("update");
-                }).bind(this));
-                break;
-            default:
-                break;
-        }
-
-    }
-    _processLayout(p, layout) {
-        for (let item of layout) {
-            if (item.tag == "inputgroup") {
-                this._createInputGroup(p, item)
-                continue;
-            }
-            let o = document.createElement(item.tag);
-            p.appendChild(o);
-
-            if (item.name) this[item.name] = o;
-            if (item.class) o.className = item.class;
-
-            if (item.style)
-                for (let [k, v] of Object.entries(item.style))
-                    o.style[k] = v;
-
-            if (item.content) o.innerHTML = item.content;
-
-            if (item.attr)
-                for (let [k, v] of Object.entries(item.attr))
-                    o.setAttribute(k, v);
-
-            if (item.link) {
-                item.link.push(o);
-                this.links.push(item.link);
-                switch (item.link[0]){
-                    case "node":
-                        o.addEventListener("change", ((e) => {
-                            this.display.selected[item.link[1]] = e.target.value;
-                            this.display.sseq.emit("update");
-                        }).bind(this))
-                        break;
-                    default:
-                        break;
-                }
-            }
-
-            if (item.listen)
-                for (let [k, v] of Object.entries(item.listen))
-                    o.addEventListener(k, this[v].bind(this))
-
-            if (item.children) this._processLayout(o, item.children);
-        }
-    }
-
-    showGeneral() {
-        this.node_panel.style.display = "none";
-        this.general_panel.style.removeProperty("display");
-
-        if (!this.display.sseq) return;
-
-        for (let l of this.links)
-            if (l[0] == "sseq")
-                l[2].value = this.display.sseq[l[1]];
-    }
-
-    updateNodePanel(e) {
-        if (e)
-            this.active = e.target.innerHTML;
-
-        for (let c of this.node_header.children) {
-            let f = c.firstChild;
-            if (f.innerHTML == this.active) {
-                f.className = "nav-link active";
-                this[NODE_TABS.get(f.innerHTML)].style.removeProperty("display");
-            } else {
-                f.className = "nav-link";
-                this[NODE_TABS.get(f.innerHTML)].style.display = "none";
-            }
-        }
-    }
-
-    showNode(c) {
-        this.general_panel.style.display = "none";
-        this.node_panel.style.removeProperty("display");
-
-        this.title_edit_link.innerHTML = "Edit";
-        this.title_edit_input.value = "";
-        this.title_edit_input.style.display = "none";
-
-        if (c.name) {
-            this.title_text.innerHTML = Interface.renderLaTeX(Interface.ensureMath(c.name)) + ` - (${c.x}, ${c.y})`;
-        } else {
-            this.title_text.innerHTML = `<span style='color: gray'>unnamed</span> - (${c.x}, ${c.y})`;
-        }
-
-        this.updateNodePanel();
-
-        for (let l of this.links)
-            if (l[0] == "node")
-                l[2].value = c.node[l[1]];
-
-        while(this.differential_list.firstChild)
-            this.differential_list.removeChild(this.differential_list.firstChild);
-
-        let edges = c.edges.filter(e => e.type === "Differential").sort((a, b) => a.page - b.page);
-
-        let sname, tname;
-        for (let e of edges) {
-            sname = e.source.name ? e.source.name : "?"
-            tname = e.target.name ? e.target.name : "?"
-            if (e.source == c)
-                this.addDLI(Interface.renderMath(`d_${e.page}({\\color{blue}${sname}}) = ${tname}`));
-            else
-                this.addDLI(Interface.renderMath(`d_${e.page}(${sname}) = {\\color{blue}${tname}}`));
-        }
-
-        this.addDLI("<a href='#'>Add differential</a>", this._addD.bind(this));
-        this.addDLI("<a href='#'>Remove differential</a>", this._rmD.bind(this));
-    }
-
-    _onTitleEditClick() {
-        let c = this.display.selected.c;
-
-        if (this.title_edit_link.innerHTML == "OK") {
-            c.name = this.title_edit_input.value;
-            this.display.sseq.emit("update");
-            this.showNode(c);
-        } else {
-            this.title_edit_link.innerHTML = "OK";
-            if (c.name) this.title_edit_input.value = c.name;
-            this.title_edit_input.style.removeProperty("display");
-        }
-    }
-
-    _onNodeColorChange(e) {
-        this.display.selected.c.node.color = e.target.value;
-        this.display.update();
-    }
-
-    _onNodeSizeChange(e) {
-        this.display.selected.c.node.size = e.target.value;
-        this.display.update();
-    }
-
-    _addD() {
-        this.display.state = STATE_ADD_DIFFERENTIAL;
-    }
-    _rmD() {
-        this.display.state = STATE_RM_DIFFERENTIAL;
-    }
-
-    _onDownloadSVG() {
-        this.display.downloadSVG("sseq.svg");
-    }
-
-    _onSave() {
-        this.display.sseq.download("sseq.json");
-    }
-}
-class EditorDisplay extends Display {
+class EditorDisplay extends SidebarDisplay {
     constructor(container, sseq) {
-        let parentContainer = d3.select(container);
-        parentContainer.style("display", "flex");
-        parentContainer.style("display-direction", "row");
-
-        let child = parentContainer.append("div")
-            .style("height", "100%")
-            .style("min-height", "100%")
-            .style("overflow", "hidden")
-            .style("position", "relative")
-            .style("flex-grow", "1");
-
-        let sidebar = new Sidebar(parentContainer)
-
-        super(child.node(), sseq);
-
-        this.sidebar = sidebar;
-        this.sidebar.build(this);
-
-        // Cannot call this before super
-        this.parentContainer = parentContainer;
-        this.sidebar = sidebar;
+        super(container, sseq);
 
         this.differentialColors = {};
 
+        // Footer
+        this.sidebar.footer.newGroup();
+        this.sidebar.footer.addButton("Download SVG", () => this.downloadSVG("sseq.svg"));
+        this.sidebar.footer.addButton("Save", () => this.sseq.download("sseq.json"));
 
+        // General Panel
+        this.generalPanel = new Panel.Panel(this.sidebar.main_div, this);
+        this.generalPanel.newGroup();
+        this.pageLabel = document.createElement("span");
+        this.on("page-change", (r) => {
+            this.pageLabel.innerHTML = this.getPageDescriptor(r);
+            this._unselect();
+        });
+        this.generalPanel.addObject(this.pageLabel);
+
+        this.generalPanel.newGroup();
+        this.generalPanel.addLinkedInput("Min X", "sseq.minX", "number");
+        this.generalPanel.addLinkedInput("Max X", "sseq.maxX", "number");
+        this.generalPanel.addLinkedInput("Min Y", "sseq.minY", "number");
+        this.generalPanel.addLinkedInput("Max Y", "sseq.maxY", "number");
+        this.sidebar.addPanel(this.generalPanel);
+
+        // Class panel
+        this.classPanel = new Panel.TabbedPanel(this.sidebar.main_div, this);
+        this.sidebar.addPanel(this.classPanel);
+
+        // Node tab
+        this.nodeTab = new Panel.Panel(this.classPanel.container, this);
+        this.nodeTab.newGroup();
+
+        this.title_text = document.createElement("span");
+        this.nodeTab.addObject(this.title_text);
+
+        this.title_edit_link = document.createElement("a");
+        this.title_edit_link.className = "card-link-body";
+        this.title_edit_link.href = "#";
+        this.title_edit_link.style.float = "right";
+        this.title_edit_link.innerHTML = "Edit";
+        this.title_edit_link.addEventListener("click", () => {
+            let c = this.selected.c;
+            if (this.title_edit_link.innerHTML == "OK") {
+                c.name = this.title_edit_input.value;
+                this.sseq.emit("update");
+                this.nodeTab.show();
+            } else {
+                this.title_edit_link.innerHTML = "OK";
+                if (c.name) this.title_edit_input.value = c.name;
+                this.title_edit_input.style.removeProperty("display");
+            }
+        });
+        this.nodeTab.addObject(this.title_edit_link);
+
+        this.title_edit_input = document.createElement("input");
+        this.title_edit_input.className = "form-control mt-2";
+        this.title_edit_input.type = "text";
+        this.title_edit_input.placeholder = "Enter class name";
+        this.nodeTab.addObject(this.title_edit_input);
+
+        this.nodeTab.on("show", () => {
+            this.title_edit_input.style.display = "none";
+            this.title_edit_input.innerHTML = "";
+            this.title_edit_link.innerHTML = "Edit";
+            let c = this.selected.c;
+            if (c.name) {
+                this.title_text.innerHTML = Interface.renderLaTeX(Interface.ensureMath(c.name)) + ` - (${c.x}, ${c.y})`;
+            } else {
+                this.title_text.innerHTML = `<span style='color: gray'>unnamed</span> - (${c.x}, ${c.y})`;
+            }
+        });
+
+        this.nodeTab.newGroup();
+        this.nodeTab.addLinkedInput("Color", "selected.color", "text");
+        this.nodeTab.addLinkedInput("Size", "selected.size", "number");
+        this.classPanel.addTab("Node", this.nodeTab);
+
+        // Differentials tab
+        this.differentialTab = new Panel.DifferentialPanel(this.classPanel.container, this);
+        Mousetrap.bind('d', () => this.state = STATE_ADD_DIFFERENTIAL);
+        Mousetrap.bind('r', () => this.state = STATE_RM_DIFFERENTIAL);
+        this.classPanel.addTab("Diff", this.differentialTab);
+
+        this.sidebar.showPanel(this.generalPanel);
         this.tooltip = new Tooltip(this);
+        this.on("mouseout", this._onMouseout.bind(this));
+        this.on("click", this.__onClick.bind(this)); // Display already has an _onClick
 
-        // Page change
-        this.page_indicator_div = this.container.append("div")
-            .style("position", "absolute")
-            .style("left", "20px")
-            .style("top","0px")
-            .style("font-family","Arial")
-            .style("font-size","15px");
+        this._onDifferentialAdded = this._onDifferentialAdded.bind(this);
 
         Mousetrap.bind('left',  this.previousPage);
         Mousetrap.bind('right', this.nextPage);
-        Mousetrap.bind('x', () => { if(this.mouseover_node){ console.log(this.mouseover_node.c); } });
+        Mousetrap.bind('x', () => { if(this.selected){ console.log(this.selected.c); } });
+    }
 
-        Mousetrap.bind('d', (() => this.state = STATE_ADD_DIFFERENTIAL).bind(this));
-        Mousetrap.bind('r', (() => this.state = STATE_RM_DIFFERENTIAL).bind(this));
-
-        this.on("mouseover", this._onMouseover.bind(this));
-        this.on("mouseout", this._onMouseout.bind(this));
-        this.on("click", this.__onClick.bind(this)); // Display already has an _onClick
-        this.on("page-change", this._onPageChange.bind(this));
-        this.setPage();
-
-        this._onDifferentialAdded = this._onDifferentialAdded.bind(this);
+    setDifferentialColor(page, color) {
+        this.differentialColors[page] = color;
     }
 
     setSseq(sseq) {
@@ -479,69 +117,13 @@ class EditorDisplay extends Display {
 
         super.setSseq(sseq)
 
-        this.sidebar.showGeneral();
+        this.sidebar.showPanel(this.generalPanel);
+
         this.sseq.on("differential-added", this._onDifferentialAdded);
     }
 
-    setDifferentialColor(page, color) {
-        this.differentialColors[page] = color;
-    }
-
-    getPageDescriptor(pageRange) {
-        let basePage = 2;
-        if(this.sseq.page_list.includes(1)){
-            basePage = 1;
-        }
-        if (pageRange === infinity) {
-            return "Page ∞";
-        }
-        if (pageRange === 0) {
-            return `Page ${basePage} with all differentials`;
-        }
-        if (pageRange === 1 && basePage === 2) {
-            return `Page ${basePage} with no differentials`;
-        }
-        if (pageRange.length) {
-            if(pageRange[1] === infinity){
-                return `Page ${pageRange[0]} with all differentials`;
-            }
-            if(pageRange[1] === -1){
-                return `Page ${pageRange[0]} with no differentials`;
-            }
-
-            if(pageRange[0] === pageRange[1]){
-                return `Page ${pageRange[0]}`;
-            }
-
-            return `Pages ${pageRange[0]} – ${pageRange[1]}`.replace(infinity, "∞");
-        }
-        return `Page ${pageRange}`;
-    }
-
-    nextPage(){
-        if (this.page_idx < this.sseq.page_list.length - 1) {
-            this.setPage(this.page_idx + 1);
-            this.update();
-        }
-    }
-
-    previousPage(){
-        if (this.page_idx > this.sseq.min_page_idx) {
-            this.setPage(this.page_idx - 1);
-            this.update();
-        }
-    }
-
     _onMouseout() {
-        // when mouseout is detected, the node is un-highlighted. We re-highlight if ti is selected.
         if (this.selected) this.selected.highlight = true;
-        if (!this.selected) this.sidebar.showGeneral();
-    }
-
-    _onMouseover(node) {
-        if (this.selected) return;
-
-        this.sidebar.showNode(node.c);
     }
 
     _unselect() {
@@ -551,7 +133,7 @@ class EditorDisplay extends Display {
         this.selected = null;
         this.state = null;
 
-        this._onMouseout();
+        this.sidebar.showPanel(this.generalPanel);
 
         this._drawSseq(this.context);
     }
@@ -565,6 +147,7 @@ class EditorDisplay extends Display {
         if (!this.selected) {
             this._unselect();
             this.selected = node;
+            this.sidebar.showPanel(this.classPanel);
             this.state = null;
             return;
         }
@@ -580,8 +163,8 @@ class EditorDisplay extends Display {
                 let length = t.y - s.y;
                 this.sseq.addDifferential(s, t, length);
                 this.state = null;
-                display.sseq.emit('update');
-                this.sidebar.showNode(s);
+                this.sseq.emit('update');
+                this.sidebar.showPanel(this.classPanel);
                 break;
             case STATE_RM_DIFFERENTIAL:
                 for (let e of s.edges)
@@ -589,20 +172,15 @@ class EditorDisplay extends Display {
                         sseq.deleteEdge(e);
 
                 this.state = null;
-                display.sseq.emit('update');
-                this.sidebar.showNode(s);
+                this.sseq.emit('update');
+                this.sidebar.showPanel(this.classPanel);
                 break;
             default:
                 this._unselect();
                 this.selected = node;
-                this.sidebar.showNode(t);
+                this.sidebar.showPanel(this.classPanel);
                 break;
         }
-    }
-
-    _onPageChange(r) {
-        this.page_indicator_div.html(this.getPageDescriptor(r))
-        this._unselect();
     }
 
     _onDifferentialAdded(d) {

@@ -50,39 +50,6 @@ class BasicDisplay extends Display {
     delayedSetStatus(html, delay){
         this.status_div_timer = setTimeout(() => setStatus(html), delay);
     }
-
-    getPageDescriptor(pageRange) {
-        if (!this.sseq) return;
-
-        let basePage = 2;
-        if(this.sseq.page_list.includes(1)){
-            basePage = 1;
-        }
-        if (pageRange === infinity) {
-            return "Page ∞";
-        }
-        if (pageRange === 0) {
-            return `Page ${basePage} with all differentials`;
-        }
-        if (pageRange === 1 && basePage === 2) {
-            return `Page ${basePage} with no differentials`;
-        }
-        if (pageRange.length) {
-            if(pageRange[1] === infinity){
-                return `Page ${pageRange[0]} with all differentials`;
-            }
-            if(pageRange[1] === -1){
-                return `Page ${pageRange[0]} with no differentials`;
-            }
-
-            if(pageRange[0] === pageRange[1]){
-                return `Page ${pageRange[0]}`;
-            }
-
-            return `Pages ${pageRange[0]} – ${pageRange[1]}`.replace(infinity, "∞");
-        }
-        return `Page ${pageRange}`;
-    }
 }
 
 class Tooltip {

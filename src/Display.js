@@ -208,7 +208,7 @@ class Display extends EventEmitter {
         }
     }
 
-    _drawSseq(ctx) {
+    _drawSseq(ctx = this.context) {
         if (!this.sseq) return;
 
         this._updateScale();
@@ -687,6 +687,39 @@ class Display extends EventEmitter {
         this.zoom.translateBy(this.zoomDomElement, xstep / this.transform.k, ystep / this.transform.k ); //
         this.update();
         this.zoom.on("zoom", this.updateBatch);
+    }
+
+    getPageDescriptor(pageRange) {
+        if (!this.sseq) return;
+
+        let basePage = 2;
+        if(this.sseq.page_list.includes(1)){
+            basePage = 1;
+        }
+        if (pageRange === infinity) {
+            return "Page ∞";
+        }
+        if (pageRange === 0) {
+            return `Page ${basePage} with all differentials`;
+        }
+        if (pageRange === 1 && basePage === 2) {
+            return `Page ${basePage} with no differentials`;
+        }
+        if (pageRange.length) {
+            if(pageRange[1] === infinity){
+                return `Page ${pageRange[0]} with all differentials`;
+            }
+            if(pageRange[1] === -1){
+                return `Page ${pageRange[0]} with no differentials`;
+            }
+
+            if(pageRange[0] === pageRange[1]){
+                return `Page ${pageRange[0]}`;
+            }
+
+            return `Pages ${pageRange[0]} – ${pageRange[1]}`.replace(infinity, "∞");
+        }
+        return `Page ${pageRange}`;
     }
 
     // TODO: Fix the selection

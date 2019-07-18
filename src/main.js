@@ -16,7 +16,9 @@ window.sseqDatabase = IO.sseqDatabase;
 window.Shapes = require("./Shape.js");
 window.Display = require("./Display.js").Display;
 window.BasicDisplay = require("./BasicDisplay.js").BasicDisplay;
+window.SidebarDisplay = require("./SidebarDisplay.js").SidebarDisplay;
 window.EditorDisplay = require("./EditorDisplay.js").EditorDisplay;
+window.Panel = require("./Panel.js");
 window.C2S = require("canvas2svg");
 
 
