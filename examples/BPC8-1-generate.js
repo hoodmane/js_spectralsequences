@@ -88,7 +88,7 @@ class sliceMonomial {
                 ["a","\\lambda"], ["a", "\\sigma"], ["a","\\sigma_2"]],
             [this.ul, this.us, this.us2,
                 this.al, this.as, this.as2],
-            monomialString(["\\overline{\\mathfrak{d}}_{a_0}","\\overline{\\mathfrak{d}}_{a_1}", "\\overline{\\mathfrak{d}}_1", "(\\overline{s}_{a_0}+\\overline{s}_{a_1})", "\\overline{s}_{a_0}", "\\overline{s}_{a_1}"],[this.da0, this.da1,this.d1, this.s1, this.sa0, this.sa1]));
+            monomialString(["\\overline{\\mathfrak{d}}_{a_0}","\\overline{\\mathfrak{d}}_{a_1}", "\\overline{\\mathfrak{d}}_1", "(\\overline{s}_{a_0}+\\overline{s}_{a_1})", `\\overline{s}_{${monomialString(["a_{0}", "a_{1}"], [this.sa0, this.sa1])}}`],[this.da0, this.da1,this.d1, this.s1, this.sa0 + this.sa1 > 0 ? 1 : 0]));
     }
 
     sliceName(){
@@ -215,13 +215,19 @@ IO.loadFromServer(getJSONFilename("BPC8-truncations")).catch(err => console.log(
         c_new.slice.da1 = 0;
         c_new.name = c_new.slice.toString();
 
-        c_new = sseq.addClass(c.x, c.y);
-        c_new.setNode(c.getNode());
-        c_new.slice = new sliceMonomial(c.slice);
-        c_new.slice.da1 = c_new.slice.d1;
-        c_new.slice.d1 = 0;
-        c_new.setColor("blue");
-        c_new.name = c_new.slice.toString();
+        for(let i = 2; i >= 0; i--){
+            if(i > c.slice.d1){
+                continue;
+            }
+            c_new = sseq.addClass(c.x, c.y);
+            c_new.setNode(c.getNode());
+            c_new.slice = new sliceMonomial(c.slice);
+            c_new.slice.da0 = i;
+            c_new.slice.da1 = c_new.slice.d1 - i;
+            c_new.slice.d1 = 0;
+            c_new.setColor("blue");
+            c_new.name = c_new.slice.toString();
+        }
 
     }    
     
@@ -294,7 +300,10 @@ function updateTruncation(sseq, da1) {
         }
         c.slice.da1 = da1;
         c.slice.da0 = c.slice.d1 - da1;
+        let d1 = c.slice.d1;
+        c.slice.d1 = 0;
         c.slice = new sliceMonomial(c.slice);
+        c.slice.d1 = d1;
         c.name = c.slice.toString();
     }
 

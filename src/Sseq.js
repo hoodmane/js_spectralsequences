@@ -1040,6 +1040,7 @@ class Sseq {
 
     // TODO: add check that this spectral sequence is the one being displayed?
     downloadSVG(filename){
+        let display = sseq.display_sseq.display_object;
         if(filename === undefined){
             filename = `${this.name}_x-${display.xmin}-${display.xmax}_y-${display.ymin}-${display.ymax}.svg`
         }

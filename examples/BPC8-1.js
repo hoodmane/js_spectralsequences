@@ -350,10 +350,7 @@ class differential_family {
         if(this.offset_vectors.length === 0){
             return; // Note the early return -- any logic that should always happen needs to go up top.
         }
-        let ranges = product(...this.offset_vectors.map( v => range(0,15)));
-        if(this.offset_vectors[0][0] == 1){
-            ranges = product(range(0,50));
-        }
+        let ranges = product(...this.offset_vectors.map( v => range(0,Math.max(sseq.xRange[1]/v[0],sseq.yRange[1]/v[1]))));
         for(let exponent_vector of ranges){
             let cur_source = this.source_position;
             let source_degree = vectorSum(cur_source, vectorLinearCombination(this.offset_vectors, exponent_vector));
@@ -370,6 +367,7 @@ class differential_family {
             let source_class_map = classes[source_type].get(source_degree);
             let target_class_map = classes[this.target_type].get(target_degree);
             if(!source_class_map || !target_class_map){
+                console.log("quitting leibniz", source_degree, target_degree);
                 continue;
             }
 
@@ -390,6 +388,7 @@ class differential_family {
             }
             let d = sseq.addDifferential(sourceClass, targetClass, this.page);
             this.liebnized_differentials.push(d);
+            // console.log(d);
             if(this.selected){
                 d.color = differential_family.selected_color;
                 sseq.updateEdge(d);
@@ -556,7 +555,7 @@ Groups.Zsupsup = Groups.Z.copy();
 Groups.Zsupsup.fill = "black";
 
 IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
-    addLoadingMessage(`Read JSON in ${getTime()} seconds.`);
+    // addLoadingMessage(`Read JSON in ${getTime()} seconds.`);
     window.classes = {};
     classes.all = new StringifyingMap();
     classes.induced = new StringifyingMap();
@@ -682,7 +681,7 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
     }
 
 
-    addLoadingMessage(`Added classes in ${getTime()} seconds.`);
+    // addLoadingMessage(`Added classes in ${getTime()} seconds.`);
 
     sseq.onDifferentialAdded(d => {
         d.addInfoToSourceAndTarget();
@@ -752,11 +751,11 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
         let target = classes[o.target_type].get(o.target_position).get(o.target_slice);
         sseq.addDifferential(source, target, o.page);
     }
-    addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
-    document.getElementById("loading").style.display =  "none";
+    // addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
+    // document.getElementById("xloading").style.display =  "none";
     sseq.display(w2ui.layout.el('main'));
     // IO.download("BPC8-1.svg", display.toSVG());
-    addLoadingMessage(`Displayed in ${getTime()} seconds.`);
+    // addLoadingMessage(`Displayed in ${getTime()} seconds.`);
     let t1 = performance.now();
     console.log("Rendered in " + (t1 - t0)/1000 + " seconds.");
 }).catch((err) => console.log(err))
