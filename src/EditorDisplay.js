@@ -10,147 +10,147 @@ const STATE_ADD_DIFFERENTIAL = 1;
 const STATE_RM_DIFFERENTIAL = 2;
 
 const LAYOUT = [
-    {
-        name: "general_panel",
+  {
+    name: "general_panel",
+    tag: "div",
+    children: [
+      {
+        tag: "div",
+        class: "form-inline card-body",
+        children: [
+          {
+            tag: "inputgroup",
+            label: "Min X",
+            type: "number",
+            link: ["sseq", "minX"]
+          },
+          {
+            tag: "inputgroup",
+            label: "Max X",
+            type: "number",
+            link: ["sseq", "maxX"]
+          },
+          {
+            tag: "inputgroup",
+            label: "Min Y",
+            type: "number",
+            link: ["sseq", "minY"]
+          },
+          {
+            tag: "inputgroup",
+            label: "Max Y",
+            type: "number",
+            link: ["sseq", "maxY"]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    name: "node_panel",
+    tag: "div",
+    children: [
+      {
+        tag: "div",
+        class: "card-header",
+        children: [
+          {
+            name: "node_header",
+            tag: "ul",
+            class: "nav nav-tabs card-header-tabs"
+          }
+        ]
+      },
+      {
+        name: "differentials",
         tag: "div",
         children: [
-            {
-                tag: "div",
-                class: "form-inline card-body",
-                children: [
-                    {
-                        tag: "inputgroup",
-                        label: "Min X",
-                        type: "number",
-                        link: ["sseq", "minX"]
-                    },
-                    {
-                        tag: "inputgroup",
-                        label: "Max X",
-                        type: "number",
-                        link: ["sseq", "maxX"]
-                    },
-                    {
-                        tag: "inputgroup",
-                        label: "Min Y",
-                        type: "number",
-                        link: ["sseq", "minY"]
-                    },
-                    {
-                        tag: "inputgroup",
-                        label: "Max Y",
-                        type: "number",
-                        link: ["sseq", "maxY"]
-                    }
-                ]
-            }
+          {
+            name: "differential_list",
+            tag: "ul",
+            class: "list-group list-group-flush",
+            style: {"text-align": "center"}
+          }
         ]
-    },
-    {
-        name: "node_panel",
+      },
+      {
+        name: "node",
         tag: "div",
         children: [
-            {
-                tag: "div",
-                class: "card-header",
-                children: [
-                    {
-                        name: "node_header",
-                        tag: "ul",
-                        class: "nav nav-tabs card-header-tabs"
-                    }
-                ]
-            },
-            {
-                name: "differentials",
-                tag: "div",
-                children: [
-                    {
-                        name: "differential_list",
-                        tag: "ul",
-                        class: "list-group list-group-flush",
-                        style: {"text-align": "center"}
-                    }
-                ]
-            },
-            {
-                name: "node",
-                tag: "div",
-                children: [
-                    {
-                        name: "title",
-                        tag: "div",
-                        class: "card-body",
-                        children: [
-                            {
-                                name: "title_text",
-                                tag: "span"
-                            },
-                            {
-                                name: "title_edit_link",
-                                tag: "a",
-                                class: "card-link-body",
-                                attr: { "href": "#" },
-                                style: { "float" : "right" },
-                                content: "Edit",
-                                listen: { "click": "_onTitleEditClick" }
-                            },
-                            {
-                                name: "title_edit_input",
-                                tag: "input",
-                                class: "form-control mt-2",
-                                attr: { "type": "text", "placeholder": "Enter class name" }
-                            }
-                        ]
-                    },
-                    {
-                        tag: "div",
-                        class: "form-inline card-body",
-                        children: [
-                            {
-                                tag: "inputgroup",
-                                label: "Color",
-                                type: "text",
-                                link: ["node", "color"]
-                            },
-                            {
-                                tag: "inputgroup",
-                                label: "Size",
-                                type: "number",
-                                link: ["node", "size"]
-                            }
-                        ]
-                    }
-                ]
-            }
+          {
+            name: "title",
+            tag: "div",
+            class: "card-body",
+            children: [
+              {
+                name: "title_text",
+                tag: "span"
+              },
+              {
+                name: "title_edit_link",
+                tag: "a",
+                class: "card-link-body",
+                attr: { "href": "#" },
+                style: { "float" : "right" },
+                content: "Edit",
+                listen: { "click": "_onTitleEditClick" }
+              },
+              {
+                name: "title_edit_input",
+                tag: "input",
+                class: "form-control mt-2",
+                attr: { "type": "text", "placeholder": "Enter class name" }
+              }
+            ]
+          },
+          {
+            tag: "div",
+            class: "form-inline card-body",
+            children: [
+              {
+                tag: "inputgroup",
+                label: "Color",
+                type: "text",
+                link: ["node", "color"]
+              },
+              {
+                tag: "inputgroup",
+                label: "Size",
+                type: "number",
+                link: ["node", "size"]
+              }
+            ]
+          }
         ]
-    },
-    {
-        tag: "div",
-        class: "card-body",
-        style: { "height": "100%", "padding": "0", "margin": "0" } // fill space
-    },
-    {
-        tag: "div",
-        class: "card-body",
-        children: [
-            {
-                tag: "button",
-                class: "btn btn-primary mb-2",
-                style: { "width": "100%" },
-                content: "Download SVG",
-                listen: { "click": "_onDownloadSVG" },
-                attr: { "title": "Download SVG image of the current view of the spectral sequence" }
-            },
-            {
-                tag: "button",
-                class: "btn btn-primary",
-                style: { "width": "100%" },
-                content: "Save",
-                listen: { "click": "_onSave" }
-            }
-        ]
-    }
+      }
+    ]
+  },
+  {
+    tag: "div",
+    class: "card-body",
+    style: { "height": "100%", "padding": "0", "margin": "0" } // fill space
+  },
+  {
+    tag: "div",
+    class: "card-body",
+    children: [
+      {
+        tag: "button",
+        class: "btn btn-primary mb-2",
+        style: { "width": "100%" },
+        content: "Download SVG",
+        listen: { "click": "_onDownloadSVG" },
+        attr: { "title": "Download SVG image of the current view of the spectral sequence" }
+      },
+      {
+        tag: "button",
+        class: "btn btn-primary",
+        style: { "width": "100%" },
+        content: "Save",
+        listen: { "click": "_onSave" }
+      }
+    ]
+  }
 ]
 
 const NODE_TABS = new Map([["Node", "node"], ["Diff", "differentials"]]);
