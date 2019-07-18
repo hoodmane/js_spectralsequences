@@ -626,16 +626,15 @@ class Display extends EventEmitter {
         );
     }
 
-    /**
-     * Make an SVG of the current canvas. I think this returns a string.
-     */
-    // TODO: This doesn't currently work because canvas2svg does not understand
-    // Path2D objects.
     toSVG(){
         let ctx = new C2S(this.canvasWidth, this.canvasHeight);
         this._drawSseq(ctx);
 
         return ctx.getSerializedSvg(true);
+    }
+
+    downloadSVG(filename) {
+        IO.download(filename, this.toSVG(), "image/svg+xml")
     }
 
     /**

@@ -1,9 +1,10 @@
-exports.download = function(filename, text) {
+exports.download = function(filename, text, mime="text/plain") {
     if(text.constructor !== String){
         text = JSON.stringify(text);
     }
     let element = document.createElement('a');
-    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+
+    element.setAttribute('href', `data:${mime};charset=utf-8,` + encodeURIComponent(text));
     element.setAttribute('download', filename);
 
     element.style.display = 'none';
