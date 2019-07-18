@@ -3,11 +3,14 @@
 let Shapes = {};
 
 Shapes.circle = {
-    draw: function(context, x, y, size) {
+    draw: function(context, x, y, size, path2d=true) {
+        context.beginPath();
+        context.arc(x, y, size, 0, 2*Math.PI);
+        context.fill();
+        context.stroke();
+
         let path = new Path2D();
         path.arc(x, y, size, 0, 2 * Math.PI);
-        context.fill(path);
-        context.stroke(path);
 
         return path;
     }
@@ -16,10 +19,10 @@ Shapes.circle = {
 
 Shapes.circlen = {
     draw: function(context, x, y, size, node) {
-        let path = new Path2D();
-        path.arc(x, y, size, 0, 2 * Math.PI);
-        context.fill(path);
-        context.stroke(path);
+        context.beginPath();
+        context.arc(x, y, size, 0, 2*Math.PI);
+        context.fill();
+        context.stroke();
 
         context.textAlign = "center";
         context.fillStyle = "black";
@@ -27,17 +30,23 @@ Shapes.circlen = {
         context.font = `${fontsize}px Arial`;
         context.fillText(node.order, x, y + size/2);
 
+        let path = new Path2D();
+        path.arc(x, y, size, 0, 2 * Math.PI);
+
         return path;
     }
 };
 
 Shapes.square = {
     draw: function(context, x, y, size) {
+        context.beginPath();
+        context.rect(x-size, y-size, 2*size, 2*size);
+        context.fill();
+        context.stroke();
+
         let path = new Path2D();
         path.rect(x-size, y-size, 2*size, 2*size);
 
-        context.fill(path);
-        context.stroke(path);
         return path;
     }
 }

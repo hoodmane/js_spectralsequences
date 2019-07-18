@@ -97,10 +97,10 @@ class Node {
             context.fillStyle = this.color;
             context.strokeStyle = this.color;
         }
-        if (this.stroke) {
+        if (this.stroke && this.stroke !== true) {
             context.strokeStyle = this.stroke;
         }
-        if (this.fill) {
+        if (this.fill && this.fill !== true) {
             context.fillStyle = this.fill;
         }
         if (this.highlight) {

@@ -221,9 +221,12 @@ class Display extends EventEmitter {
 
         ctx.save();
 
-        let path = new Path2D();
-        path.rect(this.leftMargin, this.topMargin, this.plotWidth, this.plotHeight);
-        ctx.clip(path);
+        ctx.beginPath();
+        ctx.globalAlpha = 0; // C2S does not correctly clip unless the clip is stroked.
+        ctx.rect(this.leftMargin, this.topMargin, this.plotWidth, this.plotHeight);
+        ctx.stroke();
+        ctx.clip();
+        ctx.globalAlpha = 1;
 
         let [classes, edges] = this.sseq.getDrawnElements(this.pageRange, this.xmin, this.xmax, this.ymin, this.ymax);
 

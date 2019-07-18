@@ -292,4 +292,4 @@ window.saveSseq = function saveTruncationSseq(sseq){
 let display = new BasicDisplay("#main");
 display.setSseq(BPC4);
 
-Mousetrap.bind("p", () => display.toSVG("BPC4-1.svg"));
+Mousetrap.bind("p", () => IO.download("BPC4-1.svg", display.toSVG()));
