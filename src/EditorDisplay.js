@@ -160,7 +160,6 @@ class Sidebar {
         this.container = parentContainer.append("div")
             .style("height", "100%")
             .style("width", "240px")
-            .style("float", "right")
             .style("overflow", "auto")
             .attr("class", "card");
     }
@@ -396,13 +395,17 @@ class Sidebar {
 class EditorDisplay extends Display {
     constructor(container, sseq) {
         let parentContainer = d3.select(container);
+        parentContainer.style("display", "flex");
+        parentContainer.style("display-direction", "row");
 
-        let sidebar = new Sidebar(parentContainer)
         let child = parentContainer.append("div")
             .style("height", "100%")
             .style("min-height", "100%")
             .style("overflow", "hidden")
-            .style("position", "relative");
+            .style("position", "relative")
+            .style("flex-grow", "1");
+
+        let sidebar = new Sidebar(parentContainer)
 
         super(child.node(), sseq);
 
