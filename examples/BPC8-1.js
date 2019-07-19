@@ -981,7 +981,7 @@ function setupDifferentialInterface(json){
     });
 
     Moustrap.bind("Q", function() {
-        sseq.downloadSVG();
+        display.downloadSVG();
     });
 
     mouseTrap.bind('o', function() {

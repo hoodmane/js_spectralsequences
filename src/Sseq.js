@@ -1051,15 +1051,6 @@ class Sseq extends EventEmitter{
         }
         return json;
     }
-
-    // TODO: add check that this spectral sequence is the one being displayed?
-    downloadSVG(filename){
-        if(filename === undefined){
-            filename = `${this.name}_x-${display.xmin}-${display.xmax}_y-${display.ymin}-${display.ymax}.svg`
-        }
-        IO.download(filename, display.toSVG());
-    }
-
 }
 
 Sseq.serializeSseqFields = ["min_page_idx", "page_list", "xRange", "yRange", "initialxRange", "initialyRange", "default_node", "class_scale", "offset_size", "serializeSseqFields", "serializeClassFields", "serializeEdgeFields", "serializeNodeFields"]; // classes and edges are dealt with separately.
