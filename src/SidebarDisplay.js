@@ -37,6 +37,7 @@ class Sidebar {
         this.footer_div = this.sidebar.append("div").node();
 
         this.panels = [];
+        this.currentPanel = null;
     }
 
     addPanel(panel) {
@@ -61,6 +62,9 @@ class Sidebar {
     }
 
     showPanel(panel) {
+        if (!panel) panel = this.currentPanel;
+        this.currentPanel = panel;
+
         for (let x of this.panels) {
             if (x == panel)
                 x.show();

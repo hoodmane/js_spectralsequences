@@ -56,7 +56,11 @@ div.tooltip {
   function loadFromJSON(json) {
     document.getElementById("upload-box").style.display = "none";
 
-      sseq = Sseq.fromJSONObject(json)
+      if (json)
+          sseq = Sseq.fromJSONObject(json)
+      else 
+          sseq = new Sseq();
+
       sseq._getXOffset = tools.fixed_tower_xOffset.bind(sseq);
       sseq._getYOffset = (c) => c.y_offset || 0;
 
@@ -81,7 +85,7 @@ async function getJSON(path) {
     fileReader.readAsText(file, "UTF-8");
   });
 
-document.getElementById("default").addEventListener("click", () => getJSON("json/ASS-S_2.json"));
+document.getElementById("default").addEventListener("click", () => loadFromJSON());
   </script>
 </body>
 </html> 

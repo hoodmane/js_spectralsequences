@@ -7,6 +7,10 @@ let Mousetrap = require("mousetrap");
 
 const STATE_ADD_DIFFERENTIAL = 1;
 const STATE_RM_DIFFERENTIAL = 2;
+const STATE_ADD_STRUCTLINE = 3;
+const STATE_RM_STRUCTLINE = 4;
+const STATE_RM_EDGE = 5;
+const STATE_ADD_CLASS = 6;
 
 class EditorDisplay extends SidebarDisplay {
     constructor(container, sseq) {
@@ -28,6 +32,9 @@ class EditorDisplay extends SidebarDisplay {
             this._unselect();
         });
         this.generalPanel.addObject(this.pageLabel);
+
+        this.generalPanel.newGroup();
+        this.generalPanel.addButton("Add class", () => this.state = STATE_ADD_CLASS, { shortcuts: ["n"] });
 
         this.generalPanel.newGroup();
         this.generalPanel.addLinkedInput("Min X", "sseq.minX", "number");
@@ -92,8 +99,13 @@ class EditorDisplay extends SidebarDisplay {
         // Differentials tab
         this.differentialTab = new Panel.DifferentialPanel(this.classPanel.container, this);
         Mousetrap.bind('d', () => this.state = STATE_ADD_DIFFERENTIAL);
-        Mousetrap.bind('r', () => this.state = STATE_RM_DIFFERENTIAL);
+        Mousetrap.bind('r', () => this.state = STATE_RM_EDGE);
         this.classPanel.addTab("Diff", this.differentialTab);
+
+        // Structline tab
+        this.structlineTab = new Panel.StructlinePanel(this.classPanel.container, this);
+        Mousetrap.bind('s', () => this.state = STATE_ADD_STRUCTLINE);
+        this.classPanel.addTab("Struct", this.structlineTab);
 
         this.sidebar.showPanel(this.generalPanel);
         this.tooltip = new Tooltip(this);
@@ -140,7 +152,16 @@ class EditorDisplay extends SidebarDisplay {
         this._drawSseq(this.context);
     }
 
-    __onClick(node) {
+    __onClick(node, e) {
+        if (this.state == STATE_ADD_CLASS) {
+            let x = Math.round(this.xScale.invert(e.clientX));
+            let y = Math.round(this.yScale.invert(e.clientY));
+            this.sseq.addClass(x, y);
+            this.sseq.emit('update');
+            this.state = null;
+            return;
+        }
+
         if (!node) {
             this._unselect();
             return;
@@ -164,18 +185,34 @@ class EditorDisplay extends SidebarDisplay {
                 }
                 let length = t.y - s.y;
                 this.sseq.addDifferential(s, t, length);
-                this.state = null;
                 this.sseq.emit('update');
-                this.sidebar.showPanel(this.classPanel);
+                this.sidebar.showPanel();
                 break;
             case STATE_RM_DIFFERENTIAL:
                 for (let e of s.edges)
+                    if (e.type === "Differential" && e.target == t)
+                        sseq.deleteEdge(e);
+                this.sseq.emit('update');
+                this.sidebar.showPanel();
+                break;
+            case STATE_ADD_STRUCTLINE:
+                this.sseq.addStructline(s, t);
+                this.sseq.emit('update');
+                this.sidebar.showPanel();
+                break;
+            case STATE_RM_STRUCTLINE:
+                for (let e of s.edges)
+                    if (e.type === "Structline" && e.target == t)
+                        sseq.deleteEdge(e);
+                this.sseq.emit('update');
+                this.sidebar.showPanel();
+                break;
+            case STATE_RM_EDGE:
+                for (let e of s.edges)
                     if (e.target == t)
                         sseq.deleteEdge(e);
-
-                this.state = null;
                 this.sseq.emit('update');
-                this.sidebar.showPanel(this.classPanel);
+                this.sidebar.showPanel();
                 break;
             default:
                 this._unselect();
@@ -183,6 +220,7 @@ class EditorDisplay extends SidebarDisplay {
                 this.sidebar.showPanel(this.classPanel);
                 break;
         }
+        this.state = null;
     }
 
     _onDifferentialAdded(d) {
