@@ -56,7 +56,11 @@ class Panel extends EventEmitter {
 
     addButton(text, callback, extra = {}) {
         let o = document.createElement("button");
-        o.className = "btn btn-primary mb-2";
+        if (extra.style)
+            o.className = `btn btn-${extra.style} mb-2`;
+        else
+            o.className = "btn btn-primary mb-2";
+
         o.style.width = "100%";
         o.innerHTML = text;
         o.addEventListener("click", callback);

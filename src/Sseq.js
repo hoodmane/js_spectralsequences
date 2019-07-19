@@ -288,6 +288,10 @@ class Sseq extends EventEmitter{
         this.num_classes_by_degree.set([c.x, c.y], idx - 1);
         this.total_classes --;
         this.classes.splice( this.classes.indexOf(c), 1 );
+
+        for (let e of c.edges) this.deleteEdge(e);
+
+        this.emit("update");
         return c;
     }
 
@@ -300,6 +304,7 @@ class Sseq extends EventEmitter{
         this.num_classes_by_degree.set([c.x, c.y], idx + 1);
         this.total_classes ++;
         this.classes.push(c);
+        this.emit("update");
         return c;
     }
 

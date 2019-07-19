@@ -94,6 +94,7 @@ class EditorDisplay extends SidebarDisplay {
         this.nodeTab.newGroup();
         this.nodeTab.addLinkedInput("Color", "selected.color", "text");
         this.nodeTab.addLinkedInput("Size", "selected.size", "number");
+        this.nodeTab.addButton("Delete class", () => { this.sseq.deleteClass(this.selected.c); this.sidebar.showPanel(this.generalPanel) }, { style: "danger" });
         this.classPanel.addTab("Node", this.nodeTab);
 
         // Differentials tab
