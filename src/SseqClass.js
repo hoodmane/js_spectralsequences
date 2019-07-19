@@ -201,7 +201,6 @@ class SseqClass {
         this.unique_id = unique_id ++;
 
         this.edges = [];
-        this.structlines = [];
         this.name = "";
         this.last_page_name = "";
         this.extra_info = "";
