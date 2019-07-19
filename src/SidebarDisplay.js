@@ -44,7 +44,7 @@ class Sidebar {
         return this.panels.length;
     }
 
-    init(display, layout) {
+    init(display) {
         this.display = display;
         this.footer = new Panel.Panel(this.footer_div, display);
     }
@@ -61,8 +61,6 @@ class Sidebar {
     }
 
     showPanel(panel) {
-        if (!this.display) return; // not yet initialized
-
         for (let x of this.panels) {
             if (x == panel)
                 x.show();
@@ -73,7 +71,7 @@ class Sidebar {
 }
 
 class SidebarDisplay extends Display {
-    constructor(container, sseq, layout) {
+    constructor(container, sseq) {
         let parentContainer = d3.select(container);
         parentContainer.style("display", "flex");
         parentContainer.style("display-direction", "row");
@@ -92,7 +90,7 @@ class SidebarDisplay extends Display {
         this.parentContainer = parentContainer;
 
         this.sidebar = sidebar;
-        this.sidebar.init(this, layout);
+        this.sidebar.init(this);
     }
 }
 

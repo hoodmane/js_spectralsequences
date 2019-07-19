@@ -10,7 +10,7 @@ const STATE_RM_DIFFERENTIAL = 2;
 
 class EditorDisplay extends SidebarDisplay {
     constructor(container, sseq) {
-        super(container, sseq);
+        super(container);
 
         this.differentialColors = {};
 
@@ -105,6 +105,8 @@ class EditorDisplay extends SidebarDisplay {
         Mousetrap.bind('left',  this.previousPage);
         Mousetrap.bind('right', this.nextPage);
         Mousetrap.bind('x', () => { if(this.selected){ console.log(this.selected.c); } });
+
+        if (sseq) this.setSseq(sseq);
     }
 
     setDifferentialColor(page, color) {
@@ -117,8 +119,7 @@ class EditorDisplay extends SidebarDisplay {
 
         super.setSseq(sseq)
 
-        if (this.sidebar)
-            this.sidebar.showPanel(this.generalPanel);
+        this.sidebar.showPanel(this.generalPanel);
 
         this.sseq.on("differential-added", this._onDifferentialAdded);
     }
