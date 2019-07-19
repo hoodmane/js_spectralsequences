@@ -117,7 +117,8 @@ class EditorDisplay extends SidebarDisplay {
 
         super.setSseq(sseq)
 
-        this.sidebar.showPanel(this.generalPanel);
+        if (this.sidebar)
+            this.sidebar.showPanel(this.generalPanel);
 
         this.sseq.on("differential-added", this._onDifferentialAdded);
     }

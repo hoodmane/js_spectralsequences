@@ -99,6 +99,7 @@ class Sseq extends EventEmitter{
         this.min_page_idx = 0;
         this.page_list = [0,infinity];
         this.default_node = new Node();
+        this.default_node.hcolor = "red";
         this.default_node.fill = true;
         this.default_node.stroke = true;
         this.default_node.shape = Shapes.circle;
