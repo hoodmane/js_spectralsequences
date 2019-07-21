@@ -7,8 +7,6 @@ let d3 = require("d3");
 
 class Sidebar {
     constructor(parentContainer) {
-        this.parentContainer = parentContainer;
-
         this.adjuster = parentContainer.append("div")
             .style("background-color", "rgba(0,0,0,0.125)")
             .style("height", "100%")
@@ -90,8 +88,6 @@ class SidebarDisplay extends Display {
         let sidebar = new Sidebar(parentContainer)
 
         super(child.node(), sseq);
-        // Cannot call this before super
-        this.parentContainer = parentContainer;
 
         this.sidebar = sidebar;
         this.sidebar.init(this);
