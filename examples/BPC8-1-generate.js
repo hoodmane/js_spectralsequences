@@ -249,20 +249,25 @@ IO.loadFromServer(getJSONFilename("BPC8-truncations")).catch(err => console.log(
     }
 
     for(let i = 0; i < 125; i++){
-        for( let v = 0; v < 10; v++){
-            let slice = new sliceMonomial({sa0: 6, sa1: 3, da1 : i + 8*v, as2 : 9, al : i});
-            let c = sseq.addClass(slice.stem, slice.filtration);
-            c.type = "induced";
-            c.slice = slice;
-            c.setColor("pink");
-            c.group = "Z/2";
-            c.group_list = [c.group];
-            c.name = slice.toString();            
+        addInducedClass({sa0: 6, sa1: 3, da1 : i, as2 : 9, al : i});
+        for( let v = 0; v < 20; v++){
+            addInducedClass({sa0: 6, sa1: 3, da1 : i + 4*v, as2 : 1, al : i});
         }
     }    
 
     sseq.display('#main');
 }).catch((err) => console.log(err));
+
+function addInducedClass(slice){
+    slice = new sliceMonomial(slice);
+    let c = sseq.addClass(slice.stem, slice.filtration);
+    c.type = "induced";
+    c.slice = slice;
+    c.setColor("pink");
+    c.group = "Z/2";
+    c.group_list = [c.group];
+    c.name = slice.toString();  
+}
 
 
 function updateTruncation(sseq, da1) {
