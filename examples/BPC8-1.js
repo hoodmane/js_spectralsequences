@@ -5,7 +5,9 @@
 let VERSION = 0;
 let sseq_name = "BPC8-1";
 let differential_local_store_key = `${sseq_name}-differentials`;
-let differential_filename = differential_local_store_key + ".json";
+let download_differential_filename = differential_local_store_key + ".json";
+let load_differential_filename = "BPC8AllDiffJuly20";
+
 
 class sliceMonomial {
     constructor(slice){
@@ -235,14 +237,16 @@ class differential_family {
         this.leibniz_slices = o.leibniz_slices || [];
         this.liebnized_differentials = [];
         this.invalid = false;
-
+        if(!classes[this.source_type].get(this.source_position)){
+            console.log("Err:", this);
+            return;
+        }
         if(!classes[this.target_type].get(this.target_position)){
-            console.log(this);
+            console.log("Err:",this);
+            return;
         }
         let source = classes[this.source_type].get(this.source_position).get(this.source_slice);
         let target = classes[this.target_type].get(this.target_position).get(this.target_slice);
-        console.log(source);
-        console.log(target);
         this.root_differential  = sseq.addDifferential(source, target, this.page);
         if(this.root_differential.isDummy()){
             console.log(this);
@@ -254,7 +258,6 @@ class differential_family {
         differential_family.rec_id_map.set(this.recid, this);
         differential_family.current_differential = this;
         let rec_obj = this.getRecordObject();
-        console.log(this);
         w2ui.grid.add(rec_obj);
         if(!w2ui.layout.get("right").hidden){
             w2ui.grid.select(rec_obj.recid);
@@ -338,6 +341,9 @@ class differential_family {
     }
 
     updateDifferentials(){
+        if(!this.root_differential){
+            return;
+        }
         let o = this.getRecordObject();
         w2ui.grid.set(o.recid, o);
         w2ui.grid.refresh();
@@ -352,10 +358,7 @@ class differential_family {
         if(this.offset_vectors.length === 0){
             return; // Note the early return -- any logic that should always happen needs to go up top.
         }
-        let ranges = product(...this.offset_vectors.map( v => range(0,15)));
-        if(this.offset_vectors[0][0] == 1){
-            ranges = product(range(0,50));
-        }
+        let ranges = product(...this.offset_vectors.map( v => range(0,Math.ceil(Math.max(sseq.xRange[1]/v[0],v[1] > 0 ? sseq.yRange[1]/v[1] : 0)))));
         for(let exponent_vector of ranges){
             let cur_source = this.source_position;
             let source_degree = vectorSum(cur_source, vectorLinearCombination(this.offset_vectors, exponent_vector));
@@ -371,15 +374,23 @@ class differential_family {
             }
             let source_class_map = classes[source_type].get(source_degree);
             let target_class_map = classes[this.target_type].get(target_degree);
-            if(!source_class_map || !target_class_map){
-                continue;
-            }
 
             let source_slice = dictionaryVectorSum(this.source_slice, dictionaryVectorLinearCombination(this.leibniz_slices, exponent_vector));
             let target_slice = dictionaryVectorSum(this.target_slice, dictionaryVectorLinearCombination(this.leibniz_slices, exponent_vector));
 
+            if(!source_class_map || !source_class_map.get(source_slice)) { 
+                if(target_class_map && target_class_map.get(target_slice)) { 
+                    target_class_map.get(target_slice).setPage(this.page);
+                }
+                continue;
+            }
             let sourceClass = source_class_map.get(source_slice);
+            if(!target_class_map || !target_class_map.get(target_slice)) { 
+                sourceClass.setPage(this.page);
+                continue;
+            }
             let targetClass = target_class_map.get(target_slice);
+
             
 
             if(!sourceClass){
@@ -392,6 +403,7 @@ class differential_family {
             }
             let d = sseq.addDifferential(sourceClass, targetClass, this.page);
             this.liebnized_differentials.push(d);
+            // console.log(d);
             if(this.selected){
                 d.color = differential_family.selected_color;
             }
@@ -557,7 +569,7 @@ Groups.Zsupsup = Groups.Z.copy();
 Groups.Zsupsup.fill = "black";
 
 IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
-    addLoadingMessage(`Read JSON in ${getTime()} seconds.`);
+    // addLoadingMessage(`Read JSON in ${getTime()} seconds.`);
     window.classes = {};
     classes.all = new StringifyingMap();
     classes.induced = new StringifyingMap();
@@ -650,42 +662,42 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
         if(c.type == "induced" && (c.x - c.y) % 32 === 0){
             let s = new sliceMonomial();
             let slices = [];
-            if( (c.x + c.y) % 4 === 0){
-                let i = (c.x+c.y)/4;
-                slices = [[{ da0 : 3, da1 : i-4, sa0 : 2}, { da0 : 2, da1 : i-3, sa0 : 2},
-                 { da0 : 1, da1 : i-2, sa0 : 2}, { da0 : 0, da1 : i-1, sa0 : 2}],
-                 [{ da0 : 3, da1 : i-4, sa0 : 1, sa1 : 1}, { da0 : 2, da1 : i-3, sa0 : 1, sa1 : 1},
-                 { da0 : 1, da1 : i-2, sa0 : 1, sa1 : 1}, { da0 : 0, da1 : i-1, sa0 : 1, sa1 : 1}],
-                 [{ da0 : 1, da1 : i-3, sa0 : 3, sa1 : 1}, { da0 : 0, da1 : i-2, sa0 : 3, sa1 : 1}]
-                ]
-            } else {
-                let i = (c.x+c.y-2)/4;
-                slices = [
-                    [{ da0 : 4, da1 : i-4, sa0 : 1}, { da0 : 3, da1 : i-3, sa0 : 1}, { da0 : 2, da1 : i-2, sa0 : 1},
-                    { da0 : 1, da1 : i-1, sa0 : 1}, { da0 : 0, da1 : i, sa0 : 1}],
-                    [{ da0 : 2, da1 : i-3, sa0 : 3}, { da0 : 1, da1 : i-2, sa0 : 3}, 
-                    { da0 : 0, da1 : i-1, sa0 : 3}], 
-                    [{ da0 : 2, da1 : i-3, sa0 : 2, sa1 : 1}, { da0 : 1, da1 : i-2, sa0 : 2, sa1 : 1}, 
-                    { da0 : 0, da1 : i-1, sa0 : 2, sa1 : 1}]
-                ]
-            }
-            let extra_info_page_15 = c.extra_info;
-            c.extra_info = "";
-            for(let slice_list of slices){
-                let slice_names = [];
-                for(let slice of slice_list){
-                    Object.assign(s, slice);
-                    slice_names.push(s.toString());
-                }
-                let str = slice_names.join(", ");
-                c.addExtraInfo(`\\(${str}\\)`);
-            }
-            c.extra_info = [extra_info_page_15, c.extra_info];
+            // if( (c.x + c.y) % 4 === 0){
+            //     let i = (c.x+c.y)/4;
+            //     slices = [[{ da0 : 3, da1 : i-4, sa0 : 2}, { da0 : 2, da1 : i-3, sa0 : 2},
+            //      { da0 : 1, da1 : i-2, sa0 : 2}, { da0 : 0, da1 : i-1, sa0 : 2}],
+            //      [{ da0 : 3, da1 : i-4, sa0 : 1, sa1 : 1}, { da0 : 2, da1 : i-3, sa0 : 1, sa1 : 1},
+            //      { da0 : 1, da1 : i-2, sa0 : 1, sa1 : 1}, { da0 : 0, da1 : i-1, sa0 : 1, sa1 : 1}],
+            //      [{ da0 : 1, da1 : i-3, sa0 : 3, sa1 : 1}, { da0 : 0, da1 : i-2, sa0 : 3, sa1 : 1}]
+            //     ]
+            // } else {
+            //     let i = (c.x+c.y-2)/4;
+            //     slices = [
+            //         [{ da0 : 4, da1 : i-4, sa0 : 1}, { da0 : 3, da1 : i-3, sa0 : 1}, { da0 : 2, da1 : i-2, sa0 : 1},
+            //         { da0 : 1, da1 : i-1, sa0 : 1}, { da0 : 0, da1 : i, sa0 : 1}],
+            //         [{ da0 : 2, da1 : i-3, sa0 : 3}, { da0 : 1, da1 : i-2, sa0 : 3}, 
+            //         { da0 : 0, da1 : i-1, sa0 : 3}], 
+            //         [{ da0 : 2, da1 : i-3, sa0 : 2, sa1 : 1}, { da0 : 1, da1 : i-2, sa0 : 2, sa1 : 1}, 
+            //         { da0 : 0, da1 : i-1, sa0 : 2, sa1 : 1}]
+            //     ]
+            // }
+            // let extra_info_page_15 = c.extra_info;
+            // c.extra_info = "";
+            // for(let slice_list of slices){
+            //     let slice_names = [];
+            //     for(let slice of slice_list){
+            //         Object.assign(s, slice);
+            //         slice_names.push(s.toString());
+            //     }
+            //     let str = slice_names.join(", ");
+            //     c.addExtraInfo(`\\(${str}\\)`);
+            // }
+            // c.extra_info = [extra_info_page_15, c.extra_info];
         }
     }
 
 
-    addLoadingMessage(`Added classes in ${getTime()} seconds.`);
+    // addLoadingMessage(`Added classes in ${getTime()} seconds.`);
 
     sseq.on("differential-added", function(d) {
         d.addInfoToSourceAndTarget();
@@ -756,20 +768,18 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
         let target = classes[o.target_type].get(o.target_position).get(o.target_slice);
         sseq.addDifferential(source, target, o.page);
     }
-    addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
-    document.getElementById("loading").style.display =  "none";
+    // addLoadingMessage(`Added differentials in ${getTime()} seconds.`);
+    // document.getElementById("loading").style.display =  "none";
 
     display.setSseq(sseq);
 
     // IO.download("BPC8-1.svg", display.toSVG());
-    addLoadingMessage(`Displayed in ${getTime()} seconds.`);
+    // addLoadingMessage(`Displayed in ${getTime()} seconds.`);
     let t1 = performance.now();
     console.log("Rendered in " + (t1 - t0)/1000 + " seconds.");
 }).catch((err) => console.log(err))
     .then(() => IO.loadFromLocalStore(differential_local_store_key)) // 
-    .then((json) =>{
-        return json
-    }).catch(err => {
+    .catch(err => {
         console.log(err);
         return false;
     }).then((json) => {
@@ -778,10 +788,11 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
             return json;
         }
         console.log("Trying to load from server");
-        return IO.loadFromServer(getJSONFilename(differential_local_store_key))
-    }).then(json => setupDifferentialInterface(json))
+        return IO.loadFromServer(getJSONFilename(load_differential_filename))
+    }).then(json => {console.log("hi"); setupDifferentialInterface(json);})
     .catch(err => {
         console.log(err);
+        setupDifferentialInterface(undefined);
     });
 
 window.saveTruncationSseq = function saveTruncationSseq(){
@@ -838,7 +849,8 @@ window.saveTruncationSseq = function saveTruncationSseq(){
 
 
 function setupDifferentialInterface(json){
-    json = undefined;
+    // json = undefined;
+    console.log(json);
     if(!json || json.version === undefined || json.version < VERSION){
         if(json) {
             console.log("discarding old version.");
@@ -867,6 +879,10 @@ function setupDifferentialInterface(json){
             e.redoFunction = Interface.Undo.redoFunctions[e.type].bind(undo);
             undo.undoStack.push(e);
         }
+    }
+
+    for(let c of sseq.getClassesInDegree(248,248)){
+        c.setPage(29);
     }
 
     differential_family.current_differential = undefined;
@@ -973,7 +989,7 @@ function setupDifferentialInterface(json){
         console.log(differential_family.list);
         undo.addLock();
         IO.saveToLocalStore(differential_local_store_key, differential_family.getSaveObject());
-        IO.download(differential_filename, differential_family.getSaveObject());
+        IO.download(downloand_differential_filename, differential_family.getSaveObject());
         console.log("Saved.");
         display.setStatus("Saved.");
         delayedSetStatus("", 2000);

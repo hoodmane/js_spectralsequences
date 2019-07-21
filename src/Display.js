@@ -634,6 +634,9 @@ class Display extends EventEmitter {
     }
 
     downloadSVG(filename) {
+        if(filename === undefined){
+            filename = `${this.sseq.name}_x-${this.xmin}-${this.xmax}_y-${this.ymin}-${this.ymax}.svg`
+        }
         IO.download(filename, this.toSVG(), "image/svg+xml")
     }
 
