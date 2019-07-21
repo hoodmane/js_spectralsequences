@@ -218,6 +218,7 @@ class SseqClass {
     getMemento(){
         let res = Util.copyFields({}, this);
         res.node_list = res.node_list.map( n => new Node(n));
+        res.node_list.forEach(n => n.highlight = false); // Don't highlight the restored node;
         return res;
     }
 
@@ -226,15 +227,36 @@ class SseqClass {
             if(this.invalid){
                 return;
             }
-            this.sseq.deleteClass(this);
+            this.delete();
             return;
         }
         if(this.invalid){
-            this.sseq.reviveClass(this);
+            this.revive();
         }
         let res = Util.copyFields(this, memento);
         this.node_list = this.node_list.map( n => n.copy());
         return this;
+    }
+
+    delete() {
+        this.invalid = true;
+        let idx = this.sseq.num_classes_by_degree.get([this.x, this.y]);
+        this.sseq.num_classes_by_degree.set([this.x, this.y], idx - 1);
+        this.sseq.total_classes --;
+        this.sseq.classes.splice( this.sseq.classes.indexOf(this), 1 );
+    }
+
+    revive() {
+        this.invalid = false;
+        let idx = this.sseq.num_classes_by_degree.get([this.x, this.y]);
+        this.sseq.num_classes_by_degree.set([this.x, this.y], idx + 1);
+        this.sseq.total_classes ++;
+        this.sseq.classes.push(this);
+
+        // When we delete a class, we delete the edges as well. This adds the
+        // edge deletions to the mutation list. When we restore a class, we do
+        // not have to explicitly restore the edges, since this is taken care
+        // of by the Redo function.
     }
 
     static getDummy(){

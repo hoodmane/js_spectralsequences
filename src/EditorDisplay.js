@@ -20,6 +20,11 @@ class EditorDisplay extends SidebarDisplay {
 
         // Footer
         this.sidebar.footer.newGroup();
+        this.sidebar.footer.addButtonRow([
+            ["Undo", () => this.sseq.undo.undo()],
+            ["Redo", () => this.sseq.undo.redo()]
+        ]);
+
         this.sidebar.footer.addButton("Download SVG", () => this.downloadSVG("sseq.svg"));
         this.sidebar.footer.addButton("Save", () => this.sseq.download("sseq.json"));
 
@@ -62,7 +67,9 @@ class EditorDisplay extends SidebarDisplay {
         this.title_edit_link.addEventListener("click", () => {
             let c = this.selected.c;
             if (this.title_edit_link.innerHTML == "OK") {
+                let old_name = c.name;
                 c.name = this.title_edit_input.value;
+                this.sseq.undo.addValueChange(c, "name", old_name, c.name, () => this.sidebar.showPanel());
                 this.sseq.emit("update");
                 this.nodeTab.show();
             } else {
@@ -92,9 +99,14 @@ class EditorDisplay extends SidebarDisplay {
         });
 
         this.nodeTab.newGroup();
-        this.nodeTab.addLinkedInput("Color", "selected.color", "text");
-        this.nodeTab.addLinkedInput("Size", "selected.size", "number");
-        this.nodeTab.addButton("Delete class", () => { this.sseq.deleteClass(this.selected.c); this.sidebar.showPanel(this.generalPanel) }, { style: "danger" });
+        this.nodeTab.addLinkedInput("Color", "selected.color", "text", "selected.c");
+        this.nodeTab.addLinkedInput("Size", "selected.size", "number", "selected.c");
+        this.nodeTab.addButton("Delete class", () => {
+            this.sseq.startMutationTracking();
+            this.sseq.deleteClass(this.selected.c);
+            this.sseq.addMutationsToUndoStack();
+            this.sidebar.showPanel(this.generalPanel)
+        }, { style: "danger" });
         this.classPanel.addTab("Node", this.nodeTab);
 
         // Differentials tab
@@ -157,8 +169,9 @@ class EditorDisplay extends SidebarDisplay {
         if (this.state == STATE_ADD_CLASS) {
             let x = Math.round(this.xScale.invert(e.clientX));
             let y = Math.round(this.yScale.invert(e.clientY));
+            this.sseq.undo.startMutationTracking();
             this.sseq.addClass(x, y);
-            this.sseq.emit('update');
+            this.sseq.undo.addMutationsToUndoStack();
             this.state = null;
             return;
         }
@@ -185,34 +198,39 @@ class EditorDisplay extends SidebarDisplay {
                     break;
                 }
                 let length = t.y - s.y;
+                this.sseq.undo.startMutationTracking();
                 this.sseq.addDifferential(s, t, length);
-                this.sseq.emit('update');
+                this.sseq.undo.addMutationsToUndoStack();
                 this.sidebar.showPanel();
                 break;
             case STATE_RM_DIFFERENTIAL:
+                this.sseq.undo.startMutationTracking();
                 for (let e of s.edges)
                     if (e.type === "Differential" && e.target == t)
                         sseq.deleteEdge(e);
-                this.sseq.emit('update');
+                this.sseq.undo.addMutationsToUndoStack();
                 this.sidebar.showPanel();
                 break;
             case STATE_ADD_STRUCTLINE:
+                this.sseq.undo.startMutationTracking();
                 this.sseq.addStructline(s, t);
-                this.sseq.emit('update');
+                this.sseq.undo.addMutationsToUndoStack();
                 this.sidebar.showPanel();
                 break;
             case STATE_RM_STRUCTLINE:
+                this.sseq.undo.startMutationTracking();
                 for (let e of s.edges)
                     if (e.type === "Structline" && e.target == t)
                         sseq.deleteEdge(e);
-                this.sseq.emit('update');
+                this.sseq.undo.addMutationsToUndoStack();
                 this.sidebar.showPanel();
                 break;
             case STATE_RM_EDGE:
+                this.sseq.undo.startMutationTracking();
                 for (let e of s.edges)
                     if (e.target == t)
                         sseq.deleteEdge(e);
-                this.sseq.emit('update');
+                this.sseq.undo.addMutationsToUndoStack();
                 this.sidebar.showPanel();
                 break;
             default:

@@ -203,38 +203,30 @@ class Undo {
     }
 
     add(mutations, event_obj) {
-        this.undoStack.push({type:"normal", mutations: mutations, undoFunction : Undo.undoNormal, redoFunction : Undo.redoNormal});
+        this.undoStack.push({type:"normal",  mutations: mutations});
         this.undoObjStack.push(event_obj);
         this.redoStack = [];
         this.redoObjStack = [];
-    };
+    }
+
+    addValueChange(target, prop, before, after, callback) {
+        let e = {type:"value", target: target, prop: prop, before: before, after: after, callback: callback};
+        this.undoStack.push(e);
+        this.undoObjStack.push(e);
+        this.redoStack = [];
+        this.redoObjStack = [];
+    }
+    addManual(e, e_obj) {
+        this.undoStack.push(e);
+        this.undoObjStack.push(e_obj);
+        this.redoStack = [];
+        this.redoObjStack = [];
+    }
 
     clear(){
         this.undoStack = [];
         this.redoStack = [];
     };
-
-
-
-    merge(){
-        let e1 = this.undoStack.pop();
-        let e2 = this.undoStack.pop();
-        this.add(Undo.mergeMutationMaps(e1, e2));
-    };
-
-    static mergeMutationMaps(m1, m2){
-        let res = new Map(m1);
-        for(let kv of m2){
-            let key = kv[0];
-            let value = kv[1];
-            if(res.has(key)){
-                let o = res.get(key);
-                value.before = o.before;
-            }
-            res.set(key, value);
-        }
-        return res;
-    }
 
     undo() {
         if (this.undoStack.length === 0) {
@@ -244,10 +236,19 @@ class Undo {
         this.redoStack.push(e);
         let obj = this.undoObjStack.pop();
         this.redoObjStack.push(obj);
-        e.undoFunction(e);
+        switch (e.type) {
+            case "normal":
+                this.undoNormal(e);
+                break;
+            case "value":
+                e.target[e.prop] = e.before;
+                if (e.callback) e.callback();
+                break;
+        }
+        this.sseq.emit("update");
     };
 
-    static undoNormal(obj){
+    undoNormal(obj){
         let mutations = obj.mutations;
         for(let m of mutations.values()){
             if(m.obj.undoFromMemento){
@@ -256,8 +257,6 @@ class Undo {
                 m.obj.restoreFromMemento(m.before);
             }
         }
-
-        sseq.display_sseq.update();
     }
 
     redo() {
@@ -268,10 +267,19 @@ class Undo {
         this.undoStack.push(e);
         let obj = this.redoObjStack.pop();
         this.undoObjStack.push(obj);
-        e.redoFunction(e);
+        switch (e.type) {
+            case "normal":
+                this.redoNormal(e);
+                break;
+            case "value":
+                e.target[e.prop] = e.after;
+                if (e.callback) e.callback();
+                break;
+        }
+        this.sseq.emit("update");
     };
 
-    static redoNormal(obj){
+    redoNormal(obj){
         let mutations = obj.mutations;
         for(let m of mutations.values()){
             if(m.obj.redoFromMemento){
@@ -280,8 +288,6 @@ class Undo {
                 m.obj.restoreFromMemento(m.after);
             }
         }
-
-        sseq.display_sseq.update();
     }
 
     addLock(msg){

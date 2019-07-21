@@ -115,39 +115,20 @@ class Sseq extends EventEmitter{
         this.serializeClassFields = Sseq.serializeClassFields;
         this.serializeEdgeFields = Sseq.serializeEdgeFields;
         this.serializeNodeFields = Sseq.serializeNodeFields;
+
+        this.undo = new Interface.Undo(this);
     }
 
     startMutationTracking(){
-        if(!this.undo){
-            this.undo = new Interface.Undo(this);
-        }
-        this.mutationMap = new Map();
+        this.undo.startMutationTracking();
     }
 
     addMutationsToUndoStack(event_obj){
-        this.undo.add(this.mutationMap, event_obj);
-        this.mutationMap = undefined;
+        this.undo.addMutationsToUndoStack(event_obj);
     }
 
     addMutation(obj, pre, post){
-        if(!this.mutationMap){
-            return;
-        }
-        if(this.mutationMap.get(obj)){
-            pre = this.mutationMap.get(obj).before;
-        }
-        this.mutationMap.set(obj, {obj: obj, before: pre, after : post});
-    }
-
-    changeObject(obj, callback){
-        if(!this.mutationList){
-            callback();
-            return;
-        }
-        let pre = obj.getMemento();
-        callback();
-        let post = obj.getMemento();
-        this.mutationList.push({obj: obj, before: pre, after : post});
+        this.undo.addMutation(obj, pre, post);
     }
 
     set_shift(x, y){
@@ -275,47 +256,30 @@ class Sseq extends EventEmitter{
         this.total_classes ++;
 
         this.emit("class-added", c);
+        this.emit("update");
         this.addMutation(c, {delete: true}, c.getMemento());
         return c;
     }
 
     deleteClass(c){
-        if(!c || c.invalid){
-            return;
-        }
-        c.invalid = true;
-        let idx  = this.num_classes_by_degree.get([c.x, c.y]);
-        this.num_classes_by_degree.set([c.x, c.y], idx - 1);
-        this.total_classes --;
-        this.classes.splice( this.classes.indexOf(c), 1 );
-
-        for (let e of c.edges) this.deleteEdge(e);
+        this.addMutation(c, c.getMemento(), {delete: true});
+        for (let e of this.edges) this.sseq.deleteEdge(e, true);
+        c.delete();
 
         this.emit("update");
-        return c;
     }
 
-    reviveClass(c){
-        if(!c || !c.invalid){
-            return;
-        }
-        c.invalid = false;
-        let idx  = this.num_classes_by_degree.get([c.x, c.y]);
-        this.num_classes_by_degree.set([c.x, c.y], idx + 1);
-        this.total_classes ++;
-        this.classes.push(c);
-        this.emit("update");
-        return c;
-    }
+    deleteEdge(e, noupdate = false){
+        this.addMutation(e, e.getMemento(), {delete: true});
 
-    deleteEdge(e){
-        return e.delete();
-    }
+        let source_pre = e.source.getMemento();
+        let target_pre = e.target.getMemento();
+        e.delete();
+        this.addMutation(e.source, source_pre, e.source.getMemento());
+        this.addMutation(e.target, target_pre, e.target.getMemento());
 
-    reviveEdge(e){
-        e.revive();
+        if (!noupdate) this.emit("update");
     }
-
 
     /**
      * Adds a structline from source to target.
@@ -337,6 +301,8 @@ class Sseq extends EventEmitter{
             return Structline.getDummy();
         }
         let struct = new Structline(this, source, target);
+        let source_pre = source.getMemento();
+        let target_pre = target.getMemento();
         source._addStructline(struct);
         target._addStructline(struct);
         this.structlines.push(struct);
@@ -344,7 +310,10 @@ class Sseq extends EventEmitter{
         this.edges.push(struct);
         this.emit("edge-added", struct);
         this.emit("structline-added", struct);
+        this.emit("update");
         this.addMutation(struct, {delete: true}, struct.getMemento());
+        this.addMutation(source, source_pre, source.getMemento());
+        this.addMutation(target, target_pre, target.getMemento());
         return struct;
     }
 
@@ -404,6 +373,7 @@ class Sseq extends EventEmitter{
 
         this.emit("edge-added", differential);
         this.emit("differential-added", differential);
+        this.emit("update");
 
         this.addMutation(differential, {delete: true}, differential.getMemento());
         this.addMutation(source, source_pre, source.getMemento());
@@ -430,6 +400,7 @@ class Sseq extends EventEmitter{
 
         this.emit("edge-added", ext);
         this.emit("extension-added", ext);
+        this.emit("update");
 
         this.addMutation(ext, {delete: true}, ext.getMemento());
         return ext;

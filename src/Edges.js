@@ -38,11 +38,11 @@ class Edge {
             if(this.invalid){
                 return;
             }
-            this.sseq.deleteEdge(this);
+            this.delete();
             return;
         }
         if(this.invalid){
-            this.sseq.reviveEdge(this);
+            this.revive();
         }
         Util.copyFields(this, memento);
         return this;

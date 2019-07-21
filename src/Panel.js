@@ -54,6 +54,21 @@ class Panel extends EventEmitter {
         this.currentGroup.appendChild(obj);
     }
 
+    addButtonRow(buttons){
+        let group = this.currentGroup;
+        let o = document.createElement("div");
+        o.className = "form-row";
+        for (let button of buttons) {
+            let c = document.createElement("div");
+            c.className = "col";
+            this.currentGroup = c;
+            this.addButton(...button);
+            o.appendChild(c);
+        }
+        this.currentGroup = group;
+        this.currentGroup.appendChild(o);
+    }
+
     addButton(text, callback, extra = {}) {
         let o = document.createElement("button");
         if (extra.style)
@@ -74,7 +89,7 @@ class Panel extends EventEmitter {
         this.currentGroup.appendChild(o);
     }
 
-    addLinkedInput(label, target, type) {
+    addLinkedInput(label, target, type, mementoObject) {
         let o = document.createElement("div");
         o.className = "form-row mb-2";
         o.style.width = "100%";
@@ -102,18 +117,38 @@ class Panel extends EventEmitter {
         this.links.push([target, i]);
 
         o.addEventListener("change", (e) => {
-            let t = this.display;
-            let l = target.split(".");
-            for (let i = 0; i < l.length - 1; i++) {
-                t = t[l[i]];
-                if (!t) return;
+            let target_pre;
+            if (mementoObject) {
+                mementoObject = Panel.unwrapProperty(this.display, mementoObject.split("."))
+                target_pre = mementoObject.getMemento();
             }
-            t[l[l.length-1]] = e.target.value;
+
+            let l = target.split(".");
+            let prop = l.pop();
+            let t = Panel.unwrapProperty(this.display, l);
+
+            let old_val = t[prop];
+            let new_val = e.target.value;
+            t[prop] = new_val;
+
+            if (mementoObject) {
+                this.display.sseq.undo.startMutationTracking()
+                this.display.sseq.undo.addMutation(mementoObject, target_pre, mementoObject.getMemento())
+                this.display.sseq.undo.addMutationsToUndoStack();
+            } else {
+                this.display.sseq.undo.addValueChange(t, prop, old_val, new_val, () => this.display.sidebar.showPanel());
+            }
 
             this.display.sseq.emit("update");
         });
     }
 
+    static unwrapProperty(start, list) {
+        let t = start;
+        for (let i of list)
+            t = t[i];
+        return t;
+    }
 }
 
 class TabbedPanel extends Panel {
