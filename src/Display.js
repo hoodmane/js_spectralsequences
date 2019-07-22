@@ -525,7 +525,7 @@ class Display extends EventEmitter {
                 context.lineWidth = e.lineWidth;
             }
             if(e.opacity){
-                context.opacity = e.opacity;
+                context.globalAlpha = e.opacity;
             }
             if(e.dash){
                 context.setLineDash(e.dash)
