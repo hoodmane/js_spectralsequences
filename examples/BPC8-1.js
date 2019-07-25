@@ -730,8 +730,8 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
     // The function is bound to display
     display.on("draw", function() {
         let context = this.context;
-        context.clearRect(0, 0, this.width, this.height);
         context.save();
+        this.clipContext(context);
         context.lineWidth = 0.3;
         context.strokeStyle = "#818181";
         let xScale = this.xScale;

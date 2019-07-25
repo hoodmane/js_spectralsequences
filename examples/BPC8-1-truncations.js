@@ -205,8 +205,8 @@ IO.loadFromServer(getJSONFilename("BPC8-truncations")).catch(err => console.log(
     display.on("draw", function () {
         let context = this.context;
         // context.beginPath();
-        context.clearRect(0, 0, sseq.width, sseq.height);
         context.save();
+        this.clipContext(context);
         context.lineWidth = 0.3;
         context.strokeStyle = "#818181";
         let xScale = this.xScale;

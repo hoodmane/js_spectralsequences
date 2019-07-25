@@ -141,8 +141,8 @@ IO.loadFromServer(getJSONFilename("BPC4-2-E13")).then(function(json){
 
     display.on("draw", function() {
         let context = this.context;
-        context.clearRect(0, 0, this.width, this.height);
         context.save();
+        this.clipContext(context);
         context.lineWidth = 0.3;
         context.strokeStyle = "#818181";
         let xScale = this.xScale;
@@ -155,6 +155,7 @@ IO.loadFromServer(getJSONFilename("BPC4-2-E13")).then(function(json){
         context.stroke();
         context.restore();
         context.save();
+        this.clipContext(context);
         context.beginPath();
         context.lineWidth = 1;
         context.strokeStyle = "#9d9d9d";

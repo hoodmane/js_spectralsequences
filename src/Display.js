@@ -208,6 +208,15 @@ class Display extends EventEmitter {
         }
     }
 
+    clipContext(ctx) {
+        ctx.beginPath();
+        ctx.globalAlpha = 0; // C2S does not correctly clip unless the clip is stroked.
+        ctx.rect(this.leftMargin, this.topMargin, this.plotWidth, this.plotHeight);
+        ctx.stroke();
+        ctx.clip();
+        ctx.globalAlpha = 1;
+    }
+
     _drawSseq(ctx = this.context) {
         if (!this.sseq) return;
 
@@ -221,12 +230,7 @@ class Display extends EventEmitter {
 
         ctx.save();
 
-        ctx.beginPath();
-        ctx.globalAlpha = 0; // C2S does not correctly clip unless the clip is stroked.
-        ctx.rect(this.leftMargin, this.topMargin, this.plotWidth, this.plotHeight);
-        ctx.stroke();
-        ctx.clip();
-        ctx.globalAlpha = 1;
+        this.clipContext(ctx);
 
         let [classes, edges] = this.sseq.getDrawnElements(this.pageRange, this.xmin, this.xmax, this.ymin, this.ymax);
 
