@@ -546,6 +546,7 @@ let Groups = {};
 let SseqNode = Node;
 Groups.Z = new SseqNode();
 Groups.Z.fill = "white";
+Groups.Z.color = false;
 Groups.Z.shape = Shapes.square;
 Groups.Z.size = 8;
 
@@ -987,7 +988,7 @@ function setupDifferentialInterface(json){
         console.log(differential_family.list);
         undo.addLock();
         IO.saveToLocalStore(differential_local_store_key, differential_family.getSaveObject());
-        IO.download(downloand_differential_filename, differential_family.getSaveObject());
+        IO.download(download_differential_filename, differential_family.getSaveObject());
         console.log("Saved.");
         setStatus("Saved.");
         delayedSetStatus("", 2000);
@@ -1048,3 +1049,45 @@ function copyToClipboard(text) {
         }
     }
 }
+
+
+window.saveSseq = function saveSseq(){
+    max_x = sseq.xRange[1];
+    max_y = sseq.yRange[1];
+    let result = {};
+    result.max_diagonal = max_diagonal;
+    result.max_x = max_x;
+    result.max_y = max_y;
+    result.classes = [];
+    result.differentials = [];
+    let classes = new Set(sseq.getClasses().filter(c =>  c.x <= max_x && c.y <= max_y));
+    let differentials = sseq.getDifferentials().filter(d => d.source.x <= max_x + 1 && d.source.y <= max_y);
+    for(let d of differentials){
+        classes.add(d.target);
+        if(d.source.x === max_x + 1){
+            classes.add(d.source);
+        }
+    }
+    classes = Array.from(classes);
+
+    for(let c of classes) {
+        let o = {};
+        o.x = c.x;
+        o.y = c.y;        
+        o.name = c.name;
+        o.color = c.getColor(0);        
+        o.page_list = c.page_list;
+        o.group_list = c.group_list;
+        o.extra_info = c.extra_info;
+        c.json_idx = result.classes.length;
+        result.classes.push(o);
+    }
+    for(let d of differentials){
+        let o = {};
+        o.source = d.source.json_idx;
+        o.target = d.target.json_idx;
+        o.page = d.page;
+        result.differentials.push(o);
+    }
+    return result;
+};
