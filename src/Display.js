@@ -225,8 +225,8 @@ class Display extends EventEmitter {
 
         ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
 
-        this._drawAxes(ctx);
         this._drawTicks(ctx);
+        this._drawAxes(ctx);
 
         ctx.save();
 
@@ -239,7 +239,11 @@ class Display extends EventEmitter {
         this._drawEdges(ctx, edges);
         this._drawClasses(ctx);
 
+        if (this.sseq.edgeLayerSVG)
+            this.drawSVG(ctx, this.sseq.edgeLayerSVG);
+
         ctx.restore();
+
         this.emit("draw");
     }
 
