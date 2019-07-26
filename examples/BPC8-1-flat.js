@@ -81,8 +81,7 @@ IO.loadFromServer(getJSONFilename(sseq_filename)).then(function(json){
     sseq.initialxRange = [0, Math.floor(16/9 * y_initial)];
     sseq.initialyRange = [0, y_initial];
     sseq.class_scale = 0.4;
-    let dss = sseq.getDisplaySseq();
-    dss.squareAspectRatio = true;
+    sseq.squareAspectRatio = true;
 
     for(let o of json.classes){
         if(o.color == "blue" && o.group_list.length === 1){
@@ -119,8 +118,6 @@ IO.loadFromServer(getJSONFilename(sseq_filename)).then(function(json){
         }
     }
 
-
-    sseq.updateAll();
-    dss.display('#main');
+    new BasicDisplay("#main", sseq);
     console.log(`Rendered in ${getTime()} seconds.`);
 }).catch(err => console.log(err));
