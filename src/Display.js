@@ -225,8 +225,8 @@ class Display extends EventEmitter {
 
         ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
 
-        this._drawAxes(ctx);
         this._drawTicks(ctx);
+        this._drawAxes(ctx);
 
         ctx.save();
 
