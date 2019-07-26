@@ -809,7 +809,13 @@ class Sseq extends EventEmitter{
     static fromJSONObject(json) {
         let sseq = new Sseq();
 
-        for (let field of Sseq.serializeSseqFields) {
+        let serializeSseqFields;
+        if (json.serializeSseqFields)
+            serializeSseqFields = json.serializeSseqFields;
+        else
+            serializeSseqFields = Sseq.serializeSseqFields;
+
+        for (let field of serializeSseqFields) {
             if (json[field]) sseq[field] = json[field];
         }
 

@@ -239,7 +239,11 @@ class Display extends EventEmitter {
         this._drawEdges(ctx, edges);
         this._drawClasses(ctx);
 
+        if (this.sseq.edgeLayerSVG)
+            this.drawSVG(ctx, this.sseq.edgeLayerSVG);
+
         ctx.restore();
+
         this.emit("draw");
     }
 
