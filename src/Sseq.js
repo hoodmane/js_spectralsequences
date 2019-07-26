@@ -1,6 +1,5 @@
 "use strict";
 
-let DisplaySseq = require("./DisplaySseq.js").DisplaySseq;
 let Shapes = require("./Shape.js");
 let SseqClassjs = require("./SseqClass.js");
 let SseqClass = SseqClassjs.SseqClass;
@@ -17,8 +16,10 @@ let Util = require("./Util.js");
 let infinity = Util.infinity;
 let IO = require("./SaveLoad");
 let sseqDatabase = IO.sseqDatabase;
+let EventEmitter = require('events');
+let StringifyingMap = require("./StringifyingMap.js");
+let Interface = require("./Interface.js");
 
-exports.DisplaySseq = DisplaySseq;
 exports.SseqClass = SseqClass;
 exports.Node = Node;
 exports.Edge = Edge;
@@ -27,7 +28,6 @@ exports.Structline = Structline;
 exports.Extension = Extension;
 exports.monomialString = monomial_basisjs.monomialString;
 exports.range = monomial_basisjs.range;
-exports.StringifyingMap = monomial_basisjs.StringifyingMap;
 exports.product = monomial_basisjs.product;
 exports.vectorSum = monomial_basisjs.vectorSum;
 exports.vectorScale = monomial_basisjs.vectorScale;
@@ -36,9 +36,6 @@ exports.dictionaryVectorSum = monomial_basisjs.dictionaryVectorSum;
 exports.dictionaryVectorScale = monomial_basisjs.dictionaryVectorScale;
 exports.dictionaryVectorLinearCombination = monomial_basisjs.dictionaryVectorLinearCombination;
 
-
-
-let StringifyingMap = require("./StringifyingMap.js");
 
 
 
@@ -74,32 +71,27 @@ function addToDictionaryOfLists(dictionary, key,value){
 
 
 
-class Sseq {
+class Sseq extends EventEmitter{
     /**
      * Make a spectral sequence object.
      * Key properties:
      *
      */
     constructor(){
-        this.display_sseq = new DisplaySseq();
-        this.display_class_to_real_class = new StringifyingMap((c) => `${c.x}, ${c.y}, ${c.unique_id}`);
-        this.display_edge_to_real_edge = new StringifyingMap((e) =>
-            `${e.type} : (${e.source.x}, ${e.source.y}, ${e.source.unique_id}) => (${e.target.x}, ${e.target.y}, ${e.target.unique_id})`
-        );
+        super();
+
         this.total_classes = 0;
+        this.xRange = [0, 100];
+        this.yRange = [0, 100];
         this.initialxRange = [0, 10];
         this.initialyRange = [0, 10];
         this.classes_by_degree = new StringifyingMap();
         this.num_classes_by_degree = new StringifyingMap();
         this.classes_by_stem = new Map();
         this.classes = [];
-        this.class_tooltip_fields = ["extra_info"];
         this.structlines = [];
         this.differentials = [];
         this.edges = [];
-        this.display_classes = [];        
-        this.display_structlines = [];
-        this.display_differentials = [];
         this.xshift = 0;
         this.yshift = 0;        
         this.offset_size = 0.3;
@@ -107,6 +99,7 @@ class Sseq {
         this.min_page_idx = 0;
         this.page_list = [0,infinity];
         this.default_node = new Node();
+        this.default_node.hcolor = "red";
         this.default_node.fill = true;
         this.default_node.stroke = true;
         this.default_node.shape = Shapes.circle;
@@ -118,56 +111,24 @@ class Sseq {
         this.products = [];
         this.selectedClasses = [];
 
-        this._sseq_update_fields = [""];
-
-        this._class_update_fields = [
-            "x", "y", "idx", "unique_id", "x_offset", "y_offset",
-            "name", "save_name", "extra_info", "page_list", "node_list",
-            "visible", "class_tooltip_fields",
-            "_classInRangeQ", "_drawOnPageQ", "selected", "invalid"
-        ];
-
-        this._edge_update_fields = [
-            "page", "page_min", "color", "source_name", "target_name",
-            "_drawOnPageQ", "visible", "bend", "opacity", "dash", "lineWidth",
-            "source_name", "target_name"
-        ];
         this.serializeSseqFields = Sseq.serializeSseqFields;
         this.serializeClassFields = Sseq.serializeClassFields;
         this.serializeEdgeFields = Sseq.serializeEdgeFields;
+        this.serializeNodeFields = Sseq.serializeNodeFields;
+
+        this.undo = new Interface.Undo(this);
     }
 
     startMutationTracking(){
-        if(!this.undo){
-            this.undo = new Interface.Undo(this);
-        }
-        this.mutationMap = new Map();
+        this.undo.startMutationTracking();
     }
 
     addMutationsToUndoStack(event_obj){
-        this.undo.add(this.mutationMap, event_obj);
-        this.mutationMap = undefined;
+        this.undo.addMutationsToUndoStack(event_obj);
     }
 
     addMutation(obj, pre, post){
-        if(!this.mutationMap){
-            return;
-        }
-        if(this.mutationMap.get(obj)){
-            pre = this.mutationMap.get(obj).before;
-        }
-        this.mutationMap.set(obj, {obj: obj, before: pre, after : post});
-    }
-
-    changeObject(obj, callback){
-        if(!this.mutationList){
-            callback();
-            return;
-        }
-        let pre = obj.getMemento();
-        callback();
-        let post = obj.getMemento();
-        this.mutationList.push({obj: obj, before: pre, after : post});
+        this.undo.addMutation(obj, pre, post);
     }
 
     set_shift(x, y){
@@ -176,42 +137,20 @@ class Sseq {
         return this;
    }
 
+   get minX() { return this.xRange[0]; }
+   get minY() { return this.yRange[0]; }
+   get maxX() { return this.xRange[1]; }
+   get maxY() { return this.yRange[1]; }
+   set minX(x) { this.xRange[0] = parseInt(x); }
+   set minY(y) { this.yRange[0] = parseInt(y); }
+   set maxX(x) { this.xRange[1] = parseInt(x); }
+   set maxY(y) { this.yRange[1] = parseInt(y); }
+
    add_to_shift(x, y){
         this.xshift += x;
         this.yshift += y;
         return this;
    }
-
-    onClassAdded(f){
-        this.on_class_added = f;
-        return this;
-    }
-
-    onEdgeAdded(f){
-        this.on_edge_added = f;
-        return this;
-    }
-
-    onDifferentialAdded(f){
-        this.on_differential_added = f;
-        return this;
-    }
-
-    onStructlineAdded(f){
-        this.on_structline_added = f;
-        return this;
-    }
-
-    onExtensionAdded(f){
-        this.on_extension_added = f;
-        return this;
-    }
-
-    onDraw(f){
-        this.on_draw = f;
-        this.display_sseq.on_draw = f;
-    }
-
 
     getClasses(){
         return this.classes;
@@ -237,7 +176,7 @@ class Sseq {
         for(let c of this.classes){
             c.selected = false;
         }
-        this.updateAll();
+        this.emit('update');
         return this;
     }
 
@@ -246,7 +185,6 @@ class Sseq {
             return this;
         }
         c.selected = selectOrUnselect;
-        this.updateClass(c);
         return this;
     }
 
@@ -258,7 +196,7 @@ class Sseq {
         for(let c of this.getClasses()){
             c.selected = false;
         }
-        this.updateAll();
+        this.emit('update');
     }
 
     getPotentialTargets(c){
@@ -317,56 +255,31 @@ class Sseq {
         addToDictionaryOfLists(this.classes_by_stem, c.x , c);
         this.total_classes ++;
 
-        if(this.on_class_added){
-            this.on_class_added(c);
-        }
-        c.display_class = {};
-        this.display_sseq.classes[c.class_list_index] = c.display_class;
-        this.updateClass(c);
-        this.display_class_to_real_class.set(c.display_class, c);
-        // this.display_sseq.update(); // Update the display if it exists.
+        this.emit("class-added", c);
+        this.emit("update");
         this.addMutation(c, {delete: true}, c.getMemento());
         return c;
     }
 
     deleteClass(c){
-        if(!c || c.invalid){
-            return;
-        }
-        c.invalid = true;
-        c.display_class.invalid = true;
-        let idx  = this.num_classes_by_degree.get([c.x, c.y]);
-        this.num_classes_by_degree.set([c.x, c.y], idx - 1);
-        this.total_classes --;
-        this.classes.splice( this.classes.indexOf(c), 1 );
-        this.updateClass(c);
-        // this.display_sseq.update();
-        return c;
+        this.addMutation(c, c.getMemento(), {delete: true});
+        for (let e of this.edges) this.sseq.deleteEdge(e, true);
+        c.delete();
+
+        this.emit("update");
     }
 
-    reviveClass(c){
-        if(!c || !c.invalid){
-            return;
-        }
-        c.invalid = false;
-        c.display_class.invalid = false;
-        let idx  = this.num_classes_by_degree.get([c.x, c.y]);
-        this.num_classes_by_degree.set([c.x, c.y], idx + 1);
-        this.total_classes ++;
-        this.classes.push(c);
-        this.updateClass(c);
-        // this.display_sseq.update();
-        return c;
-    }
+    deleteEdge(e, noupdate = false){
+        this.addMutation(e, e.getMemento(), {delete: true});
 
-    deleteEdge(e){
-        return e.delete();
-    }
+        let source_pre = e.source.getMemento();
+        let target_pre = e.target.getMemento();
+        e.delete();
+        this.addMutation(e.source, source_pre, e.source.getMemento());
+        this.addMutation(e.target, target_pre, e.target.getMemento());
 
-    reviveEdge(e){
-        e.revive();
+        if (!noupdate) this.emit("update");
     }
-
 
     /**
      * Adds a structline from source to target.
@@ -388,19 +301,19 @@ class Sseq {
             return Structline.getDummy();
         }
         let struct = new Structline(this, source, target);
+        let source_pre = source.getMemento();
+        let target_pre = target.getMemento();
         source._addStructline(struct);
         target._addStructline(struct);
         this.structlines.push(struct);
         struct.edge_list_index = this.edges.length;
         this.edges.push(struct);
-        if(this.on_edge_added){
-            this.on_edge_added(struct);
-        }
-        if(this.on_structline_added){
-            this.on_structline_added(struct);
-        }
-        this.setupDisplayEdge(struct);
+        this.emit("edge-added", struct);
+        this.emit("structline-added", struct);
+        this.emit("update");
         this.addMutation(struct, {delete: true}, struct.getMemento());
+        this.addMutation(source, source_pre, source.getMemento());
+        this.addMutation(target, target_pre, target.getMemento());
         return struct;
     }
 
@@ -457,13 +370,11 @@ class Sseq {
         this.differentials.push(differential);
         this.edges.push(differential);
         this.addPageToPageList(page);
-        if(this.on_edge_added){
-            this.on_edge_added(differential);
-        }
-        if(this.on_differential_added){
-            this.on_differential_added(differential);
-        }
-        this.setupDisplayEdge(differential);
+
+        this.emit("edge-added", differential);
+        this.emit("differential-added", differential);
+        this.emit("update");
+
         this.addMutation(differential, {delete: true}, differential.getMemento());
         this.addMutation(source, source_pre, source.getMemento());
         this.addMutation(target, target_pre, target.getMemento());
@@ -486,13 +397,11 @@ class Sseq {
         let ext = new Extension(this, source, target);
         ext.edge_list_index = this.edges.length;
         this.edges.push(ext);
-        if(this.on_edge_added){
-            this.on_edge_added(ext);
-        }
-        if(this.on_extension_added){
-            this.on_extension_added(ext);
-        }
-        this.setupDisplayEdge(ext);
+
+        this.emit("edge-added", ext);
+        this.emit("extension-added", ext);
+        this.emit("update");
+
         this.addMutation(ext, {delete: true}, ext.getMemento());
         return ext;
     }
@@ -615,66 +524,6 @@ class Sseq {
         return false;
     }
 
-    setupDisplayEdge(edge) {
-        let display_edge = {};
-        edge.display_edge = display_edge;
-        this.display_sseq.edges[edge.edge_list_index] = display_edge;
-        display_edge.source = edge.source.display_class;
-        display_edge.target = edge.target.display_class;
-        display_edge.type = edge.constructor.name;
-        this.display_edge_to_real_edge.set(edge.display_edge, edge);
-        this.updateEdge(edge);
-        //this.display_sseq.update();
-    }
-
-    display(div){
-        let dss = this.getDisplaySseq();
-        this.updateAll();
-        dss.display(div);
-        return dss;
-    }
-
-    update(){
-        this.display_sseq.update();
-    }
-
-    updateAll(){
-        Util.assignFields(this.display_sseq, this, this._sseq_update_fields);
-        for(let c of this.classes){
-            this.updateClass(c);
-        }
-        for(let e of this.edges){
-            this.updateEdge(e);
-        }
-        this.display_sseq.update();
-    }
-
-    updateObject(o){
-        if(o.constructor === SseqClass){
-            this.updateClass(o);
-        } else {
-            this.updateEdge(o);
-        }
-    }
-
-    updateClass(c){
-        Util.assignFields(c.display_class, c, this._class_update_fields);
-        Util.assignFields(c.display_class, c, this.class_tooltip_fields);
-        c.display_class.tooltip = undefined;
-        // Crappy fix for a bug when the list of indices changes.
-        this.display_sseq.getClassNode(c.display_class, -1);
-    }
-
-    //
-    updateEdge(edge){
-       if(edge.isDummy()){
-           return;
-       }
-       let display_edge = edge.display_edge;
-       Util.assignFields(display_edge, edge, this._edge_update_fields);
-       //this.display_sseq.updateAll();
-    }
-
     decrementClassIndex(c){
        let classes = this.getClassesInDegree(c.x,c.y);
        let idx = c.idx;
@@ -685,9 +534,6 @@ class Sseq {
            if(c2.idx === idx - 1){
                c.idx --;
                c2.idx ++;
-               // this.updateClass(c);
-               // this.updateClass(c2);
-               // this.display_sseq.updateAll();
                return;
            }
        }
@@ -703,9 +549,6 @@ class Sseq {
             if(c2.idx === idx + 1){
                 c.idx ++;
                 c2.idx --;
-                // this.updateClass(c);
-                // this.updateClass(c2);
-                // this.display_sseq.updateAll();
                 return;
             }
         }
@@ -799,111 +642,227 @@ class Sseq {
         return this.classes.filter((c) => c.page_list[c.page_list.length-1] >= page);
     }
 
-
-
-    static getSseqFromDisplay(dss){
-        let sseq = new Sseq();
-        dss.real_sseq = sseq;
-        Object.assign(sseq, dss);
-        sseq.num_classes_by_degree = new StringifyingMap();
-        sseq.classes = [];
-        sseq.edges = [];
-        sseq.display_class_to_real_class = new StringifyingMap((c) => `${c.x}, ${c.y}, ${c.unique_id}`);
-
-        let classes = dss.classes;
-        let edges = dss.edges;
-
-
-        for(let display_class of classes){
-            if(!display_class){
-                continue;
+    /**
+     * This returns the classes and edges that should be displayed on the current page and view range.
+     *
+     * @param page
+     * @param xmin
+     * @param xmax
+     * @param ymin
+     * @param ymax
+     * @package
+     */
+    getDrawnElements(page, xmin, xmax, ymin, ymax) {
+        Util.checkArgumentsDefined(Sseq.prototype.getDrawnElements, arguments);
+        let pageRange;
+        // TODO: clean up pageRange. Probably we should always pass pages as pairs?
+        if (Array.isArray(page)) {
+            pageRange = page;
+            page = page[0];
+        } else {
+            pageRange = [page, page];
+        }
+        let display_classes = this.classes.filter(c => {
+            if (!c) {
+                return false;
             }
-            let real_class = sseq.addClass(display_class.x,display_class.y);
-            real_class.unique_id = display_class.unique_id;
-            Object.assign(real_class, display_class);
+            c.in_range = Sseq._classInRangeQ(c, xmin, xmax, ymin, ymax);
+            return c.in_range && Sseq._drawClassOnPageQ(c, page);
+        });
+        // Display edges such that
+        // 1) e is a valid edge
+        // 2) e is supposed to be drawn on the current pageRange.
+        // 3) e.source and e.target are supposed to be drawn on the current pageRange
+        // 4) At least one of the source or target is in bounds.
+        let display_edges = this.edges.filter(e =>
+            e &&
+            Sseq._drawEdgeOnPageQ(e, pageRange)
+            && Sseq._drawClassOnPageQ(e.source, page) && Sseq._drawClassOnPageQ(e.target, page)
+            && (e.source.in_range || e.target.in_range)
+        );
 
-            real_class.constructor = SseqClass.constructor;
-            real_class.display_class = display_class;
-            sseq.display_class_to_real_class.set(display_class, real_class);
-            sseq.updateClass(real_class);
+        // We need to go back and make sure that for every edge we are planning to  draw, we draw both its source and
+        // target even if one of them is out of bounds. Check for out of bounds sources / targets and add them to the
+        // list of edges to draw.
+        for (let e of display_edges) {
+            if (!e.source.in_range) {
+                display_classes.push(e.source);
+            }
+            if (!e.target.in_range) {
+                display_classes.push(e.target);
+            }
         }
 
-        for(let display_edge of edges){
-            if(!display_edge){
-                continue;
-            }
-            // Ensure source has a lower y value than target.
-            if(display_edge.source.y > display_edge.target.y){
-               let temp = display_edge.target;
-                display_edge.target = display_edge.source;
-                display_edge.source = temp;
-            }
+        return [display_classes, display_edges];
+    }
 
-            let real_edge;
-            let source = sseq.display_class_to_real_class.get(display_edge.source);
-            let target = sseq.display_class_to_real_class.get(display_edge.target);
-            switch(display_edge.type){
-                case "Differential" :
+    /**
+     * For c a class, check if `xmin <= c.x <= xmax` and `ymin <= c.y <= ymax`
+     * @param c
+     * @param xmin
+     * @param xmax
+     * @param ymin
+     * @param ymax
+     * @returns {boolean}
+     * @private
+     */
+    static _classInRangeQ(c, xmin, xmax, ymin, ymax) {
+        return xmin <= c.x && c.x <= xmax && ymin <= c.y && c.y <= ymax;
+    }
+
+    /**
+     * Check whether `page` is less than the maximum draw page for the `c`.
+     * @param c
+     * @param page
+     * @returns {boolean}
+     * @private
+     */
+    static _drawClassOnPageQ(c, page) {
+        if (c._drawOnPageQ) {
+            return c._drawOnPageQ(page);
+        } else {
+            return SseqClass.prototype._drawOnPageQ.call(c, page);
+        }
+    }
+
+    /**
+     * Check whether the edge should be drawn on the given page / pageRange. The behavior depends on whether the edge is a
+     * Differential, Structline, or Extension.
+     * @param edge
+     * @param pageRange
+     * @returns {boolean}
+     * @private
+     */
+    static _drawEdgeOnPageQ(edge, pageRange) {
+        if (edge._drawOnPageQ) {
+            return edge._drawOnPageQ(pageRange);
+        } else {
+            switch (edge.type) {
+                case "Differential":
+                    return Differential.prototype._drawOnPageQ.call(edge, pageRange);
+                case "Extension":
+                    return Extension.prototype._drawOnPageQ.call(edge, pageRange);
+                case "Structline":
+                    return Structline.prototype._drawOnPageQ.call(edge, pageRange);
+                default:
+                    return Edge.prototype._drawOnPageQ.call(edge, pageRange);
+
+            }
+        }
+    }
+
+    /**
+     * If multiple classes are in the same (x,y) location, we offset their position a bit to avoid clashes.
+     * Gets called by display code.
+     * @returns {number} The x offset
+     * @package
+     */
+    _getXOffset(c, page) {
+        if (c.x_offset !== false) {
+            return c.x_offset * this.offset_size;
+        }
+        let total_classes = this.num_classes_by_degree.get([c.x, c.y]);
+        let idx = c.idx;
+        let out = (idx - (total_classes - 1) / 2) * this.offset_size;
+        if (isNaN(out)) {
+            console.log("Invalid offset for class:",c);
+            return 0;
+        }
+        return out;
+    }
+
+    /**
+     * If multiple classes are in the same (x,y) location, we offset their position a bit to avoid clashes.
+     * Gets called by display code.
+     * @returns {number} The y offset
+     * @package
+     */
+    _getYOffset(c, page) {
+        if (c.y_offset !== false) {
+            return c.y_offset  * this.offset_size;
+        }
+        let total_classes = this.num_classes_by_degree.get([c.x, c.y]);
+        let idx = c.idx;
+        let out = -(idx - (total_classes - 1) / 2) * this.offset_size;
+        if (isNaN(out)) {
+            console.log("Invalid offset for class:", c);
+            return 0;
+        }
+        return out;
+    }
+
+    /**
+     * Gets the node to be drawn for the class on the given page. Used primarily by display.
+     * @param c
+     * @param page
+     * @returns {*}
+     */
+    getClassNode(c, page) {
+        return c.node_list[SseqClass.prototype._getPageIndex.call(c, page)];
+    }
+
+    exportToTex(filename, page, xmin, xmax, ymin, ymax){
+        ExportToTex.DownloadSpectralSequenceTex(filename, this, page, xmin, xmax, ymin, ymax);
+    }
+
+
+    static fromJSONObject(json) {
+        let sseq = new Sseq();
+
+        for (let field of Sseq.serializeSseqFields) {
+            if (json[field]) sseq[field] = json[field];
+        }
+
+        sseq.default_node = new Node(sseq.default_node);
+        sseq.default_node.shape = Shapes[sseq.default_node.shape.name];
+
+        // We assume json.classes is an array but addClass can fail? Maybe
+        // revisit this assumption
+        let class_idx = [];
+
+        let mnl = json.master_node_list;
+        for (let c of json.classes) {
+            let rc = sseq.addClass(c.x, c.y);
+            Object.assign(rc, c);
+            rc.node_list = rc.node_list.map(x => new Node(mnl[x]));
+            for (let n of rc.node_list) {
+                n.shape = Shapes[n.shape.name];
+            }
+            class_idx.push(rc);
+        }
+
+        for (let e of json.edges) {
+            let source = class_idx[e.source];
+            let target = class_idx[e.target];
+
+            if (source.y > target.y) {
+                [source, target] = [target, source];
+            }
+            let re;
+
+            switch (e.type) {
+                case "Differential":
                     // Save and restore page_list of source and target to make sure adding the differential doesn't change
                     // it (the effect of this differential should already be taken into account in page_list).
                     let source_page_list = source.page_list.slice();
                     let target_page_list = target.page_list.slice();
-                    real_edge = sseq.addDifferential(source, target, display_edge.page);
+                    re = sseq.addDifferential(source, target, e.page);
                     source.page_list = source_page_list;
                     target.page_list = target_page_list;
                     break;
-                case "Extension":
-                    real_edge = sseq.addExtension(source, target);
+                case "Structline":
+                    re = sseq.addStructline(source, target);
                     break;
-                case "Structline" :
-                default:
-                    real_edge = sseq.addStructline(source, target);
+                case "Extension":
+                    re = sseq.addExtension(source, target);
                     break;
             }
-            Object.assign(real_edge, display_edge);
-            real_edge.source = source;
-            real_edge.target = target;
-            real_edge.display_edge = display_edge;
-            sseq.updateEdge(real_edge);
+            Object.assign(re, e);
+            // This overwrote re.source and re.target
+            re.source = source;
+            re.target = target;
         }
-        sseq.display_sseq = dss;
-        sseq.getDisplaySseq();
         return sseq;
-    }
-
-    // TODO: This shouldn't have side effects?
-    getDisplaySseq(){
-        let dss = this.display_sseq;
-        dss.real_sseq = this;
-        dss.min_page_idx = this.min_page_idx;
-        dss.initial_page_idx = this.initial_page_idx;
-        dss.page_list = this.page_list;
-        dss.initialxRange = this.initialxRange;
-        dss.initialyRange = this.initialyRange;
-        dss.xRange = this.xRange;
-        dss.yRange = this.yRange;
-        dss.on_draw = this.on_draw;
-        dss.class_scale = this.class_scale;
-        dss.num_classes_by_degree = this.num_classes_by_degree;
-        dss.serializeSseqFields = this.serializeSseqFields;
-        dss.serializeClassFields = this.serializeClassFields;
-        dss.serializeEdgeFields = this.serializeEdgeFields;
-        dss.class_tooltip_fields = this.class_tooltip_fields;
-
-        if(this._getXOffset){
-            dss._getXOffset = this._getXOffset;
-        }
-        if(this._getYOffset){
-            dss._getYOffset = this._getYOffset;
-        }
-        if(this.offset_size){
-            dss.offset_size = this.offset_size;
-        }
-        if(this.onmouseoverClass){
-            dss.onmouseoverClass = this.onmouseoverClass;
-        }
-
-        return dss;
     }
 
     deleteDuplicateEdges(){
@@ -926,8 +885,6 @@ class Sseq {
         }
         if(!this.serializeSseqFields.includes(field)){
             this.serializeSseqFields.push(field);
-            // Currently dss has a reference to the same array.
-            //this.display_sseq.serializeSseqFields = this.serializeSseqFields;
         }
     }
 
@@ -938,8 +895,6 @@ class Sseq {
         }
         if(!this.serializeClassFields.includes(field)){
             this.serializeClassFields.push(field);
-            // Currently dss has a reference to the same array.
-            //this.display_sseq.serializeSseqFields = this.serializeSseqFields;
         }
     }
 
@@ -950,8 +905,6 @@ class Sseq {
         }
         if(!this.serializeEdgeFields.includes(field)){
             this.serializeEdgeFields.push(field);
-            // Currently dss has a reference to the same array.
-            //this.display_sseq.serializeSseqFields = this.serializeSseqFields;
         }
     }
 
@@ -961,7 +914,7 @@ class Sseq {
 
     static upload(){
        return IO.upload().then(json => {
-           return DisplaySseq.fromJSONObject(JSON.parse(json));
+           return Sseq.fromJSONObject(JSON.parse(json));
        });
     }
 
@@ -992,77 +945,88 @@ class Sseq {
         if(!json){
             json = await IO.loadFromServer(path);
         }
-        let sseq = DisplaySseq.fromJSONObject(json);
+        let sseq = Sseq.fromJSONObject(json);
         sseq.path = path;
         return sseq;
     }
 
     static async loadFromServer(path){
        let json = await IO.loadFromServer(path);
-       return DisplaySseq.fromJSONObject(json);
+       return Sseq.fromJSONObject(json);
     }
 
     static async loadFromLocalStore(key){
        let json = await IO.loadFromLocalStore(key);
        console.log(json);
-       return DisplaySseq.fromJSONObject(json);
+       return Sseq.fromJSONObject(json);
     }
 
+    // This is hacky. Need to choose which properties to keep.
+    static _serializeNode(node) {
+        let n = {};
+        for (let field of this.serializeNodeFields) {
+            if (node[field]) n[field] = node[field];
+        }
+        return n;
+    }
 
     toJSON() {
-       for(let field of this.serializeSseqFields) {
-           if(this[field]){
-               this.display_sseq[field] = this[field];
-           }
-       }
+        let json = {};
 
-       for(let c of this.getClasses()) {
-           for(let field of this.serializeClassFields){
-               if(c[field]){
-                   c.display_class[field] = c[field];
-               }
-           }
-       }
-       for(let e of this.getEdges()) {
-            for(let field of this.serializeEdgeFields){
-                if(e[field]){
-                    e.display_edge[field] = e[field];
-                }
-            }
-       }
-
-       let json = this.getDisplaySseq().toJSON();
-       for(let c of this.getClasses()) {
-           this.display_class_to_real_class.set(c.display_class, c);
-       }
-       return json;
-    }
-
-    // TODO: add check that this spectral sequence is the one being displayed?
-    downloadSVG(filename){
-        let display = sseq.display_sseq.display_object;
-        if(filename === undefined){
-            filename = `${this.name}_x-${display.xmin}-${display.xmax}_y-${display.ymin}-${display.ymax}.svg`
+        for(let field of this.serializeSseqFields){
+            json[field] = this[field];
         }
-        IO.download(filename, display.toSVG());
-    }
 
+        // Make a map of each node that occurs at least once. We're going to replace the class.node_list with the indices
+        // of the node in the master_node_list.
+        let node_map = new StringifyingMap((n) => JSON.stringify(Sseq._serializeNode(n)));
+        json.master_node_list = [];
+        json.classes = [];
+        json.edges = [];
+
+        for (let c of this.classes) {
+            if (c.invalid) {
+                continue;
+            }
+            let cs = {};
+            // Copy fields that we serialize
+            for(let field of this.serializeClassFields){
+                cs[field] = c[field];
+            }
+            cs.node_list = [];
+            // Replace node_list with list of master_node_list indices.
+            for(let cur_node of c.node_list){
+                if(!node_map.has(cur_node)){
+                    node_map.set(cur_node, json.master_node_list.length);
+                    json.master_node_list.push(Sseq._serializeNode(cur_node));
+                }
+                cs.node_list.push(node_map.get(cur_node));
+            }
+            c.list_index = json.classes.length;
+            json.classes.push(cs);
+        }
+
+        for(let e of this.edges){
+            if(e.invalid){
+                continue;
+            }
+            let es = {};
+            // Copy fields that we serialize
+            for(let field of this.serializeEdgeFields){
+                es[field] = e[field];
+            }
+            // Replace source and target with list indices.
+            es.source = e.source.list_index;
+            es.target = e.target.list_index;
+            json.edges.push(es);
+        }
+        return json;
+    }
 }
 
-Sseq.serializeSseqFields = [
-    "min_page_idx", "page_list", "xRange", "yRange", "initialxRange", "initialyRange",
-    "default_node", "class_scale", "offset_size", "serializeSseqFields", "serializeClassFields", "serializeEdgeFields",
-    "class_tooltip_fields"
-]; // classes and edges are dealt with separately.
-Sseq.serializeClassFields = [
-    "x", "y", "name", "extra_info", "unique_id", "idx", "x_offset", "y_offset", "page_list", "visible"
-]; // "node_list" is dealt with separately
-Sseq.serializeEdgeFields = [
-    "color", "bend", "dash", "lineWidth", "opacity", "page_min", "page", "type", "mult",
-    "source_name", "target_name"
-]; // "source" and "target" are dealt with separately.
+Sseq.serializeSseqFields = ["min_page_idx", "page_list", "xRange", "yRange", "initialxRange", "initialyRange", "default_node", "class_scale", "offset_size", "serializeSseqFields", "serializeClassFields", "serializeEdgeFields", "serializeNodeFields"]; // classes and edges are dealt with separately.
+Sseq.serializeClassFields = ["x", "y", "name", "extra_info", "unique_id", "idx", "x_offset", "y_offset", "page_list", "visible"]; // "node_list" is dealt with separately
+Sseq.serializeEdgeFields = ["color", "bend", "dash", "lineWidth", "opacity", "page_min", "page", "type", "mult", "source_name", "target_name"]; // "source" and "target" are dealt with separately.
+Sseq.serializeNodeFields = ["opacity", "color", "fill", "stroke", "hcolor", "hfill", "hstroke", "shape", "size"];
 
 exports.Sseq = Sseq;
-//window.SseqNode = Node;
-
-

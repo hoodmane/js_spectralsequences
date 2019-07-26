@@ -7,7 +7,6 @@ let infinity = Util.infinity;
 
 /**
  * The Node class controls the display of SseqClass's.
- * The behavior of a Node's fields is controlled by the method Konva.Shape.prototype.setNode defined in display.js.
  * The fields are:
  *    color -- the color to draw with. Default black.
  *    fill -- either a boolean or a color. "true" means fill it, and use the color field to decide what color.
@@ -80,6 +79,47 @@ class Node {
 
     isDummy(){
         return false;
+    }
+
+    setPosition(x, y, scale) {
+        this.x = x;
+        this.y = y;
+        this.scale = scale;
+    }
+
+    draw(context) {
+        context.save();
+
+        if (this.opacity) {
+            context.opacity = this.opacity;
+        }
+        if (this.color) {
+            context.fillStyle = this.color;
+            context.strokeStyle = this.color;
+        }
+        if (this.stroke && this.stroke !== true) {
+            context.strokeStyle = this.stroke;
+        }
+        if (this.fill && this.fill !== true) {
+            context.fillStyle = this.fill;
+        }
+        if (this.highlight) {
+            if (this.hcolor) {
+                context.fillStyle = this.hcolor;
+                context.strokeStyle = this.hcolor;
+            }
+            if (this.hstroke) {
+                context.strokeStyle = this.hstroke;
+            }
+            if (this.hfill) {
+                context.fillStyle = this.hfill;
+            }
+        }
+        context.lineWidth = this.scale * 2;
+
+        this.path = this.shape.draw(context, this.x, this.y, this.size * this.scale, this);
+
+        context.restore();
     }
 
     static getDummy(){
@@ -161,7 +201,6 @@ class SseqClass {
         this.unique_id = unique_id ++;
 
         this.edges = [];
-        this.structlines = [];
         this.name = "";
         this.last_page_name = "";
         this.extra_info = "";
@@ -179,6 +218,7 @@ class SseqClass {
     getMemento(){
         let res = Util.copyFields({}, this);
         res.node_list = res.node_list.map( n => new Node(n));
+        res.node_list.forEach(n => n.highlight = false); // Don't highlight the restored node;
         return res;
     }
 
@@ -187,16 +227,36 @@ class SseqClass {
             if(this.invalid){
                 return;
             }
-            this.sseq.deleteClass(this);
+            this.delete();
             return;
         }
         if(this.invalid){
-            this.sseq.reviveClass(this);
+            this.revive();
         }
         let res = Util.copyFields(this, memento);
         this.node_list = this.node_list.map( n => n.copy());
-        this.sseq.updateClass(this);
         return this;
+    }
+
+    delete() {
+        this.invalid = true;
+        let idx = this.sseq.num_classes_by_degree.get([this.x, this.y]);
+        this.sseq.num_classes_by_degree.set([this.x, this.y], idx - 1);
+        this.sseq.total_classes --;
+        this.sseq.classes.splice( this.sseq.classes.indexOf(this), 1 );
+    }
+
+    revive() {
+        this.invalid = false;
+        let idx = this.sseq.num_classes_by_degree.get([this.x, this.y]);
+        this.sseq.num_classes_by_degree.set([this.x, this.y], idx + 1);
+        this.sseq.total_classes ++;
+        this.sseq.classes.push(this);
+
+        // When we delete a class, we delete the edges as well. This adds the
+        // edge deletions to the mutation list. When we restore a class, we do
+        // not have to explicitly restore the edges, since this is taken care
+        // of by the Redo function.
     }
 
     static getDummy(){
@@ -218,7 +278,6 @@ class SseqClass {
         dummy.toString = dummy.getName;
         dummy.constructor = SseqClass.constructor;
 
-        dummy.update = chainableNoOp;
         dummy.replace = chainableNoOp;
         dummy.addExtraInfo = chainableNoOp;
         dummy.isAlive = Util.getDummyConstantFunction(false);
@@ -244,10 +303,6 @@ class SseqClass {
         return false;
     }
 
-    update(){
-        this.sseq.updateClass(this);
-    }
-
     /* Public methods: */
 
     getName(){
@@ -260,9 +315,17 @@ class SseqClass {
         return this;
     }
 
-    getNameHTML(){
-        this.display_class.name = this.name;
-        return this.sseq.display_sseq.getNameHTML(this);
+    getNameCoord(){
+        let tooltip = "";
+        if (this.name !== "") {
+            tooltip = `\\(\\large ${this.name}\\)&nbsp;&mdash;&nbsp;`;
+        }
+        tooltip += `(${this.x}, ${this.y})`;
+        return tooltip;
+    }
+
+    getNameCoordHTML(){
+        return Interface.renderLatex(this.getNameCoord());
     }
 
     /**
@@ -354,7 +417,6 @@ class SseqClass {
                 sl.page = page;
                 let post = sl.getMemento();
                 this.sseq.addMutation(sl, pre, post);
-                this.sseq.updateEdge(sl);
             }
         }
         return this;

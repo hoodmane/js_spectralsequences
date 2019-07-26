@@ -18,12 +18,12 @@ Znode.size = 8;
 pZnode = Znode.copy();
 pZnode.fill = "white";
 
-sseq.onDifferentialAdded(d => {
+sseq.on("differential-added", d => {
     d.setStructlinePages();
     if(d.source.degree.y === 0){
         d.replaceSource(pZnode);
     }
-})
+});
 
 classes = new StringifyingMap();
 window.classes = classes;
@@ -83,6 +83,4 @@ for(let v1 = -21; v1 <= v1max; v1 ++){
     }
 }
 
-
-
-sseq.display("#main");
+new BasicDisplay("#main", sseq);

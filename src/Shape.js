@@ -3,78 +3,51 @@
 let Shapes = {};
 
 Shapes.circle = {
-    draw : function(context) {
-        // This conditional prevents the mysterious page change black fill bug,
-        // where the fill turns to black only when the page is changed and only for circles...
-        if(this.fill() !== true){
-            this.save_fill = this.fill();
-        } else if(this.fill() === true && this.save_fill){
-            this.fill(this.save_fill)
-        }
+    draw: function(context, x, y, size, path2d=true) {
         context.beginPath();
-        context.arc(0, 0, this.size(), 0, 2 * Math.PI, false);
-        context.closePath();
-        context.fillStrokeShape(this);
-    },
-    hitRegion : function(context) {
-        context.beginPath();
-        context.arc(0, 0, this.size(), 0, 2 * Math.PI, false);
-        context.closePath();
-        let save_fill = this.fillEnabled();
-        this.fillEnabled(true);
-        context.fillStrokeShape(this);
-        this.fillEnabled(save_fill);
+        context.arc(x, y, size, 0, 2*Math.PI);
+        context.fill();
+        context.stroke();
+
+        let path = new Path2D();
+        path.arc(x, y, size, 0, 2 * Math.PI);
+
+        return path;
     }
 }
 
 
 Shapes.circlen = {
-    draw : function(context) {
-        // This conditional prevents the mysterious page change black fill bug,
-        // where the fill turns to black only when the page is changed and only for circles...
-        if(this.fill() !== true){
-            this.save_fill = this.fill();
-        } else if(this.fill() === true && this.save_fill){
-            this.fill(this.save_fill)
-        }
+    draw: function(context, x, y, size, node) {
         context.beginPath();
-        context.arc(0, 0, this.size(), 0, 2 * Math.PI, false);
-        context.closePath();
-        context.fillStrokeShape(this);
+        context.arc(x, y, size, 0, 2*Math.PI);
+        context.fill();
+        context.stroke();
+
         context.textAlign = "center";
         context.fillStyle = "black";
-        let fontsize = 2*this.size() | 0;
+        let fontsize = 2*size | 0;
         context.font = `${fontsize}px Arial`;
-        context.fillText(this.node.order, 0, this.size()/2);
-    },
-    hitRegion : function(context) {
-        context.beginPath();
-        context.arc(0, 0, this.size(), 0, 2 * Math.PI, false);
-        context.closePath();
-        let save_fill = this.fillEnabled();
-        this.fillEnabled(true);
-        context.fillStrokeShape(this);
-        this.fillEnabled(save_fill);
+        context.fillText(node.order, x, y + size/2);
+
+        let path = new Path2D();
+        path.arc(x, y, size, 0, 2 * Math.PI);
+
+        return path;
     }
 };
 
 Shapes.square = {
-    draw : function(context) {
-        let size = this.size();
+    draw: function(context, x, y, size) {
         context.beginPath();
-        context.rect(-size, -size, 2*size, 2*size);
-        context.closePath();
-        context.fillStrokeShape(this);
-    },
-    hitRegion : function(context) {
-        let size = this.size();
-        context.beginPath();
-        context.rect(-size, -size, 2*size, 2*size);
-        context.closePath();
-        let save_fill = this.fillEnabled();
-        this.fillEnabled(true);
-        context.fillStrokeShape(this);
-        this.fillEnabled(save_fill);
+        context.rect(x-size, y-size, 2*size, 2*size);
+        context.fill();
+        context.stroke();
+
+        let path = new Path2D();
+        path.rect(x-size, y-size, 2*size, 2*size);
+
+        return path;
     }
 }
 

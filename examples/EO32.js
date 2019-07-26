@@ -102,14 +102,4 @@ for(let v of d3.range(-36,121,6)){
     sseq.addExtension(classes.get([1, a2, b, 4 + v + 6*b + 3*a2]),classes.get([0, a2, 3 + b, 18 + v + 6*b + 3*a2]));
 }}}
 
-
-
-sseq.display("#main");
-
-
-
-
-
-
-
-
+new BasicDisplay("#main", sseq);

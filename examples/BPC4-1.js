@@ -161,7 +161,7 @@ let differential_colors = {
     13 : "orange"
 };
 
-BPC4.onDifferentialAdded(d => {
+BPC4.on("differential-added", function(d) {
     d.addInfoToSourceAndTarget();
     if(d.source.group == "Z4"){
         d.source.group = "Z2";
@@ -179,7 +179,7 @@ BPC4.onDifferentialAdded(d => {
         d.target.replace(Groups.Z2hit);
     }
     d.color = differential_colors[d.page];
-})
+});
 
 
 
@@ -288,9 +288,8 @@ window.saveSseq = function saveTruncationSseq(sseq){
     return result;
 };
 
-let dss = BPC4.getDisplaySseq();
-//tools.install_edit_handlers(dss,"BPC4-1");
-dss.addEventHandler("p", () => {
-    BPC4.toSVG("BPC4-1.svg");
-});
-dss.display("#main");
+
+let display = new BasicDisplay("#main");
+display.setSseq(BPC4);
+
+Mousetrap.bind("p", () => display.downloadSVG("BPC4-1.svg"));

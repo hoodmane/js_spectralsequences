@@ -11,20 +11,17 @@ node_map[16] = new Node().setFill("white").setShape(Shapes.circlen).setSize(12);
 node_map[32] = new Node().setFill("white").setShape(Shapes.circlen).setSize(12);
 
 
-Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) => {
-    window.dss = dss;
-    window.sseq = Sseq.getSseqFromDisplay(dss);
-    sseq.updateAll();
+Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((sseq) => {
 
-    dss._getYOffset = (c) => c.y_offset || 0;
-
+    sseq._getYOffset = (c) => c.y_offset || 0;
+    let display = new BasicDisplay("#main");
 
     if (on_public_website) {
-        dss.display("#main");
+        display.setSseq(sseq);
         return;
     }
 
-    tools.install_edit_handlers(dss, "EHP");
+    tools.install_edit_handlers(display, "EHP");
 
     let extensions = {
         0 : "2",
@@ -38,33 +35,29 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
         "nu" : "orange"
     };
 
-    dss.addEventHandler('e', (event) => {
-        if (event.mouseover_class && dss.temp_source_class) {
-            let s = dss.temp_source_class;
-            let t = event.mouseover_class;
-            let sc = sseq.display_class_to_real_class.get(s);
-            let tc = sseq.display_class_to_real_class.get(t);
-            let degree = (tc.x + tc.y) - (sc.x + sc.y);
+    Mousetrap.bind('e', function() {
+        if (display.mouseover_class && display.temp_source_class) {
+            let s = display.temp_source_class;
+            let t = display.mouseover_class;
+            let degree = (t.x + t.y) - (s.x + s.y);
             console.log(degree);
             if(!extensions[degree]) {
                 return;
             }
             let ext_type = extensions[degree];
             if (confirm(`Add *${ext_type} extension from ${tools.getClassExpression(s)} to ${tools.getClassExpression(t)}`)) {
-                let d = sseq.addExtension(sseq.display_class_to_real_class.get(s), sseq.display_class_to_real_class.get(t));
+                let d = sseq.addExtension(s, t);
                 d.color = extension_colors[ext_type];
                 d.mult = ext_type;
-                d.display_edge.mult = ext_type;
-                d.display_edge.color = d.color;
-                sseq.updateAll();
+                sseq.emit("update");
             }
         }
     });
 
-    dss.addEventHandler('t', (event) => {
-        if(event.mouseover_class && dss.temp_source_class){
-            let s = dss.temp_source_class;
-            let t = event.mouseover_class;
+    Mousetrap.bind('t', function() {
+        if(display.mouseover_class && display.temp_source_class){
+            let s = display.temp_source_class;
+            let t = display.mouseover_class;
             console.log(s);
             console.log(t);
             if(s.x - t.x !== t.y - s.y + 1){
@@ -72,7 +65,7 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
             }
             let length = s.x - t.x;
             if(confirm(`Add d${length} differential from ${tools.getClassExpression(s)} to ${tools.getClassExpression(t)}`)){
-                let d = sseq.addDifferential(sseq.display_class_to_real_class.get(s), sseq.display_class_to_real_class.get(t), length);
+                let d = sseq.addDifferential(s, t, length);
                 // let sourceOrder = 1;
                 // if(d.source.EinftyOrder !== 2){
                 //     sourceOrder = prompt(`Kernel order?`, 1)
@@ -89,17 +82,16 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
                 // if(targetOrder > 1){
                 //     d.replaceTarget(node_map[targetOrder]);
                 // }
-                d.display_edge.color = d.color;
-                dss.update();
+                sseq.emit("update");
             }
         }
     });
 
-    dss.addEventHandler("onclick", (event) => {
-        if (!event.mouseover_class) {
+    display.on("click", function(n) {
+        if (!n) {
             return
         }
-        let c = sseq.display_class_to_real_class.get(event.mouseover_class);
+        let c = n.c
         if(confirm("Einfty or gen")) {
             let name = prompt("Einfty name?");
             if (name) {
@@ -140,12 +132,11 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((dss) =
                 c.extra_info = ei.join("\n");
             }
         }
-        c.update();
-        sseq.updateAll();
+        sseq.emit("update");
     });
 
 
-    dss.display("#main");
+    display.setSseq(sseq);
 }).catch(err => console.log(err));
 
 

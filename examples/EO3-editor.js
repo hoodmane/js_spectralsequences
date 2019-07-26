@@ -1,5 +1,96 @@
+// This is an example of how the editor can be used and customized. It is not
+// very well-polished --- it is mostly a proof of concept.
+
+const STATE_ADD_DIFFERENTIAL = 1;
+const STATE_ADD_EXTENSION = 2;
+
+document.body.style["padding-bottom"] = 0;
 let sseq = new Sseq();
-let display = new BasicDisplay("#main");
+let display = new SidebarDisplay("#main");
+let sidebar = display.sidebar;
+
+sidebar.footer.newGroup();
+sidebar.footer.addButton("Download SVG", () => display.downloadSVG("sseq.svg"));
+sidebar.footer.addButton("Save", () => sseq.download(sseq.name ? sseq.name : "sseq.json"));
+
+generalPanel = new Panel.Panel(sidebar.main_div, display);
+generalPanel.newGroup();
+generalPanel.addButton("New sseq", () => new_sseq_form.open(), { shortcuts: ["n"] }); // Use arrow function because new_sseq_form is not yet defined
+generalPanel.addButton("Open sseq", () => open_sseq_form.open(), { shortcuts: ["o"] });
+generalPanel.addButton("Add class", () => {
+        let c = prompt("Cell dimension");
+        addCells(type, [Number.parseInt(c)]);
+        type.update(sseq);
+}, { shortcuts: ["a"] });
+
+sidebar.addPanel(generalPanel)
+
+differentialPanel = new Panel.DifferentialPanel(sidebar.main_div, display);
+Mousetrap.bind('d', () => display.state = STATE_ADD_DIFFERENTIAL);
+
+differentialPanel.newGroup();
+differentialPanel.addButton("Add extension", () => display.state = STATE_ADD_EXTENSION, { shortcuts: ["e"] });
+
+sidebar.addPanel(differentialPanel);
+
+Mousetrap.bind('left',  display.previousPage);
+Mousetrap.bind('right', display.nextPage);
+
+function _unselect() {
+    if (!display.selected) return;
+
+    display.selected.highlight = false;
+    display.selected = null;
+    display.state = null;
+
+    sidebar.showPanel(generalPanel);
+    display._drawSseq();
+}
+
+function onClick(type, node) {
+    if (!node) {
+        _unselect();
+        return;
+    }
+
+    if (!display.selected) {
+        _unselect();
+        display.selected = node;
+        sidebar.showPanel(differentialPanel);
+        display.state = null;
+        return;
+    }
+
+    let s = display.selected.c;
+    let t = node.c;
+    switch (display.state) {
+        case STATE_ADD_DIFFERENTIAL:
+            if(s.x !== t.x + 1){
+                _unselect();
+                break;
+            }
+            let length = t.y - s.y;
+            addDifferential(type, s, t, length);
+            display.state = null;
+            type.update(sseq);
+            sseq.emit('update');
+            break;
+        case STATE_ADD_EXTENSION:
+            if (!extensions[t.x - s.x]) {
+                return;
+            }
+            let flags = type.addExtensionQueries();
+            addExtension(type, s, t, flags);
+            display.state = null;
+            sseq.emit("update");
+            break;
+        default:
+            _unselect();
+            display.selected = node;
+            break;
+    }
+}
+
 
 let squareNode = new Node().setShape(Shapes.square);
 let openSquareNode = new Node().setShape(Shapes.square).setFill("white");
@@ -67,9 +158,10 @@ AHSS.addCell = function addAHSSCell(sseq, cell_dim){
     console.log("cell", cell_dim);
     let i = sseq.num_cells;
     sseq.num_cells ++;
+    let call = (c) => c.setColor(colorList[i]);
+    sseq.on("class-added", call);
     for(let v = vmin; v < vmax; v++ ){
         sseq.xshift = 72*v + cell_dim;
-        sseq.on("class-added", (c) => c.setColor(colorList[i]));
         let o = AHSS.setClassName(sseq.addClass(0,0),[0,0,0,3*v],cell_dim).setNode(squareNode).setColor(colorList[i]);
         AHSS.setClassName(sseq.addClass(24,0),[0,0,0,3*v+1],cell_dim).setNode(openSquareNode).setColor(colorList[i]);
         AHSS.setClassName(sseq.addClass(48,0),[0,0,0,3*v+2],cell_dim).setNode(openSquareNode).setColor(colorList[i]);
@@ -93,6 +185,7 @@ AHSS.addCell = function addAHSSCell(sseq, cell_dim){
         sseq.addStructline(bx, b4).setProduct("a");
         sseq.xshift = 0;
     }
+    sseq.removeListener("class-added", call);
     sseq.emit("update");
 };
 AHSS.setClassName = function setClassName(c, powers, cell){
@@ -553,14 +646,14 @@ let open_sseq_form = new Interface.PopupForm(
 );
 
 
-function newSseq(type, cells){
+function newSseq(typename, cells){
     sseq = new Sseq();
-    sseq.type = type;
+    sseq.type = typename;
     sseq.num_cells = 0;
     sseq.undo = new Interface.Undo(sseq);
     addEventHandlers(sseq);
     setRange(sseq);
-    type = sseq_types[type];
+    window.type = sseq_types[typename];
     type.initialize(sseq);
     addCells(type, cells);
     type.update(sseq);
@@ -627,24 +720,6 @@ function addEventHandlers(sseq) {
         saveAsPrompt(sseq, save_prefix);
     });
     Mousetrap.bind("u", upload);
-    Mousetrap.bind("d", () => {
-        IO.download(sseq.name + ".json", JSON.stringify(serializeSseq(sseq)));
-    });
-    Mousetrap.bind("o", open_sseq_form.open);
-    Mousetrap.bind("n", new_sseq_form.open);
-
-    Mousetrap.bind('s', () => {
-        if(display.mouseover_class){
-            display.temp_source_class = display.mouseover_class;
-            display.setStatus(`Adding differential. Source: ${tools.getClassExpression(display.mouseover_class)}`);
-        }
-    });
-
-    Mousetrap.bind('a', (event) => {
-        let c = prompt("Cell dimension");
-        addCells(type, [Number.parseInt(c)]);
-        type.update(sseq);
-    });
 
     if(sseq.type === 'HFPSS'){
         Mousetrap.bind('c', (event) => {
@@ -655,8 +730,6 @@ function addEventHandlers(sseq) {
         })
     }
 
-    Mousetrap.bind('t', e => addDifferentialEvent(type, e));
-    Mousetrap.bind('e', e => addExtensionEvent(type, e));
     Mousetrap.bind("ctrl+z", sseq.undo.undo);
     Mousetrap.bind("ctrl+shift+z", sseq.undo.redo);
     if(type.onDifferentialAdded){
@@ -665,13 +738,10 @@ function addEventHandlers(sseq) {
     if(type.onExtensionAdded){
         sseq.on("extension-added", type.onExtensionAdded);
     }
+
+    display.on("click", (node) => onClick(type, node));
 }
 
-setRange(sseq);
-sseq.type = "AHSS";
-sseq.undo = new Interface.Undo(sseq);
-addEventHandlers(sseq);
+newSseq("AHSS", []);
 display.setSseq(sseq);
-
-// display.addEventHandler("ctrl+z", undo.undo);
-// display.addEventHandler("ctrl+shift+z", undo.redo);
+sidebar.showPanel(generalPanel);

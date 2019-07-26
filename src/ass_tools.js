@@ -1,5 +1,6 @@
 let Sseqjs = require("./Sseq.js");
 let Sseq = Sseqjs.Sseq;
+let Mousetrap = require("mousetrap");
 
 exports.getClassExpression = function(c){
     let out = `(${c.x}, ${c.y})`;
@@ -41,9 +42,8 @@ exports.straightenTowers = function(sseq){
         if (longest_tower.length > 3) {
             for (let c = longest_tower.base; c; c = c.h0mult[0]) {
                 c.x_offset = 0;
-                sseq.updateClass(c);
                 for (let oc of sseq.getClassesInDegree(c.x, c.y)) {
-                    oc.display_class.has_fixed_class = true;
+                    oc.has_fixed_class = true;
                 }
             }
         }
@@ -194,39 +194,36 @@ exports.fixed_tower_xOffset = function(c,page){
     return out * this.offset_size;
 };
 
-exports.install_edit_handlers = function(dss, download_filename){
-    dss.addEventHandler("q", (event) => {
-        if(!event.mouseover_class){
+exports.install_edit_handlers = function(display, download_filename){
+    Mousetrap.bind("q", () => {
+        if(!display.mouseover_node){
             return;
         }
-        sseq.incrementClassIndex(sseq.display_class_to_real_class.get(event.mouseover_class));
+        display.sseq.incrementClassIndex(display.mouseover_node.c);
     });
 
-    dss.addEventHandler("w", (event) => {
-        if(!event.mouseover_class){
+    Mousetrap.bind("w", () => {
+        if(!display.mouseover_node){
             return;
         }
-        sseq.decrementClassIndex(sseq.display_class_to_real_class.get(event.mouseover_class));
+        display.sseq.decrementClassIndex(display.mouseover_node.c);
     });
 
-    dss.addEventHandler("d", (event) => {
-        dss.real_sseq.download(download_filename + ".json");
+    Mousetrap.bind("d", () => {
+        display.sseq.download(download_filename + ".json");
     });
 
-    dss.addEventHandler('s', (event) => {
-        if(event.mouseover_class){
-            let c = event.mouseover_class;
-            dss.temp_source_class = c;
-            display.status_div.html(`Adding differential. Source: ${exports.getClassExpression(c)}`);
+    Mousetrap.bind('s', () => {
+        if(display.mouseover_node){
+            display.temp_source_class = display.mouseover_node.c;
         }
     });
 
-
-
-    dss.addEventHandler('t', (event) => {
-        if(event.mouseover_class && dss.temp_source_class){
-            let s = dss.temp_source_class;
-            let t = event.mouseover_class;
+    Mousetrap.bind('t', () => {
+        if(display.mouseover_node && display.temp_source_class){
+            console.log("t");
+            let s = display.temp_source_class;
+            let t = display.mouseover_node.c;
             console.log(s);
             console.log(t);
             if(s.x !== t.x + 1){
@@ -234,56 +231,46 @@ exports.install_edit_handlers = function(dss, download_filename){
             }
             let length = t.y - s.y;
             if(confirm(`Add d${length} differential from ${exports.getClassExpression(s)} to ${exports.getClassExpression(t)}`)){
-                let d = sseq.addDifferential(sseq.display_class_to_real_class.get(s), sseq.display_class_to_real_class.get(t), length);
+                let d = display.sseq.addDifferential(s, t, length);
                 //d.color = differential_colors[d.page];
-                d.display_edge.color = d.color;
-                dss.update();
+                display.sseq.emit('update');
             }
         }
     });
 
-    dss.addEventHandler('n', (event) => {
-        if(event.mouseover_class && dss.temp_source_class){
-            let s = dss.temp_source_class;
-            let t = event.mouseover_class;
-            let source = sseq.display_class_to_real_class.get(s);
-            let target = sseq.display_class_to_real_class.get(t);
+    Mousetrap.bind('n', () => {
+        if(display.mouseover_node && display.temp_source_class){
+            let s = display.temp_source_class;
+            let t = display.mouseover_node.c;
             if(confirm(`Delete edges ${exports.getClassExpression(s)} to ${exports.getClassExpression(t)}`)){
-                source.getEdges().filter((e) => e.otherClass(source) === target).forEach(e => e.delete());
-                dss.update();
+                source.getEdges().filter((e) => e.otherClass(s) === t).forEach(e => e.delete());
+                display.sseq.emit('update');
             }
         }
     });
 
-    // dss.addEventHandler("onclick", (event) => {
-    //     console.log(event);
-    // });
-
-    dss.addEventHandler("onclick", (event) => {
-        let sseq = dss.real_sseq;
-        if(!event.mouseover_class){
+    display.on("click", (node) => {
+        if(!node){
             return;
         }
-        let c = event.mouseover_class;
+        let c = node.c;
         let default_text = "";
         if(c.name){
             default_text = c.name;
         }
         let name = prompt(`Enter new name for class at position (${c.x},${c.y})`, default_text);
-        let real_class = sseq.display_class_to_real_class.get(c);
         if(name || name === ""){
-            real_class.name = name;
-            real_class.setColor("black");
-            sseq.update();
+            c.name = name;
+            c.setColor("black");
+            display.sseq.emit('update')
         }
         c.tooltip_html = undefined;
-        //add_g1_name_if_possible(real_class);
     });
 
 
-    dss.addEventHandler("p", (event) => {
-        if(event.mouseover_class){
-            event.mouseover_class.problem = true;
+    Mousetrap.bind("p", () => {
+        if(display.mouseover_node){
+            display.mouseover_node.c.problem = true;
         }
     });
 }
@@ -307,7 +294,7 @@ exports.addProductNames = function(sseq, variable){
                 break;
             }
             c.name = tools.multiply_monomial(variable, power, name);
-            sseq.update();
+            sseq.emit('update')
             power ++;
         }
     }

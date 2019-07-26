@@ -7,7 +7,6 @@ d3.select("#layout")
 
 
 window.sseq = new Sseq();
-window.dss = sseq.getDisplaySseq();
 
 let undo = {};
 undo.undoStack = [];
@@ -112,7 +111,7 @@ $('#layout').w2layout({
 let el = w2ui['layout'].el('main');
 el.id = "#main";
 
-sseq.display("#main");
+window.display = BasicDisplay(el, sseq);
 
 
 w2ui.layout.onResize = function onResize(event) {
@@ -121,8 +120,8 @@ w2ui.layout.onResize = function onResize(event) {
     }
 };
 
-display.addEventHandler("ctrl+z", undo.undo);
-display.addEventHandler("ctrl+shift+z", undo.redo);
+Mousetrap.bind("ctrl+z", undo.undo);
+Mousetrap.bind("ctrl+shift+z", undo.redo);
 
 w2ui.toolbar = w2ui.layout_main_toolbar;
 w2ui.filemenu =  w2ui.layout_main_toolbar.get('filemenu');
@@ -170,7 +169,7 @@ function exitMode(){
     }
     if(modes[currentMode].handlers){
         for(let k of Object.keys(modes[currentMode].handlers)){
-            display.removeEventHandler(k);
+            Mousetrap.unbind(k);
         }
     }
 }
@@ -181,7 +180,7 @@ function enterMode(){
     }
     if(modes[currentMode].handlers){
         for(let kv of Object.entries(modes[currentMode].handlers)){
-            display.addEventHandler(kv[0], kv[1]);
+            Mousetrap.bind(kv[0], kv[1]);
         }
     }
 }
@@ -202,8 +201,8 @@ modes.class.enter = function () {
     display.enableSelection(true);
     for(let prod of sseq.products){
         if(prod.key){
-           display.addEventHandler(prod.key, () => addProduct(prod));
-            display.addEventHandler(`shift+${prod.key}`, () => addDivision(prod));
+           Mousetrap.bind(prod.key, () => addProduct(prod));
+           Mousetrap.bind(`shift+${prod.key}`, () => addDivision(prod));
         }
     }
 };
@@ -212,8 +211,8 @@ modes.class.exit = function () {
     display.disableSelection();
     for(let prod of sseq.products){
         if(prod.key){
-            display.removeEventHandler(prod.key);
-            display.removeEventHandler(`shift+${prod.key}`);
+            Mousetrap.unbind(prod.key);
+            Mousetrap.unbind(`shift+${prod.key}`);
         }
     }
     updateLastClass(undefined);
@@ -222,7 +221,7 @@ modes.class.exit = function () {
 function updateLastClass(c){
     sseq.unselectClass(modes.class.lastClass);
     sseq.selectClass(c);
-    sseq.update();
+    sseq.emit("update");
     modes.class.lastClass = c;
 }
 
@@ -259,16 +258,15 @@ function addDivision(prod){
 
 modes.class.handlers = {};
 modes.class.handlers["a"] = function(event) {
-    let c = addClass(event.selectedX, event.selectedY);
+    let c = addClass(display.selectedX, display.selectedY);
 };
 
 modes.class.handlers["onclick"] = function(event){
-    let currentClass = event.mouseover_class;
+    let currentClass = display.mouseover_class;
     if (!currentClass) {
         display.updateSelection(event);
         return;
     }
-    currentClass = sseq.display_class_to_real_class.get(currentClass);
     updateLastClass(currentClass);
 };
 
@@ -288,11 +286,10 @@ modes.edge.exit = () => {
 modes.edge.handlers = {};
 
 modes.edge.handlers.onclick = function(event) {
-    let currentClass = event.mouseover_class;
+    let currentClass = display.mouseover_class;
     if (!currentClass) {
         return;
     }
-    currentClass = sseq.display_class_to_real_class.get(currentClass);
     let savedClass = modes.edge.savedClass;
     if (savedClass) {
         let query;
@@ -324,7 +321,7 @@ modes.edge.handlers.onclick = function(event) {
                 e = sseq.display_edge_to_real_edge.get(e);
                 undo.addEdge(e, callback);
                 sseq.unselectClass(savedClass);
-                sseq.update();
+                sseq.emit("update");
                 modes.edge.savedClass = undefined;
             }
             return;
@@ -332,12 +329,12 @@ modes.edge.handlers.onclick = function(event) {
     }
     sseq.unselectClass(savedClass);
     sseq.selectClass(currentClass);
-    sseq.update();
+    sseq.emit("update");
     modes.edge.savedClass = currentClass;
 };
 modes.edge.handlers.esc = function(event) {
     sseq.unselectClass(modes.edge.savedClass);
-    sseq.update();
+    sseq.emit("update");
     modes.edge.savedClass = undefined;
 };
 
@@ -360,16 +357,16 @@ w2ui['layout'].content('right', $().w2grid({
 recid_to_class_map = new Map();
 
 function updateClassTable(){
-    for(let c of dss.classes){
+    for(let c of sseq.classes){
         c.recid = c.unique_id;
-        recid_to_class_map.set(c.recid.toString(), sseq.display_class_to_real_class.get(c));
+        recid_to_class_map.set(c.recid.toString(), c);
     }
     w2ui.classTable.clear();
-    w2ui.classTable.add(dss.classes.filter(c => !c.invalid));
+    w2ui.classTable.add(sseq.classes.filter(c => !c.invalid));
 }
 
 updateClassTable();
-dss._registerUpdateListener("classTable", () => updateClassTable());
+// dss._registerUpdateListener("classTable", () => updateClassTable());
 
 function selectByRecId(id){
     let c = recid_to_class_map.get(id.toString());
@@ -396,12 +393,12 @@ w2ui.classTable.on('select', (event) => {
     }
     if(event.recids){
         event.recids.map(selectByRecId);
-        sseq.update();
+        sseq.emit("update");
         return;
     }
     if(event.recid !== undefined){
         selectByRecId(event.recid);
-        sseq.update();
+        sseq.emit("update");
         return;
     }
 
@@ -413,12 +410,12 @@ w2ui.classTable.on('unselect', (event) => {
     }
     if(event.recids){
         event.recids.map(unselectByRecId);
-        sseq.update();
+        sseq.emit("update");
         return;
     }
     if(event.recid !== undefined){
         unselectByRecId(event.recid);
-        sseq.update();
+        sseq.emit("update");
         return;
     }
     if(event.all){
@@ -432,8 +429,7 @@ w2ui.classTable.onChange = (event) => {
         for(let e of w2ui.classTable.getChanges()){
             let c = recid_to_class_map.get(e.recid.toString());
             c.name = e.name;
-            sseq.updateClass(c);
-            dss.update();
+            sseq.emit("update");
         }
         w2ui.classTable.save();
     }

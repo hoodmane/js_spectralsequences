@@ -255,7 +255,7 @@ IO.loadFromServer(getJSONFilename("BPC8-truncations")).catch(err => console.log(
         }
     }    
 
-    sseq.display('#main');
+    new BasicDisplay("#main", sseq);
 }).catch((err) => console.log(err));
 
 function addInducedClass(slice){
@@ -313,9 +313,9 @@ function updateTruncation(sseq, da1) {
     }
 
     for(let c of sseq.classes){
-        if(c.trunc_page){
-            for(let i = 0; i < c.node_list.length; i++){
-                c.node_list[i] = new Node(c.node_list[i]);
+        for(let i = 0; i < c.node_list.length; i++){
+            c.node_list[i] = new Node(c.node_list[i]);
+            if(c.trunc_page){
                 c.node_list[i].color = differential_colors[c.trunc_page];
             }
         }

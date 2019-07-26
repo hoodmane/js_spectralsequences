@@ -1,7 +1,6 @@
 "use strict";
 
 let StringifyingMap = require("./StringifyingMap.js");
-exports.StringifyingMap = StringifyingMap;
 
 
 /**
@@ -318,7 +317,7 @@ class monomial_basis {
             let bidegree = kv[1];
             this.addModuleGenerator(name, bidegree);
         }
-        this.sseq.update();
+        this.sseq.emit("update");
     }
 
     addModuleGenerator(gen_name, bidegree, callback){
@@ -375,7 +374,7 @@ class monomial_basis {
                 }
             }
         }
-        this.sseq.update();
+        this.sseq.emit("update");
     }
 
     _fromSerializedMonomialBasis(sseq, obj){
@@ -468,7 +467,7 @@ class monomial_basis {
             }
         }
         this._structlines.push({offset: offset_vector, callback: callback});
-        this.sseq.update();
+        this.sseq.emit("update");
         return this;
     }
 
