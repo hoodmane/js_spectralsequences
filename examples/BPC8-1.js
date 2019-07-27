@@ -938,7 +938,7 @@ function setupDifferentialInterface(json){
 
 
 
-    Moustrap.bind('l', function() {
+    Mousetrap.bind('l', function() {
         let df = differential_family.current_differential;
         let c = display.mouseover_class;
         if (!c || !df) {
@@ -973,7 +973,7 @@ function setupDifferentialInterface(json){
     });
 
 
-    Moustrap.bind("d", function() {
+    Mousetrap.bind("d", function() {
         display.setStatus("Saving...");
         console.log(differential_family.list);
         undo.addLock();
@@ -997,26 +997,26 @@ function setupDifferentialInterface(json){
         undo.undoStack.pop();
     });
 
-    Moustrap.bind("Q", function() {
+    Mousetrap.bind("Q", function() {
         display.downloadSVG();
     });
 
-    mouseTrap.bind('o', function() {
+    Mousetrap.bind('o', function() {
         openGrid();
     });
 
-    Moustrap.bind('z', function() {
+    Mousetrap.bind('z', function() {
         undo.undo();
     });
 
-    Moustrap.bind('backspace', function() {
+    Mousetrap.bind('backspace', function() {
         w2confirm("Delete saved differentials?").yes(() => {
             IO.saveToLocalStore(differential_local_store_key,"");
         });
     });
 
-    Moustrap.bind("ctrl+z", undo.undo);
-    Moustrap.bind("ctrl+shift+z", undo.redo);
+    Mousetrap.bind("ctrl+z", undo.undo);
+    Mousetrap.bind("ctrl+shift+z", undo.redo);
 
     sseq.emit("update");
 
