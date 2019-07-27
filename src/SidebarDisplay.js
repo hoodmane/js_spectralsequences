@@ -1,38 +1,47 @@
 "use strict"
 
 let Display = require("./Display.js").Display;
-let EventEmitter = require("events");
 let Panel = require("./Panel.js");
-let d3 = require("d3");
 
 class Sidebar {
     constructor(parentContainer) {
-        this.adjuster = parentContainer.append("div")
-            .style("background-color", "rgba(0,0,0,0.125)")
-            .style("height", "100%")
-            .style("cursor", "ew-resize")
-            .style("width", "2px");
+        this.adjuster = document.createElement("div");
+        this.adjuster.style.backgroundColor = "rgba(0,0,0,0.125)";
+        this.adjuster.style.height = "100%";
+        this.adjuster.style.cursor = "ew-resize";
+        this.adjuster.style.width = "2px";
+
+        parentContainer.appendChild(this.adjuster);
 
         this.resize = this.resize.bind(this);
         this.stopResize = this.stopResize.bind(this);
 
-        this.adjuster.node().addEventListener("mousedown", (function(e) {
+        this.adjuster.addEventListener("mousedown", (function(e) {
             e.preventDefault();
             window.addEventListener('mousemove', this.resize);
             window.addEventListener('mouseup', this.stopResize);
         }).bind(this));
 
-        this.sidebar = parentContainer.append("div")
-            .style("height", "100%")
-            .style("width", "240px")
-            .style("border", "none")
-            .style("display", "flex")
-            .style("flex-direction", "column")
-            .attr("class", "card");
+        this.sidebar = document.createElement("div");
+        this.sidebar.style.height = "100%";
+        this.sidebar.style.width = "240px";
+        this.sidebar.style.border = "none";
+        this.sidebar.style.display = "flex";
+        this.sidebar.style.flexDirection = "column";
+        this.sidebar.className = "card";
 
-        this.main_div = this.sidebar.append("div").style("overflow", "auto").node();
-        this.filler_div = this.sidebar.append("div").style("flex-grow", "1");
-        this.footer_div = this.sidebar.append("div").node();
+        parentContainer.appendChild(this.sidebar);
+
+        this.main_div = document.createElement("div");
+        this.main_div.style.overflow = "auto";
+        this.sidebar.appendChild(this.main_div);
+
+        let filler = document.createElement("div");
+        filler.style.flexGrow = "1";
+        this.sidebar.appendChild(filler);
+
+        this.footer_div = document.createElement("div");
+        this.sidebar.appendChild(this.footer_div);
 
         this.panels = [];
         this.currentPanel = null;
@@ -49,8 +58,8 @@ class Sidebar {
     }
 
     resize(e) {
-        let width = this.sidebar.node().getBoundingClientRect().right - e.pageX;
-        this.sidebar.node().style.width = `${width}px`;
+        let width = this.sidebar.getBoundingClientRect().right - e.pageX;
+        this.sidebar.style.width = `${width}px`;
     }
 
     stopResize() {
@@ -74,20 +83,24 @@ class Sidebar {
 
 class SidebarDisplay extends Display {
     constructor(container, sseq) {
-        let parentContainer = d3.select(container);
-        parentContainer.style("display", "flex");
-        parentContainer.style("display-direction", "row");
+        if (typeof container == "string")
+            container = document.querySelector(container);
 
-        let child = parentContainer.append("div")
-            .style("height", "100%")
-            .style("min-height", "100%")
-            .style("overflow", "hidden")
-            .style("position", "relative")
-            .style("flex-grow", "1");
+        container.style.display = "flex";
+        container.style.displayDirection = "row";
 
-        let sidebar = new Sidebar(parentContainer)
+        let child = document.createElement("div");
+        child.style.height = "100%";
+        child.style.minHeight = "100%";
+        child.style.overflow = "hidden";
+        child.style.position = "relative";
+        child.style.flexGrow = "1";
 
-        super(child.node(), sseq);
+        container.appendChild(child);
+
+        let sidebar = new Sidebar(container)
+
+        super(child, sseq);
 
         this.sidebar = sidebar;
         this.sidebar.init(this);
