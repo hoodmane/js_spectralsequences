@@ -18,6 +18,7 @@ window.Display = require("./Display.js").Display;
 window.BasicDisplay = require("./BasicDisplay.js").BasicDisplay;
 window.SidebarDisplay = require("./SidebarDisplay.js").SidebarDisplay;
 window.EditorDisplay = require("./EditorDisplay.js").EditorDisplay;
+window.Tooltip = require("./EditorDisplay.js").Tooltip;
 window.Panel = require("./Panel.js");
 window.C2S = require("canvas2svg");
 

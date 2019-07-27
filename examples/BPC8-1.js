@@ -593,7 +593,7 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
     sseq.class_scale = 0.4;
     sseq.squareAspectRatio = true;
     // this is to change the names of the induced classes after d15.
-    display.tooltip.getClassTooltip = function(c, page){
+    display.getClassTooltip = function(c, page){
         let tooltip = c.getNameCoord(c);
         let extra_info = "";
         if(typeof c.extra_info == "string"){

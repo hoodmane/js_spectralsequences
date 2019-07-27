@@ -1,6 +1,7 @@
 "use strict"
 
 let Display = require("./Display.js").Display;
+let Tooltip = require("./Tooltip.js").Tooltip;
 let Interface = require("./Interface.js");
 let Mousetrap = require("mousetrap");
 
@@ -16,6 +17,11 @@ class BasicDisplay extends Display {
             .style("font-size","15px");
 
         this.tooltip = new Tooltip(this);
+        this.on("mouseover", (node) => {
+            this.tooltip.setHTML(this.getClassTooltipHTML(node.c, this.page));
+            this.tooltip.show(node.x, node.y);
+        });
+        this.on("mouseout", () => this.tooltip.hide());
 
         Mousetrap.bind('left',  this.previousPage);
         Mousetrap.bind('right', this.nextPage);
@@ -50,52 +56,6 @@ class BasicDisplay extends Display {
     delayedSetStatus(html, delay){
         this.status_div_timer = setTimeout(() => setStatus(html), delay);
     }
-}
-
-class Tooltip {
-    constructor(display) {
-        this.display = display;
-        this.tooltip_div = d3.select("body").append("div")
-                .attr("class", "tooltip")
-                .style("opacity", 0)
-                .style("z-index", 999999);
-        this.display.on("mouseover", this._onMouseover.bind(this));
-        this.display.on("mouseout", this._onMouseout.bind(this));
-    }
-
-    _onMouseover (node) {
-        let x = node.x;
-        let y = node.y;
-        let c = node.c;
-
-        let tooltip_html = this.getClassTooltipHTML(c, this.display.page);
-        let rect = this.tooltip_div.node().getBoundingClientRect();
-        let tooltip_width = rect.width;
-        let tooltip_height = rect.height;
-
-        this.tooltip_div.html(tooltip_html);
-        this.tooltip_div.style("left", (x + 25) + "px")
-            .style("top", (y - tooltip_height) + "px")
-            .style("right", null).style("bottom", null);
-        let bounding_rect = this.tooltip_div.node().getBoundingClientRect();
-        if (bounding_rect.right > this.display.canvasWidth) {
-            this.tooltip_div.style("left", null)
-                .style("right", (this.display.canvasWidth - x + 10) + "px")
-        }
-        if (bounding_rect.top < 0) {
-            this.tooltip_div.style("top", (y + 10) + "px")
-        }
-
-        this.tooltip_div.transition()
-            .duration(200)
-            .style("opacity", .9);
-
-    }
-    _onMouseout () {
-        this.tooltip_div.transition()
-            .duration(500)
-            .style("opacity", 0);
-    }
 
     /**
      * Gets the tooltip for the current class on the given page (currently ignores the page).
@@ -105,10 +65,11 @@ class Tooltip {
      */
     getClassTooltip(c, page) {
         let tooltip = c.getNameCoord();
-        let extra_info = Tooltip.toTooltipString(c.extra_info, page);
+        let extra_info = BasicDisplay.toTooltipString(c.extra_info, page);
 
         if (extra_info)
             tooltip += extra_info;
+
         return tooltip;
     }
 
@@ -137,7 +98,7 @@ class Tooltip {
                 }
                 lastkey = k;
             }
-            return Tooltip.toTooltipString(obj.get(lastkey));
+            return BasicDisplay.toTooltipString(obj.get(lastkey));
         }
 
         return false;
