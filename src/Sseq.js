@@ -695,8 +695,10 @@ class Sseq extends EventEmitter{
         for (let e of display_edges) {
             if (!e.source.in_range) {
                 display_classes.push(e.source);
+                e.source.in_range = true;
             }
             if (!e.target.in_range) {
+                e.target.in_range = true;
                 display_classes.push(e.target);
             }
         }
