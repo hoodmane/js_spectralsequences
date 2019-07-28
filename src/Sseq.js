@@ -671,7 +671,7 @@ class Sseq extends EventEmitter{
             pageRange = [page, page];
         }
         let display_classes = this.classes.filter(c => {
-            if (!c) {
+            if (!c || c.invalid) {
                 return false;
             }
             c.in_range = Sseq._classInRangeQ(c, xmin, xmax, ymin, ymax);
@@ -683,7 +683,7 @@ class Sseq extends EventEmitter{
         // 3) e.source and e.target are supposed to be drawn on the current pageRange
         // 4) At least one of the source or target is in bounds.
         let display_edges = this.edges.filter(e =>
-            e &&
+            e && !e.invalid && 
             Sseq._drawEdgeOnPageQ(e, pageRange)
             && Sseq._drawClassOnPageQ(e.source, page) && Sseq._drawClassOnPageQ(e.target, page)
             && (e.source.in_range || e.target.in_range)
