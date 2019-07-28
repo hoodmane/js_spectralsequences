@@ -13,7 +13,7 @@ function SpectralSequenceToTex(sseq, page, xmin, xmax, ymin, ymax){
         edgeStrings.push(latexEdgeString(edge, page));
     }
 
-    outputString.push(getBeginString(xmin, xmax, ymin, ymax));
+    outputString.push(getBeginString(page, xmin, xmax, ymin, ymax));
     outputString.push(classStrings.join("\n"));
     outputString.push(edgeStrings.join("\n"));
     outputString.push("\\end{sseqpage}");
@@ -25,8 +25,8 @@ function DownloadSpectralSequenceTex(filename, sseq, page, xmin, xmax, ymin, yma
     IO.download(filename, SpectralSequenceToTex(sseq,page,xmin,xmax,ymin,ymax));
 }
 
-function getBeginString(xmin, xmax, ymin, ymax) {
-    return `\\ifx\\sseqscale\\undefined\\def\\sseqscale{1}\\fi\n\\begin{sseqpage}[degree = {-1}{#1}, x range = {${xmin}}{${xmax}}, y range = {${ymin}}{${ymax}}, scale = \\sseqscale]`;
+function getBeginString(page, xmin, xmax, ymin, ymax) {
+    return `\\begin{sseqpage}[degree = {-1}{#1}, x range = {${xmin}}{${xmax}}, y range = {${ymin}}{${ymax}}]`;
 }
 function latexClassString(c, page){
     let options = [];
