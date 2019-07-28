@@ -263,8 +263,10 @@ class Sseq extends EventEmitter{
 
     deleteClass(c){
         this.addMutation(c, c.getMemento(), {delete: true});
-        for (let e of this.edges) this.sseq.deleteEdge(e, true);
         c.delete();
+        for (let e of c.edges)
+            if (!e.invalid)
+                this.deleteEdge(e, true);
 
         this.emit("update");
     }
@@ -387,7 +389,7 @@ class Sseq extends EventEmitter{
      * @param target
      * @returns {Extension}
      */
-   addExtension(source, target){
+    addExtension(source, target){
         if(!source || !target || source.isDummy() || target.isDummy()){
             return Extension.getDummy();
         }
@@ -397,12 +399,18 @@ class Sseq extends EventEmitter{
         let ext = new Extension(this, source, target);
         ext.edge_list_index = this.edges.length;
         this.edges.push(ext);
+        let source_pre = source.getMemento();
+        let target_pre = target.getMemento();
+        source._addExtension(ext);
+        target._addExtension(ext);
 
         this.emit("edge-added", ext);
         this.emit("extension-added", ext);
         this.emit("update");
 
         this.addMutation(ext, {delete: true}, ext.getMemento());
+        this.addMutation(source, source_pre, source.getMemento());
+        this.addMutation(target, target_pre, target.getMemento());
         return ext;
     }
 
