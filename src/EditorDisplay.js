@@ -89,7 +89,7 @@ class EditorDisplay extends SidebarDisplay {
 
         this.nodeTab.on("show", () => {
             this.title_edit_input.style.display = "none";
-            this.title_edit_input.innerHTML = "";
+            this.title_edit_input.value = "";
             this.title_edit_link.innerHTML = "Edit";
             let c = this.selected.c;
             if (c.name) {
