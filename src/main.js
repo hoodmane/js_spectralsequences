@@ -21,6 +21,7 @@ window.EditorDisplay = require("./EditorDisplay.js").EditorDisplay;
 window.Tooltip = require("./EditorDisplay.js").Tooltip;
 window.Panel = require("./Panel.js");
 window.C2S = require("canvas2svg");
+window.ExportToTex = require("./ExportToTex.js");
 
 
 let Sseqjs = require("./Sseq.js");
