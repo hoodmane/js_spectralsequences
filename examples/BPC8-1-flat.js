@@ -98,6 +98,9 @@ IO.loadFromServer(getJSONFilename(sseq_filename)).then(function(json){
         let start_node = c.node_list[0];
         c.node_list = [];
         for(let group of c.group_list) {
+            if(group === "0"){
+                continue;
+            }
             if(!Groups[group]){
                 console.log(c, group);
             }

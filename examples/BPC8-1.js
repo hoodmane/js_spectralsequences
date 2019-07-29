@@ -714,16 +714,16 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
         } else if ( source_group === "2Z") {
             d.source.group_list.push("Zsupsup");
             d.source.replace(Groups.Zsupsup);
-        } else if(source_group === "Z2"){
-            // d.source.group_list.push("0");
+        } else if(source_group.startsWith("Z2")){
+            d.source.group_list.push("0");
         }
 
         if (target_group === "Z4") {
             d.target.group_list.push("Z2hit");
             d.target.replace(Groups.Z2hit);
             d.target.setColor(d.target.getColor(0));
-        } else if(target_group === "Z2"){
-            // d.target.group_list.push("0");
+        } else if(target_group.startsWith("Z2")){
+            d.target.group_list.push("0");
         }
         d.color = differential_colors[d.page];
     });
@@ -965,6 +965,9 @@ function setupDifferentialInterface(json){
     });
 
     display.on("click", (node) => {
+        if(node === undefined){
+            return;
+        }
         let c = node.c
         if (!c) {
             return;

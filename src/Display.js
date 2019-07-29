@@ -483,7 +483,6 @@ class Display extends EventEmitter {
     }
 
     _updateClasses(classes){
-        console.log(this.sseq.class_scale);
         let scale = Math.min(Math.max(this.scale, 1/3), 2) * this.sseq.class_scale;
 
         this.nodes = []
