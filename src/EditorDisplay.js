@@ -2,6 +2,7 @@
 
 let SidebarDisplay = require("./SidebarDisplay.js").SidebarDisplay;
 let Panel = require("./Panel.js");
+let Tooltip = require("./Tooltip.js").Tooltip;
 let Interface = require("./Interface.js");
 let Mousetrap = require("mousetrap");
 
@@ -88,7 +89,7 @@ class EditorDisplay extends SidebarDisplay {
 
         this.nodeTab.on("show", () => {
             this.title_edit_input.style.display = "none";
-            this.title_edit_input.innerHTML = "";
+            this.title_edit_input.value = "";
             this.title_edit_link.innerHTML = "Edit";
             let c = this.selected.c;
             if (c.name) {
@@ -121,7 +122,12 @@ class EditorDisplay extends SidebarDisplay {
         this.classPanel.addTab("Struct", this.structlineTab);
 
         this.sidebar.showPanel(this.generalPanel);
+
         this.tooltip = new Tooltip(this);
+        this.on("mouseover", (node) => {
+            this.tooltip.setHTML(`(${node.c.x}, ${node.c.y})`);
+            this.tooltip.show(node.x, node.y);
+        });
         this.on("mouseout", this._onMouseout.bind(this));
         this.on("click", this.__onClick.bind(this)); // Display already has an _onClick
 
@@ -151,6 +157,7 @@ class EditorDisplay extends SidebarDisplay {
 
     _onMouseout() {
         if (this.selected) this.selected.highlight = true;
+        this.tooltip.hide();
     }
 
     _unselect() {
@@ -245,53 +252,6 @@ class EditorDisplay extends SidebarDisplay {
     _onDifferentialAdded(d) {
         if (this.differentialColors[d.page])
             d.color = this.differentialColors[d.page];
-    }
-}
-
-class Tooltip {
-    constructor(display) {
-        this.display = display;
-        this.tooltip_div = display.container.append("div")
-                .attr("class", "tooltip")
-                .style("opacity", 0)
-                .style("z-index", 999999);
-        this.display.on("mouseover", this._onMouseover.bind(this));
-        this.display.on("mouseout", this._onMouseout.bind(this));
-    }
-
-    _onMouseover (node) {
-        let x = node.x;
-        let y = node.y;
-        let c = node.c;
-
-        let tooltip_html = `(${c.x}, ${c.y})`;
-        let rect = this.tooltip_div.node().getBoundingClientRect();
-        let tooltip_width = rect.width;
-        let tooltip_height = rect.height;
-
-        this.tooltip_div.html(tooltip_html);
-        this.tooltip_div.style("left", (x + 25) + "px")
-            .style("top", (y - tooltip_height) + "px")
-            .style("right", null).style("bottom", null);
-
-        let bounding_rect = this.tooltip_div.node().getBoundingClientRect();
-        if (bounding_rect.right > this.display.canvasWidth) {
-            this.tooltip_div.style("left", null)
-                .style("right", (this.display.canvasWidth - x + 10) + "px")
-        }
-        if (bounding_rect.top < 0) {
-            this.tooltip_div.style("top", (y + 10) + "px")
-        }
-
-        this.tooltip_div.transition()
-            .duration(200)
-            .style("opacity", .9);
-    }
-
-    _onMouseout () {
-        this.tooltip_div.transition()
-            .duration(500)
-            .style("opacity", 0);
     }
 }
 exports.EditorDisplay = EditorDisplay;

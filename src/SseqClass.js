@@ -243,7 +243,6 @@ class SseqClass {
         let idx = this.sseq.num_classes_by_degree.get([this.x, this.y]);
         this.sseq.num_classes_by_degree.set([this.x, this.y], idx - 1);
         this.sseq.total_classes --;
-        this.sseq.classes.splice( this.sseq.classes.indexOf(this), 1 );
     }
 
     revive() {
@@ -251,7 +250,6 @@ class SseqClass {
         let idx = this.sseq.num_classes_by_degree.get([this.x, this.y]);
         this.sseq.num_classes_by_degree.set([this.x, this.y], idx + 1);
         this.sseq.total_classes ++;
-        this.sseq.classes.push(this);
 
         // When we delete a class, we delete the edges as well. This adds the
         // edge deletions to the mutation list. When we restore a class, we do
@@ -600,6 +598,10 @@ class SseqClass {
      */
     _addStructline(sl){
         this.edges.push(sl);
+    }
+
+    _addExtension(ext){
+        this.edges.push(ext);
     }
 
     /**

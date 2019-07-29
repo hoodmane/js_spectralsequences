@@ -1,5 +1,5 @@
 let sseq = new Sseq();
-let dss = sseq.getDisplaySseq();
+let display = new BasicDisplay("#main");
 
 let squareNode = new Node().setShape(Shapes.square);
 let openSquareNode = new Node().setShape(Shapes.square).setFill("white");
@@ -69,9 +69,9 @@ AHSS.addCell = function addAHSSCell(sseq, cell){
     }
     let i = sseq.num_cells;
     sseq.num_cells ++;
+    sseq.on("class-added", (c) => c.setColor(colorList[i]));
     for(let v = vmin; v < vmax; v++ ){
         sseq.xshift = 72*v + cell;
-        sseq.onClassAdded((c) => c.setColor(colorList[i]));
         let o = AHSS.setClassName(sseq.addClass(0,0),[0,0,0,3*v],cell).setNode(squareNode).setColor(colorList[i]);
         AHSS.setClassName(sseq.addClass(24,0),[0,0,0,3*v+1],cell).setNode(openSquareNode).setColor(colorList[i]);
         AHSS.setClassName(sseq.addClass(48,0),[0,0,0,3*v+2],cell).setNode(openSquareNode).setColor(colorList[i]);
@@ -95,7 +95,8 @@ AHSS.addCell = function addAHSSCell(sseq, cell){
         sseq.addStructline(bx, b4).setProduct("a");
         sseq.xshift = 0;
     }
-    sseq.update();
+    sseq.removeAllListeners("class-added");
+    sseq.emit("update");
 };
 AHSS.setClassName = function setClassName(c, powers, cell){
     c.exponents = powers.slice();
@@ -128,50 +129,46 @@ HFPSS.classAddedCallback = function classAddedCallback(c) {
 };
 
 AHSS.addDifferential = function addDifferentialAHSS(event){
-    if(!event.mouseover_class || !dss.temp_source_class) {
+    if(!display.mouseover_class || !display.temp_source_class) {
         return;
     }
-    let s = dss.temp_source_class;
-    let t = event.mouseover_class;
+    let s = display.temp_source_class;
+    let t = display.mouseover_class;
     if(s.x !== t.x + 1){
         return;
     }
-    let sc = sseq.display_class_to_real_class.get(s);
-    let tc = sseq.display_class_to_real_class.get(t);
-    let length = sc.exponents[sc.exponents.length - 1] -  tc.exponents[tc.exponents.length - 1];
+    let length = s.exponents[s.exponents.length - 1] -  t.exponents[t.exponents.length - 1];
     if(confirm(`Add d${length} differential from ${tools.getClassExpression(s)} to ${tools.getClassExpression(t)}`)){
         let vIndex = 3;
         sseq.startMutationTracking();
         for(let v = vmin; v < vmax; v++){
-            let scexp = sc.exponents.slice();
-            let tcexp = tc.exponents.slice();
-            scexp[vIndex] =  scexp[vIndex] + 3*v;
-            tcexp[vIndex] =  tcexp[vIndex] + 3*v;
-            if(!sseq.exponents_to_classes.has(scexp) || !sseq.exponents_to_classes.has(tcexp)){
+            let sexp = s.exponents.slice();
+            let texp = t.exponents.slice();
+            sexp[vIndex] =  sexp[vIndex] + 3*v;
+            texp[vIndex] =  texp[vIndex] + 3*v;
+            if(!sseq.exponents_to_classes.has(sexp) || !sseq.exponents_to_classes.has(texp)){
                 return;
             }
-            let e = sseq.addDifferential(sseq.exponents_to_classes.get(scexp), sseq.exponents_to_classes.get(tcexp),length);
+            let e = sseq.addDifferential(sseq.exponents_to_classes.get(sexp), sseq.exponents_to_classes.get(texp),length);
         }
         sseq.addMutationsToUndoStack();
         //d.color = differential_colors[d.page];
         AHSS.update(sseq);
-        dss.update();
+        sseq.emit("update");
     }
 };
-HFPSS.addDifferential = function addDifferentialHFPSS(event) {
-    if (!event.mouseover_class || !dss.temp_source_class) {
+HFPSS.addDifferential = function addDifferentialHFPSS() {
+    if (!display.mouseover_class || !display.temp_source_class) {
         return;
     }
-    let s = dss.temp_source_class;
-    let t = event.mouseover_class;
-    let sc = sseq.display_class_to_real_class.get(s);
-    let tc = sseq.display_class_to_real_class.get(t);
+    let s = display.temp_source_class;
+    let t = display.mouseover_class;
     let disp_vec = [];
-    for (let i = 0; i < sc.vector.length; i++) {
-        disp_vec.push(tc.vector[i] - sc.vector[i]);
+    for (let i = 0; i < s.vector.length; i++) {
+        disp_vec.push(t.vector[i] - s.vector[i]);
     }
-    let source_module_gen = sc.vector._module_generator;
-    let target_module_gen = tc.vector._module_generator;
+    let source_module_gen = s.vector._module_generator;
+    let target_module_gen = t.vector._module_generator;
 
 
     if (s.x !== t.x + 1) {
@@ -186,7 +183,7 @@ HFPSS.addDifferential = function addDifferentialHFPSS(event) {
         for (let key_value of classes) {
             let k = key_value[0];
             let c1 = key_value[1];
-            if (k._module_generator === source_module_gen && mod(k[2] - sc.vector[2], vPeriod) === 0) {
+            if (k._module_generator === source_module_gen && mod(k[2] - s.vector[2], vPeriod) === 0) {
                 let targetVector = k.multiply(offsetVector);
                 targetVector._module_generator = target_module_gen;
                 if (classes.get(targetVector)) {
@@ -198,20 +195,18 @@ HFPSS.addDifferential = function addDifferentialHFPSS(event) {
         }
         sseq.addMutationsToUndoStack();
         HFPSS.update(sseq);
-        dss.update();
+        sseq.emit("update");
     }
 };
 
 let extensions = { 0 : "3", 3 : "alpha", 10 : "beta"};
 
-AHSS.addExtension = function addExtension(event) {
-    if (!event.mouseover_class || !dss.temp_source_class) {
+AHSS.addExtension = function addExtension(display) {
+    if (!display.mouseover_class || !display.temp_source_class) {
         return;
     }
-    let s = dss.temp_source_class;
-    let t = event.mouseover_class;
-    let sc = sseq.display_class_to_real_class.get(s);
-    let tc = sseq.display_class_to_real_class.get(t);
+    let s = display.temp_source_class;
+    let t = display.mouseover_class;
 
     if (!extensions[t.x - s.x]) {
         return;
@@ -221,30 +216,28 @@ AHSS.addExtension = function addExtension(event) {
         let vIndex = 3;
         sseq.startMutationTracking();
         for (let v = vmin; v < vmax; v++) {
-            let scexp = sc.exponents.slice();
-            let tcexp = tc.exponents.slice();
-            scexp[vIndex] = scexp[vIndex] + 3 * v;
-            tcexp[vIndex] = tcexp[vIndex] + 3 * v;
-            sseq.addExtension(sseq.exponents_to_classes.get(scexp), sseq.exponents_to_classes.get(tcexp));
+            let sexp = s.exponents.slice();
+            let texp = t.exponents.slice();
+            sexp[vIndex] = sexp[vIndex] + 3 * v;
+            texp[vIndex] = texp[vIndex] + 3 * v;
+            sseq.addExtension(sseq.exponents_to_classes.get(sexp), sseq.exponents_to_classes.get(texp));
         }
         sseq.addMutationsToUndoStack();
-        dss.update();
+        sseq.emit("update");
     }
 };
-HFPSS.addExtension = function addExtension(event) {
-    if (!event.mouseover_class || !dss.temp_source_class) {
+HFPSS.addExtension = function addExtension() {
+    if (!display.mouseover_class || !display.temp_source_class) {
         return;
     }
-    let s = dss.temp_source_class;
-    let t = event.mouseover_class;
-    let sc = sseq.display_class_to_real_class.get(s);
-    let tc = sseq.display_class_to_real_class.get(t);
+    let s = display.temp_source_class;
+    let t = display.mouseover_class;
     let disp_vec = [];
-    for (let i = 0; i < sc.vector.length; i++) {
-        disp_vec.push(tc.vector[i] - sc.vector[i]);
+    for (let i = 0; i < s.vector.length; i++) {
+        disp_vec.push(t.vector[i] - s.vector[i]);
     }
-    let source_module_gen = sc.vector._module_generator;
-    let target_module_gen = tc.vector._module_generator;
+    let source_module_gen = s.vector._module_generator;
+    let target_module_gen = t.vector._module_generator;
 
     if (!extensions[t.x - s.x]) {
         return;
@@ -268,7 +261,7 @@ HFPSS.addExtension = function addExtension(event) {
                 edge_list.push(e);
             }
             sseq.addMutationsToUndoStack();
-            dss.update();
+            sseq.emit("update");
             return;
         }
         for (let key_value of classes) {
@@ -289,7 +282,7 @@ HFPSS.addExtension = function addExtension(event) {
             }
         }
         sseq.addMutationsToUndoStack();
-        dss.update();
+        sseq.emit("update");
     }
 };
 
@@ -378,8 +371,7 @@ function upload() {
     IO.upload().then((fileList) => {
         for (let f of fileList) {
             try {
-                let dss = DisplaySseq.fromJSONObject(JSON.parse(f.content));
-                let sseq = Sseq.getSseqFromDisplay(dss);
+                let sseq = Sseq.fromJSONObject(JSON.parse(f.content));
                 save(sseq, sseq.name);
             } catch (e) {
                 console.log(f.name, f.content);
@@ -525,26 +517,22 @@ let open_sseq_form = new Interface.PopupForm(
 function newSseq(type, cells){
     sseq = new Sseq();
     sseq.type = type;
-    dss.type = type;
-    dss = sseq.getDisplaySseq();
     sseq.num_cells = 0;
     type = sseq_types[type];
     type.initialize(sseq);
     type.addCells(sseq, cells);
     type.update(sseq);
-    sseq.getDisplaySseq();
-    setUpSseq(sseq, dss);
-    sseq.display("#main");
+    setUpSseq(sseq);
+    display.setSseq(sseq);
 }
 
 async function openSseq(key){
-    let loaded_dss = await Sseq.loadFromLocalStore(key);
-    if(!loaded_dss){
+    let loaded_sseq = await Sseq.loadFromLocalStore(key);
+    if(!loaded_sseq){
         alert(`Unknown sseq ${key}`);
         throw new Error(`Unknown sseq ${key}`);
     }
-    dss = loaded_dss;
-    sseq = Sseq.getSseqFromDisplay(dss);
+    sseq = loaded_sseq;
     sseq.type = w2ui.open_sseq_form.getType();
     console.log(sseq.type);
     if(!sseq.num_cells){
@@ -555,20 +543,19 @@ async function openSseq(key){
     let type = sseq_types[sseq.type];
     type.onOpen(sseq);
     type.update(sseq);
-    setUpSseq(sseq, dss);
-    sseq.display("#main");
+    setUpSseq(sseq);
+    display.setSseq(sseq);
     return true;
 }
 
 
 
-function setUpSseq(sseq, dss){
+function setUpSseq(sseq){
     sseq.undo = new Interface.Undo(sseq);
     sseq.addSseqFieldToSerialize(["name","type", "num_cells", "polynomial_classes","differentials_source_target"]);
     sseq.addClassFieldToSerialize(["vector","exponents"]);
     sseq.differentials_source_target = [];
-    dss.type = sseq.type;
-    addEventHandlers(sseq, dss);
+    addEventHandlers(sseq);
     setRange(sseq);
 }
 
@@ -577,7 +564,7 @@ function selectOddCycles(){
         if(c.x % 2 !== 0){
             sseq.selectClass(c);
         }
-        sseq.update();
+        sseq.emit("update");
     }
 }
 
@@ -588,77 +575,74 @@ function setRange(sseq){
     sseq.initialyRange = [0, 15];
 }
 
-function setEdgeSource(event){
-    if(event.mouseover_class){
-        let c = event.mouseover_class;
-        dss.temp_source_class = c;
+function setEdgeSource(){
+    if(display.mouseover_class){
+        let c = display.mouseover_class;
+        display.temp_source_class = c;
         console.log(c);
-        let sc = sseq.display_class_to_real_class.get(c);
-        console.log(sc);
         display.status_div.html(`Adding differential. Source: ${tools.getClassExpression(c)}`);
     }
 }
 
-function addEventHandlers(sseq, dss) {
+function addEventHandlers(sseq) {
     const save_prefix = `EO3-${sseq.type}:`;
-    const type = sseq_types[dss.type];
-    dss.addEventHandler("ctrl+s", (e) => {
-        save(sseq, sseq.name || dss.name, save_prefix);
+    const type = sseq_types[sseq.type];
+    Mousetrap.bind("ctrl+s", (e) => {
+        save(sseq, sseq.name, save_prefix);
         e.preventDefault();
         return true;
     });
 
-    dss.addEventHandler("ctrl+shift+s", () => {
+    Mousetrap.bind("ctrl+shift+s", () => {
         saveAsPrompt(sseq, save_prefix);
     });
-    dss.addEventHandler("u", upload);
-    dss.addEventHandler("d", () => {
+    Mousetrap.bind("u", upload);
+    Mousetrap.bind("d", () => {
         sseq.download(sseq.name + ".json");
     });
-    dss.addEventHandler("o", open_sseq_form.open);
-    dss.addEventHandler("n", new_sseq_form.open);
+    Mousetrap.bind("o", open_sseq_form.open);
+    Mousetrap.bind("n", new_sseq_form.open);
 
-    dss.addEventHandler('s', (event) => {
-        if(event.mouseover_class){
-            let c = event.mouseover_class;
-            dss.temp_source_class = c;
-            let sc = sseq.display_class_to_real_class.get(c);
+    Mousetrap.bind('s', () => {
+        if(display.mouseover_class){
+            let c = display.mouseover_class;
+            display.temp_source_class = c;
             display.status_div.html(`Adding differential. Source: ${tools.getClassExpression(c)}`);
         }
     });
 
-    dss.addEventHandler('a', (event) => {
+    Mousetrap.bind('a', () => {
         let c = prompt("Cell dimension");
         type.addCell(sseq, Number.parseInt(c));
         type.update(sseq);
     });
 
-    if(dss.type === 'HFPSS'){
-        dss.addEventHandler('c', (event) => {
-             if(!event.mouseover_class){ return; }
-             let c = sseq.display_class_to_real_class.get(event.mouseover_class);
+    if(sseq.type === 'HFPSS'){
+        Mousetrap.bind('c', () => {
+             if(!display.mouseover_class){ return; }
+             let c = display.mouseover_class;
              c.permanent_cycle = true;
              console.log(c);
              HFPSS.updateGuideDifferentials();
-             sseq.update();
+             sseq.emit("update");
         })
     }
 
-    dss.addEventHandler('t', type.addDifferential);
-    dss.addEventHandler('e', type.addExtension);
+    Mousetrap.bind('t', type.addDifferential);
+    Mousetrap.bind('e', type.addExtension);
     if(sseq.undo){
-        dss.addEventHandler("ctrl+z", sseq.undo.undo);
-        dss.addEventHandler("ctrl+shift+z", sseq.undo.redo);
+        Mousetrap.bind("ctrl+z", sseq.undo.undo);
+        Mousetrap.bind("ctrl+shift+z", sseq.undo.redo);
     }
     if(type.onDifferentialAdded){
-        sseq.onDifferentialAdded(type.onDifferentialAdded);
+        sseq.on("differential-added", type.onDifferentialAdded);
     }
 }
 
 setRange(sseq);
-dss.type = "AHSS";
+sseq.type = "AHSS";
 sseq.undo = new Interface.Undo(sseq);
-addEventHandlers(sseq, dss);
-sseq.display("#main");
+addEventHandlers(sseq);
+display.setSseq(sseq);
 // display.addEventHandler("ctrl+z", undo.undo);
 // display.addEventHandler("ctrl+shift+z", undo.redo);
