@@ -81,7 +81,7 @@ IO.loadFromServer(getJSONFilename(sseq_filename)).then(function(json){
     let y_initial = 30;
     sseq.initialxRange = [0, Math.floor(16/9 * y_initial)];
     sseq.initialyRange = [0, y_initial];
-    sseq.class_scale = 0.1;
+    sseq.class_scale = 0.6;
     sseq.squareAspectRatio = true;
 
     for(let o of json.classes){
@@ -103,7 +103,6 @@ IO.loadFromServer(getJSONFilename(sseq_filename)).then(function(json){
             }
             // Is it Z/2 hit or Z/2 supported?
             let node = Node.merge(start_node, Groups[group]);
-            node.size *= 0.8;
             node.setColor(c.color);
             c.node_list.push(node);
         }
