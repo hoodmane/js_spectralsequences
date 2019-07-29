@@ -118,6 +118,40 @@ IO.loadFromServer(getJSONFilename(sseq_filename)).then(function(json){
         }
     }
 
-    new BasicDisplay("#main", sseq);
+    Mousetrap.bind("Q", function() {
+        display.downloadSVG();
+    });
+
+    let display = new BasicDisplay("#main", sseq);
+    display.on("click", (node) => {
+        let c = node.c
+        if (!c) {
+            return;
+        }
+        copyToClipboard(c.getNameCoordHTML());
+    });
     console.log(`Rendered in ${getTime()} seconds.`);
 }).catch(err => console.log(err));
+
+
+function copyToClipboard(text) {
+    if (window.clipboardData && window.clipboardData.setData) {
+        // IE specific code path to prevent textarea being shown while dialog is visible.
+        return clipboardData.setData("Text", text); 
+
+    } else if (document.queryCommandSupported && document.queryCommandSupported("copy")) {
+        var textarea = document.createElement("textarea");
+        textarea.textContent = text;
+        textarea.style.position = "fixed";  // Prevent scrolling to bottom of page in MS Edge.
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            return document.execCommand("copy");  // Security exception may be thrown by some browsers.
+        } catch (ex) {
+            console.warn("Copy to clipboard failed.", ex);
+            return false;
+        } finally {
+            document.body.removeChild(textarea);
+        }
+    }
+}
