@@ -111,7 +111,7 @@ IO.loadFromServer(getJSONFilename(sseq_filename)).then(function(json){
     for(let d of json.differentials){
         let dn = sseq.addDifferential(json.classes[d.source].class, json.classes[d.target].class, d.page, false)
         dn.setColor(differential_colors[d.page]);
-        dn.addInfoToSourceAndTarget();
+        // dn.addInfoToSourceAndTarget();
         
     }
     
