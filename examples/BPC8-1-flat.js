@@ -40,12 +40,11 @@ Groups.Z.color = false;
 Groups.Z.shape = Shapes.square;
 Groups.Z.size = 8;
 
-Groups["Z/2"] = new SseqNode();
+Groups.Z2 = new SseqNode();
 
-Groups["Z/4"] = new SseqNode();
-Groups["Z/4"].size = 8;
-Groups["Z/4"].fill = "white";
-Groups["Z4"] = Groups["Z/4"];
+Groups.Z4 = new SseqNode();
+Groups.Z4.size = 8;
+Groups.Z4.fill = "white";
 
 Groups.Z2sup = Groups.Z4.copy();
 Groups.Z2sup.fill = "red";
@@ -53,12 +52,14 @@ Groups.Z2sup.fill = "red";
 Groups.Z2hit = Groups.Z4.copy();
 Groups.Z2hit.fill = "gray";
 
-Groups["2Z"] = Groups.Z.copy();
-Groups["2Z"].fill = "red";
+Groups.Zsup = Groups.Z.copy();
+Groups.Zsup.fill = "red";
 
-Groups["4Z"] = Groups.Z.copy();
-Groups["4Z"].fill = "black";
+Groups.Zsupsup = Groups.Z.copy();
+Groups.Zsupsup.fill = "black";
 
+Groups["2Z"] = Groups.Zsup;
+Groups["4Z"] = Groups.Zsupsup;
 
 IO.loadFromServer(getJSONFilename(sseq_filename)).then(function(json){
     console.log(`Read JSON in ${getTime()} seconds.`);
@@ -80,7 +81,7 @@ IO.loadFromServer(getJSONFilename(sseq_filename)).then(function(json){
     let y_initial = 30;
     sseq.initialxRange = [0, Math.floor(16/9 * y_initial)];
     sseq.initialyRange = [0, y_initial];
-    sseq.class_scale = 0.4;
+    sseq.class_scale = 0.1;
     sseq.squareAspectRatio = true;
 
     for(let o of json.classes){
@@ -97,19 +98,22 @@ IO.loadFromServer(getJSONFilename(sseq_filename)).then(function(json){
         let start_node = c.node_list[0];
         c.node_list = [];
         for(let group of c.group_list) {
-            if(group === "0"){
-                continue;
+            if(!Groups[group]){
+                console.log(c, group);
             }
+            // Is it Z/2 hit or Z/2 supported?
             let node = Node.merge(start_node, Groups[group]);
+            node.size *= 0.8;
             node.setColor(c.color);
             c.node_list.push(node);
         }
     }
 
     for(let d of json.differentials){
-        sseq.addDifferential(json.classes[d.source].class, json.classes[d.target].class, d.page, false)
-            .setColor(differential_colors[d.page])
-            .addInfoToSourceAndTarget();
+        let dn = sseq.addDifferential(json.classes[d.source].class, json.classes[d.target].class, d.page, false)
+        dn.setColor(differential_colors[d.page]);
+        dn.addInfoToSourceAndTarget();
+        
     }
     
     for(let c of sseq.getClassesInDegree(247,215)){
@@ -124,10 +128,10 @@ IO.loadFromServer(getJSONFilename(sseq_filename)).then(function(json){
 
     let display = new BasicDisplay("#main", sseq);
     display.on("click", (node) => {
-        let c = node.c
-        if (!c) {
+        if(!node){
             return;
         }
+        let c = node.c;
         copyToClipboard(c.name);
     });
     console.log(`Rendered in ${getTime()} seconds.`);

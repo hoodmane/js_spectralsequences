@@ -10,7 +10,7 @@ Shapes.circle = {
         context.stroke();
 
         let path = new Path2D();
-        path.arc(x, y, size, 0, 2 * Math.PI);
+        path.arc(x, y, size * 1.3, 0, 2 * Math.PI);
 
         return path;
     }

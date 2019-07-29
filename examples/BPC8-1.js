@@ -646,9 +646,9 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
             c.group = color_to_group[o.fill];
         } else if(o.fill !== true){
             c.getNode().setSize(8);
-            c.group = o.fill === "white" ? "Z/4" : "Z/2";
+            c.group = o.fill === "white" ? "Z4" : o.fill === "red" ? "Z2sup" : "Z2hit";
         } else {
-            c.group = "Z/2";
+            c.group = "Z2";
         }
         c.group_list = [c.group];
         if(!classes[o.type].has([c.x, c.y])){
@@ -704,26 +704,26 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
         d.addInfoToSourceAndTarget();
         let source_group = d.source.group_list[d.source.group_list.length - 1];
         let target_group = d.target.group_list[d.target.group_list.length - 1];
-        if ( source_group === "Z/4") {
-            d.source.group_list.push("Z/2");
+        if ( source_group === "Z4") {
+            d.source.group_list.push("Z2sup");
             d.source.replace(Groups.Z2sup, (name) => "2\\," + name);
             d.source.setColor(d.source.getColor(0));
         } else if ( source_group === "Z") {
-            d.source.group_list.push("2Z");
+            d.source.group_list.push("Zsup");
             d.source.replace(Groups.Zsup, (name) => "2\\," + name);
         } else if ( source_group === "2Z") {
-            d.source.group_list.push("4Z");
+            d.source.group_list.push("Zsupsup");
             d.source.replace(Groups.Zsupsup);
-        } else if(source_group === "Z/2"){
-            d.source.group_list.push("0");
+        } else if(source_group === "Z2"){
+            // d.source.group_list.push("0");
         }
 
-        if (target_group === "Z/4") {
-            d.target.group_list.push("Z/2");
+        if (target_group === "Z4") {
+            d.target.group_list.push("Z2hit");
             d.target.replace(Groups.Z2hit);
             d.target.setColor(d.target.getColor(0));
-        } else if(target_group === "Z/2"){
-            d.target.group_list.push("0");
+        } else if(target_group === "Z2"){
+            // d.target.group_list.push("0");
         }
         d.color = differential_colors[d.page];
     });
