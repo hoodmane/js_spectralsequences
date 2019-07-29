@@ -128,7 +128,7 @@ IO.loadFromServer(getJSONFilename(sseq_filename)).then(function(json){
         if (!c) {
             return;
         }
-        copyToClipboard(c.getNameCoordHTML());
+        copyToClipboard(c.name);
     });
     console.log(`Rendered in ${getTime()} seconds.`);
 }).catch(err => console.log(err));
