@@ -13,7 +13,7 @@ sseq.initialyRange = [0, 16];
 
 Znode = new Node();
 Znode.shape = Shapes.square;
-Znode.size = 8;
+Znode.scale = 1.3;
 
 pZnode = Znode.copy();
 pZnode.fill = "white";

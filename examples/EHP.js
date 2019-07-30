@@ -3,14 +3,6 @@
 
 let file_name = getJSONFilename("EHP");
 
-window.node_map = {};
-node_map[2] = new Node().setFill("black").setSize(6);
-node_map[4] = new Node().setFill("white").setSize(6);
-node_map[8] = new Node().setFill("white").setShape(Shapes.circlen).setSize(12);
-node_map[16] = new Node().setFill("white").setShape(Shapes.circlen).setSize(12);
-node_map[32] = new Node().setFill("white").setShape(Shapes.circlen).setSize(12);
-
-
 Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((sseq) => {
 
     sseq._getYOffset = (c) => c.y_offset || 0;

@@ -549,12 +549,12 @@ Groups.Z = new SseqNode();
 Groups.Z.fill = "white";
 Groups.Z.color = false;
 Groups.Z.shape = Shapes.square;
-Groups.Z.size = 8;
+Groups.Z.scale = 1.3;
 
 Groups.Z2 = new SseqNode();
 
 Groups.Z4 = new SseqNode();
-Groups.Z4.size = 8;
+Groups.Z4.scale = 1.3;
 Groups.Z4.fill = "white";
 
 Groups.Z2sup = Groups.Z4.copy();
@@ -590,7 +590,6 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
     y_initial = 30;
     sseq.initialxRange = [0, Math.floor(16/9 * y_initial)];
     sseq.initialyRange = [0, y_initial];
-    sseq.class_scale = 0.4;
     sseq.squareAspectRatio = true;
     // this is to change the names of the induced classes after d15.
     display.getClassTooltip = function(c, page){
@@ -610,7 +609,6 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
 
     // sseq.initialxRange = [0, Math.floor(16 / 9 * 40)];
     // sseq.initialyRange = [0, 40];
-    // sseq.class_scale = 0.75;
 
     for(let o of json.truncation_classes) {
         o.type = "truncation";
@@ -645,7 +643,7 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
             c.setShape(Shapes.square);
             c.group = color_to_group[o.fill];
         } else if(o.fill !== true){
-            c.getNode().setSize(8);
+            c.getNode().scale = 1.3;
             c.group = o.fill === "white" ? "Z4" : o.fill === "red" ? "Z2sup" : "Z2hit";
         } else {
             c.group = "Z2";
