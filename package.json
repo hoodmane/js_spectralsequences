@@ -1,11 +1,11 @@
 {
   "name": "spectral-sequences",
-  "author": "Hood Chatham <hood@mit.edu> (http://hoodchatham.com)",
+  "author": "Hood Chatham <hood@mit.edu> (http://math.mit.edu/~hood)",
   "description": "Interactive spectral sequence viewer and editor.",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "license": "ISC",
   "repository": "github:hoodmane/js_spectralsequences",
-  "private": true,
+  "main" : "bundle.js",
   "devDependencies": {
     "browserify": "^16.2.2",
     "budo": "^11.2.2",
