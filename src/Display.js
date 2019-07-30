@@ -1,7 +1,7 @@
 "use strict";
 
 let EventEmitter = require("events");
-let d3 = require("d3");
+let d3 = Object.assign({}, require("d3-selection"), require("d3-zoom"), require("d3-scale"), require("d3-timer"));
 
 const gridGo = "go";
 const gridChess = "chess";

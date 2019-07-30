@@ -37,7 +37,7 @@ window.Extension = Sseqjs.Extension;
 window.tools = require("./ass_tools.js");
 
 
-window.d3 = require("d3");
+window.d3 = require("d3-selection");
 window.Mousetrap = require("mousetrap");
 
 window.range = Sseqjs.range;
