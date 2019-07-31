@@ -22,6 +22,8 @@ class Display extends EventEmitter {
         this.gridStrokeWidth = 0.3;
         this.TICK_STEP_LOG_BASE = 1.1; // Used for deciding when to change tick step.
 
+        this.hiddenStructlines = new Set();
+
         this.container = d3.select(container);
         this.container_DOM = this.container.node();
 
@@ -483,6 +485,10 @@ class Display extends EventEmitter {
             if(!e || e.invalid || !e.visible){ // TODO: should probably log some of the cases where we skip an edge...
                 continue;
             }
+            if (e.type == "Structline" && this.hiddenStructlines.has(e.mult)) {
+                continue;
+            }
+
             let source_node = e.source.node;
             let target_node = e.target.node;
             if(!source_node || ! target_node){

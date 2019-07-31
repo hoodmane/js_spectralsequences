@@ -67,6 +67,17 @@ class Panel extends EventEmitter {
     }
 
     /**
+     * This clears everything in the panel. This currently does not unbind the
+     * shortcuts.
+     */
+    clear() {
+        while (this.container.firstChild)
+            this.container.removeChild(this.container.firstChild);
+
+        this.links = [];
+    }
+
+    /**
      * This shows the panel, and populates the values of the children.  This
      * correctly populates the children added by the helper functions, and no
      * extra work has to be done for them. If custom children are added, one
@@ -244,7 +255,7 @@ class Panel extends EventEmitter {
 
         this.links.push([target, i]);
 
-        o.addEventListener("change", (e) => {
+        i.addEventListener("change", (e) => {
             let target_pre;
             if (mementoObject) {
                 mementoObject = Panel.unwrapProperty(this.display, mementoObject.split("."))
