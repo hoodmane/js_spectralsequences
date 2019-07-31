@@ -168,6 +168,10 @@ class Sseq extends EventEmitter{
         return this.differentials;
     }
 
+    getStructlineTypes(){
+        return new Set(this.structlines.map(x => x.mult));
+    }
+
     getSelection(){
 
     }
@@ -287,9 +291,10 @@ class Sseq extends EventEmitter{
      * Adds a structline from source to target.
      * @param source
      * @param target
+     * @param mult
      * @returns {Structline} the structline object
      */
-    addStructline(source, target){
+    addStructline(source, target, mult){
 //        if(source == undefined){
 //            source = this.last_classes[0]
 //            target = this.last_classes[1]
@@ -303,6 +308,8 @@ class Sseq extends EventEmitter{
             return Structline.getDummy();
         }
         let struct = new Structline(this, source, target);
+        if (mult) struct.setProduct(mult);
+
         let source_pre = source.getMemento();
         let target_pre = target.getMemento();
         source._addStructline(struct);
