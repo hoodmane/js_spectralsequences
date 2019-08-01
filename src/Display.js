@@ -23,6 +23,7 @@ class Display extends EventEmitter {
         this.TICK_STEP_LOG_BASE = 1.1; // Used for deciding when to change tick step.
 
         this.hiddenStructlines = new Set();
+        this.updateQueue = 0;
 
         this.container = d3.select(container);
         this.container_DOM = this.container.node();
@@ -191,7 +192,12 @@ class Display extends EventEmitter {
     update(batch = false) {
         if (!this.sseq) return;
 
+        this.updateQueue ++;
+
         let drawFunc = () => {
+            this.updateQueue --;
+            if (this.updateQueue != 0) return;
+
             this._drawSseq(this.context);
             if (d3.event) {
                 // d3 zoom doesn't allow the events it handles to bubble, so we
