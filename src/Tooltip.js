@@ -34,6 +34,10 @@ class Tooltip {
         this.div.style.top = "0px";
 
         let rect = this.div.getBoundingClientRect();
+        let canvasRect = this.display.canvas.getBoundingClientRect();
+
+        x = x + canvasRect.x;
+        y = y + canvasRect.y;
 
         /**
          * By default, show the tooltip to the top and right of (x, y), offset

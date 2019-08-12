@@ -558,9 +558,10 @@ class Display extends EventEmitter {
         // We cannot query for mouse position. We must remember it from
         // previous events. If update() is called, we call _onMousemove without
         // an event.
+        let rect = this.canvas.getBoundingClientRect();
         if (e) {
-            this.x = e.clientX;
-            this.y = e.clientY;
+            this.x = e.clientX - rect.x;
+            this.y = e.clientY - rect.y;
         }
 
         if (this.mouseover_node) {
