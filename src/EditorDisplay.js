@@ -126,7 +126,7 @@ class EditorDisplay extends SidebarDisplay {
         this.tooltip = new Tooltip(this);
         this.on("mouseover", (node) => {
             this.tooltip.setHTML(`(${node.c.x}, ${node.c.y})`);
-            this.tooltip.show(node.x, node.y);
+            this.tooltip.show(node.canvas_x, node.canvas_y);
         });
         this.on("mouseout", this._onMouseout.bind(this));
         this.on("click", this.__onClick.bind(this)); // Display already has an _onClick
