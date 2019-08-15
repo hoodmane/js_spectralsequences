@@ -5,7 +5,7 @@ let file_name = getJSONFilename("ASS-S_3");
 Sseq.loadFromServer(file_name)
     .then((sseq) => {
         sseq._getXOffset = tools.fixed_tower_xOffset.bind(sseq);
-        sseq._getYOffset = (c) => c.y_offset || 0;
+        sseq._getYOffset = (n) => n.c.y_offset || 0;
 
         for (let sl of sseq.getStructlines()) {
             switch (sl.mult) {

@@ -684,6 +684,7 @@ class Sseq extends EventEmitter{
             c.in_range = Sseq._classInRangeQ(c, xmin, xmax, ymin, ymax);
             return c.in_range && Sseq._drawClassOnPageQ(c, page);
         });
+
         // Display edges such that
         // 1) e is a valid edge
         // 2) e is supposed to be drawn on the current pageRange.
@@ -710,7 +711,21 @@ class Sseq extends EventEmitter{
             }
         }
 
-        return [display_classes, display_edges];
+        let display_nodes = display_classes.map(c => {
+            let node = this.getClassNode(c);
+            node.c = c;
+            node.x = c.x;
+            node.y = c.y;
+            c.node = node;
+            return node;
+        });
+        display_nodes = display_nodes.filter(n => n); // Remove undefined nodes. This shouldn't happen?
+
+        for (let e of display_edges) {
+            e.source_node = e.source.node;
+            e.target_node = e.target.node;
+        }
+        return [display_nodes, display_edges];
     }
 
     /**
@@ -774,7 +789,8 @@ class Sseq extends EventEmitter{
      * @returns {number} The x offset
      * @package
      */
-    _getXOffset(c, page) {
+    _getXOffset(node, page) {
+        let c = node.c;
         if (c.x_offset !== false) {
             return c.x_offset * this.offset_size;
         }
@@ -794,7 +810,8 @@ class Sseq extends EventEmitter{
      * @returns {number} The y offset
      * @package
      */
-    _getYOffset(c, page) {
+    _getYOffset(node, page) {
+        let c = node.c;
         if (c.y_offset !== false) {
             return c.y_offset  * this.offset_size;
         }

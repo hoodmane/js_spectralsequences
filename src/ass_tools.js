@@ -169,7 +169,8 @@ exports.minimizeCrossings = function(sseq){
 
 
 
-exports.fixed_tower_xOffset = function(c,page){
+exports.fixed_tower_xOffset = function(node,page){
+    let c = node.c;
     if(c.x_offset !== false){
         return c.x_offset * this.offset_size;
     }
