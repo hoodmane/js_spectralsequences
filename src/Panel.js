@@ -164,7 +164,7 @@ class Panel extends EventEmitter {
         o.addEventListener("click", callback);
 
         if (extra.tooltip)
-            o.addAttribute("title", extra.tooltip);
+            o.setAttribute("title", extra.tooltip);
         if (extra.shortcuts)
             for (let k of extra.shortcuts)
                 Mousetrap.bind(k, callback);

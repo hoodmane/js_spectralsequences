@@ -22,6 +22,7 @@ window.Tooltip = require("./Tooltip.js").Tooltip;
 window.Panel = require("./Panel.js");
 window.C2S = require("canvas2svg");
 window.ExportToTex = require("./ExportToTex.js");
+window.EventEmitter = require("events");
 
 
 let Sseqjs = require("./Sseq.js");

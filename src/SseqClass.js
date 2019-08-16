@@ -82,8 +82,8 @@ class Node {
     }
 
     setPosition(x, y, scale) {
-        this.x = x;
-        this.y = y;
+        this.canvas_x = x;
+        this.canvas_y = y;
         this.scale = scale;
     }
 
@@ -117,7 +117,7 @@ class Node {
         }
         context.lineWidth = this.scale * 2;
 
-        this.path = this.shape.draw(context, this.x, this.y, this.size * this.scale, this);
+        this.path = this.shape.draw(context, this.canvas_x, this.canvas_y, this.size * this.scale, this);
 
         context.restore();
     }

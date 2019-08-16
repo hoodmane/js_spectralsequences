@@ -238,12 +238,12 @@ class Display extends EventEmitter {
 
         this.clipContext(ctx);
 
-        let [classes, edges] = this.sseq.getDrawnElements(this.pageRange, this.xmin, this.xmax, this.ymin, this.ymax);
+        let [nodes, edges] = this.sseq.getDrawnElements(this.pageRange, this.xmin, this.xmax, this.ymin, this.ymax);
 
         this._drawGrid(ctx);
-        this._updateClasses(classes);
+        this._updateNodes(nodes);
         this._drawEdges(ctx, edges);
-        this._drawClasses(ctx);
+        this._drawNodes(ctx);
 
         if (this.sseq.edgeLayerSVG)
             this.drawSVG(ctx, this.sseq.edgeLayerSVG);
@@ -455,31 +455,17 @@ class Display extends EventEmitter {
         context.restore();
     }
 
-    _updateClasses(classes){
+    _updateNodes(nodes){
         let scale = Math.min(Math.max(this.scale, 1/3), 2) * this.sseq.class_scale;
 
-        this.nodes = []
+        this.nodes = nodes
 
-        for (let c of classes) {
-            if(!c || c.invalid){ // TODO: should we log these cases?
-                continue;
-            }
-            let node = this.sseq.getClassNode(c, this.page);
-            if(node === undefined){
-                console.log("Error: node for class is undefined. Using default node.", c);
-                // This is broken
-                node = this.sseq.default_node;
-            }
-            node.setPosition(this.xScale(c.x + this.sseq._getXOffset(c)), this.yScale(c.y + this.sseq._getYOffset(c)), scale);
-            node.c = c;
-            c.node = node;
-            // TODO: do something about selected nodes
-
-            this.nodes.push(node);
+        for (let node of nodes) {
+            node.setPosition(this.xScale(node.x + this.sseq._getXOffset(node)), this.yScale(node.y + this.sseq._getYOffset(node)), scale);
         }
     }
 
-    _drawClasses(context) {
+    _drawNodes(context) {
          for (let n of this.nodes) {
              n.draw(context);
          }
@@ -495,8 +481,8 @@ class Display extends EventEmitter {
                 continue;
             }
 
-            let source_node = e.source.node;
-            let target_node = e.target.node;
+            let source_node = e.source_node;
+            let target_node = e.target_node;
             if(!source_node || ! target_node){
                 continue;
             }
@@ -516,10 +502,10 @@ class Display extends EventEmitter {
                 context.setLineDash(e.dash)
             }
 
-            let sourceX = source_node.x + e.sourceOffset.x;
-            let sourceY = source_node.y + e.sourceOffset.y;
-            let targetX = target_node.x + e.targetOffset.x;
-            let targetY = target_node.y + e.targetOffset.y;
+            let sourceX = source_node.canvas_x + e.sourceOffset.x;
+            let sourceY = source_node.canvas_y + e.sourceOffset.y;
+            let targetX = target_node.canvas_x + e.targetOffset.x;
+            let targetY = target_node.canvas_y + e.targetOffset.y;
 
             context.beginPath();
             if(e.bend ){//&& e.bend !== 0
@@ -558,9 +544,10 @@ class Display extends EventEmitter {
         // We cannot query for mouse position. We must remember it from
         // previous events. If update() is called, we call _onMousemove without
         // an event.
+        let rect = this.canvas.getBoundingClientRect();
         if (e) {
-            this.x = e.clientX;
-            this.y = e.clientY;
+            this.x = e.clientX - rect.x;
+            this.y = e.clientY - rect.y;
         }
 
         if (this.mouseover_node) {

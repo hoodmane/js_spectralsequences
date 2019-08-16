@@ -13,7 +13,7 @@ node_map[32] = new Node().setFill("white").setShape(Shapes.circlen).setSize(12);
 
 Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((sseq) => {
 
-    sseq._getYOffset = (c) => c.y_offset || 0;
+    sseq._getYOffset = (n) => n.c.y_offset || 0;
     let display = new BasicDisplay("#main");
 
     if (on_public_website) {

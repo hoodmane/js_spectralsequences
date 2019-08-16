@@ -8,7 +8,7 @@ let file_name = getJSONFilename("ASS-S_2");
 
 Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((sseq) => {
     sseq._getXOffset = tools.fixed_tower_xOffset.bind(sseq);
-    sseq._getYOffset = (c) => c.y_offset || 0;
+    sseq._getYOffset = (n) => n.c.y_offset || 0;
 
     new BasicDisplay("#main", sseq);
     return;
