@@ -16,7 +16,7 @@ classes.addDifferential(3, [3,-1], k => k[1] % 2 !== 0, (d, _) => d.addInfoToSou
 
 let Znode = new Node();
 Znode.shape = Shapes.square;
-Znode.size = 8;
+Znode.scale = 1.3;
 
 let Z2node = new Node();
 Z2node.fill = false;

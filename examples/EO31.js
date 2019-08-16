@@ -21,7 +21,7 @@ classes = sseq.addPolynomialClasses(
 
 Znode = new Node();
 Znode.shape = Shapes.square;
-Znode.size = 8;
+Znode.scale = 1.3;
 
 pZnode = Znode.copy();
 pZnode.fill = false;

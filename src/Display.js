@@ -456,7 +456,7 @@ class Display extends EventEmitter {
     }
 
     _updateClasses(classes){
-        let scale = Math.min(Math.max(this.scale, 1/3), 2) * this.sseq.class_scale;
+        let size = Math.max(Math.min(this.dxScale(1), -this.dyScale(1), this.sseq.max_class_size), this.sseq.min_class_size) * this.sseq.class_scale;
 
         this.nodes = []
 
@@ -470,7 +470,7 @@ class Display extends EventEmitter {
                 // This is broken
                 node = this.sseq.default_node;
             }
-            node.setPosition(this.xScale(c.x + this.sseq._getXOffset(c)), this.yScale(c.y + this.sseq._getYOffset(c)), scale);
+            node.setPosition(this.xScale(c.x + this.sseq._getXOffset(c)), this.yScale(c.y + this.sseq._getYOffset(c)), size);
             node.c = c;
             c.node = node;
             // TODO: do something about selected nodes
