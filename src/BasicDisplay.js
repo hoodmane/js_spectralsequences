@@ -19,7 +19,7 @@ class BasicDisplay extends Display {
         this.tooltip = new Tooltip(this);
         this.on("mouseover", (node) => {
             this.tooltip.setHTML(this.getClassTooltipHTML(node.c, this.page));
-            this.tooltip.show(node.x, node.y);
+            this.tooltip.show(node.canvas_x, node.canvas_y);
         });
         this.on("mouseout", () => this.tooltip.hide());
 
