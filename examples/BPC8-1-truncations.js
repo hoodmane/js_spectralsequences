@@ -121,14 +121,14 @@ let SseqNode = Node;
 Groups.Z = new SseqNode();
 Groups.Z.fill = "white";
 Groups.Z.shape = Shapes.square;
-Groups.Z.size = 8;
+Groups.Z.scale = 1.3;
 
 Groups.Z2 = new SseqNode();
 Groups.Z2.shape = Shapes.circle;
 
 Groups.Z4 = new SseqNode();
 Groups.Z4.shape = Shapes.circle;
-Groups.Z4.size = 8;
+Groups.Z4.scale = 1.3;
 Groups.Z4.fill = "white";
 
 Groups.Z2sup = Groups.Z4.copy();
@@ -156,7 +156,6 @@ IO.loadFromServer(getJSONFilename("BPC8-truncations")).catch(err => console.log(
 
     sseq.initialxRange = [0, Math.floor(16 / 9 * 40)];
     sseq.initialyRange = [0, 40];
-    sseq.class_scale = 0.75;
 
     let color_to_group = {
         "white" : "Z",
@@ -174,7 +173,7 @@ IO.loadFromServer(getJSONFilename("BPC8-truncations")).catch(err => console.log(
             c.setShape(Shapes.square);
             c.group = color_to_group[o.fill];
         } else if(o.fill !== true){
-            c.getNode().setSize(8);
+            c.getNode().scale = 1.3;
             c.group = o.fill === "white" ? "Z/4" : "Z/2";
         } else {
             c.group = "Z/2";

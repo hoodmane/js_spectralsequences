@@ -5,12 +5,12 @@ let Shapes = {};
 Shapes.circle = {
     draw: function(context, x, y, size, path2d=true) {
         context.beginPath();
-        context.arc(x, y, size, 0, 2*Math.PI);
+        context.arc(x, y, size * 0.1, 0, 2*Math.PI);
         context.fill();
         context.stroke();
 
         let path = new Path2D();
-        path.arc(x, y, size * 1.3, 0, 2 * Math.PI);
+        path.arc(x, y, size * 0.2, 0, 2 * Math.PI);
 
         return path;
     }
@@ -20,18 +20,18 @@ Shapes.circle = {
 Shapes.circlen = {
     draw: function(context, x, y, size, node) {
         context.beginPath();
-        context.arc(x, y, size, 0, 2*Math.PI);
+        context.arc(x, y, size * 0.1, 0, 2*Math.PI);
         context.fill();
         context.stroke();
 
         context.textAlign = "center";
         context.fillStyle = "black";
-        let fontsize = 2*size | 0;
+        let fontsize = 0.15*size | 0;
         context.font = `${fontsize}px Arial`;
-        context.fillText(node.order, x, y + size/2);
+        context.fillText(node.order, x, y + size*0.06);
 
         let path = new Path2D();
-        path.arc(x, y, size, 0, 2 * Math.PI);
+        path.arc(x, y, size * 0.2, 0, 2 * Math.PI);
 
         return path;
     }
@@ -39,13 +39,15 @@ Shapes.circlen = {
 
 Shapes.square = {
     draw: function(context, x, y, size) {
+        let hwidth = 0.1 * size;
+
         context.beginPath();
-        context.rect(x-size, y-size, 2*size, 2*size);
+        context.rect(x - hwidth, y - hwidth, 2*hwidth, 2*hwidth);
         context.fill();
         context.stroke();
 
         let path = new Path2D();
-        path.rect(x-size, y-size, 2*size, 2*size);
+        path.rect(x - 2*hwidth, y - 2*hwidth, 4*hwidth, 4*hwidth);
 
         return path;
     }

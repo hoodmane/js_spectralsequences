@@ -28,7 +28,7 @@ function dot_mod_16(v){
 
 Zq = new Node();
 Zq.shape = Shapes.square;
-Zq.size = 8;
+Zq.scale = 1.3;
 
 qZq = Zq.copy();
 qZq.fill = "white";

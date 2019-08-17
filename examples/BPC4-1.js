@@ -11,12 +11,12 @@ let Groups = {};
 Groups.Z = new SseqNode();
 Groups.Z.fill = "white";
 Groups.Z.shape = Shapes.square;
-Groups.Z.size = 8;
+Groups.Z.scale = 1.3;
 
 Groups.Z2 = new SseqNode();
 
 Groups.Z4 = new SseqNode();
-Groups.Z4.size = 8;
+Groups.Z4.scale = 1.3;
 Groups.Z4.fill = "white";
 
 Groups.Z2sup = Groups.Z4.copy();

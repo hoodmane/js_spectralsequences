@@ -31,7 +31,6 @@ function setupSseq(sseq){
     sseq.yRange = [0, 20];
     sseq.name = displayNames[file_idx];
     sseq.offset_size = 0.2;
-    sseq.class_scale = 0.7;
     // dss._getXOffset = tools.fixed_tower_xOffset.bind(dss);
     // dss._getYOffset = (c) => c.y_offset || 0;
 

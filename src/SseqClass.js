@@ -23,6 +23,7 @@ class Node {
     constructor(obj){
         this.opacity = 1;
         this.color = "black";
+        this.scale = 1;
         if(obj){
             Object.assign(this, obj);
         }
@@ -44,14 +45,6 @@ class Node {
         return this;
     }
 
-    getSize(){
-        return this.size;
-    }
-
-    setSize(size){
-        this.size = size;
-        return this;
-    }
 
     getColor(){
         return this.color;
@@ -81,10 +74,10 @@ class Node {
         return false;
     }
 
-    setPosition(x, y, scale) {
-        this.canvas_x = x;
-        this.canvas_y = y;
-        this.scale = scale;
+    setPosition(x, y, size) {
+        this.x = x;
+        this.y = y;
+        this.size = size;
     }
 
     draw(context) {
@@ -115,9 +108,10 @@ class Node {
                 context.fillStyle = this.hfill;
             }
         }
-        context.lineWidth = this.scale * 2;
+        context.lineWidth = Math.min(3, this.size * this.scale / 20); // Magic number
 
-        this.path = this.shape.draw(context, this.canvas_x, this.canvas_y, this.size * this.scale, this);
+        
+        this.path = this.shape.draw(context, this.x, this.y, this.size * this.scale, this);
 
         context.restore();
     }

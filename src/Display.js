@@ -462,13 +462,11 @@ class Display extends EventEmitter {
     }
 
     _updateNodes(nodes){
-        let scale = Math.min(Math.max(this.scale, 1/3), 2) * this.sseq.class_scale;
-
-        this.nodes = nodes
-
+        let size = Math.max(Math.min(this.dxScale(1), -this.dyScale(1), this.sseq.max_class_size), this.sseq.min_class_size) * this.sseq.class_scale;
+        this.nodes = nodes;
         for (let node of nodes) {
-            node.setPosition(this.xScale(node.x + this.sseq._getXOffset(node)), this.yScale(node.y + this.sseq._getYOffset(node)), scale);
-        }
+            node.setPosition(this.xScale(node.x + this.sseq._getXOffset(node)), this.yScale(node.y + this.sseq._getYOffset(node)), size);
+        }        
     }
 
     _drawNodes(context) {
@@ -477,7 +475,7 @@ class Display extends EventEmitter {
          }
     }
 
-    _drawEdges(context, edges){
+    _drawEdges(context, edges){        
         for (let i = 0; i < edges.length; i++) {
             let e = edges[i];
             if(!e || e.invalid || !e.visible){ // TODO: should probably log some of the cases where we skip an edge...
@@ -508,10 +506,11 @@ class Display extends EventEmitter {
                 context.setLineDash(e.dash)
             }
 
-            let sourceX = source_node.canvas_x + e.sourceOffset.x;
-            let sourceY = source_node.canvas_y + e.sourceOffset.y;
-            let targetX = target_node.canvas_x + e.targetOffset.x;
-            let targetY = target_node.canvas_y + e.targetOffset.y;
+            let sourceX = source_node.x + e.sourceOffset.x;
+            let sourceY = source_node.y + e.sourceOffset.y;
+            let targetX = target_node.x + e.targetOffset.x;
+            let targetY = target_node.y + e.targetOffset.y;
+            console.log([sourceX, sourceY], [targetX, targetY]);
 
             context.beginPath();
             if(e.bend ){//&& e.bend !== 0

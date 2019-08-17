@@ -95,6 +95,8 @@ class Sseq extends EventEmitter{
         this.xshift = 0;
         this.yshift = 0;        
         this.offset_size = 0.3;
+        this.min_class_size = 20;
+        this.max_class_size = 60;
         this.class_scale = 1;
         this.min_page_idx = 0;
         this.page_list = [0,infinity];
@@ -103,7 +105,7 @@ class Sseq extends EventEmitter{
         this.default_node.fill = true;
         this.default_node.stroke = true;
         this.default_node.shape = Shapes.circle;
-        this.default_node.size = 6;
+        this.default_node.size = 1;
         this.projection = (ssclass) => [ssclass.degree.x, ssclass.degree.y];
         this.stem_degree = (ssclass) => ssclass.degree.x;
         this.filtration_degree = (ssclass) => ssclass.degree.y;
@@ -575,7 +577,7 @@ class Sseq extends EventEmitter{
      * @param page
      * @returns {Sseq} chainable
      */
-   addPageToPageList(page){
+    addPageToPageList(page){
         for(let i = 0; i < this.page_list.length; i++){
             let compare_page;
             if(Array.isArray(this.page_list[i])){
@@ -590,7 +592,7 @@ class Sseq extends EventEmitter{
                 return this;
             }
         }
-   }
+    }
 
     addPageRangeToPageList(pageRange){
         let page = pageRange[0];
@@ -1064,9 +1066,9 @@ class Sseq extends EventEmitter{
     }
 }
 
-Sseq.serializeSseqFields = ["min_page_idx", "page_list", "xRange", "yRange", "initialxRange", "initialyRange", "default_node", "class_scale", "offset_size", "serializeSseqFields", "serializeClassFields", "serializeEdgeFields", "serializeNodeFields"]; // classes and edges are dealt with separately.
+Sseq.serializeSseqFields = ["min_page_idx", "page_list", "xRange", "yRange", "initialxRange", "initialyRange", "default_node", "class_scale", "offset_size", "min_class_size", "max_class_size", "serializeSseqFields", "serializeClassFields", "serializeEdgeFields", "serializeNodeFields"]; // classes and edges are dealt with separately.
 Sseq.serializeClassFields = ["x", "y", "name", "extra_info", "unique_id", "idx", "x_offset", "y_offset", "page_list", "visible"]; // "node_list" is dealt with separately
 Sseq.serializeEdgeFields = ["color", "bend", "dash", "lineWidth", "opacity", "page_min", "page", "type", "mult", "source_name", "target_name"]; // "source" and "target" are dealt with separately.
-Sseq.serializeNodeFields = ["opacity", "color", "fill", "stroke", "hcolor", "hfill", "hstroke", "shape", "size"];
+Sseq.serializeNodeFields = ["opacity", "color", "fill", "stroke", "hcolor", "hfill", "hstroke", "shape", "scale"];
 
 exports.Sseq = Sseq;

@@ -67,9 +67,9 @@ AHSS.addCell = function addAHSSCell(sseq, cell_dim){
     console.log("cell", cell_dim);
     let i = sseq.num_cells;
     sseq.num_cells ++;
+    sseq.on("class-added", (c) => c.setColor(colorList[i]));
     for(let v = vmin; v < vmax; v++ ){
         sseq.xshift = 72*v + cell_dim;
-        sseq.on("class-added", (c) => c.setColor(colorList[i]));
         let o = AHSS.setClassName(sseq.addClass(0,0),[0,0,0,3*v],cell_dim).setNode(squareNode).setColor(colorList[i]);
         AHSS.setClassName(sseq.addClass(24,0),[0,0,0,3*v+1],cell_dim).setNode(openSquareNode).setColor(colorList[i]);
         AHSS.setClassName(sseq.addClass(48,0),[0,0,0,3*v+2],cell_dim).setNode(openSquareNode).setColor(colorList[i]);
@@ -93,6 +93,7 @@ AHSS.addCell = function addAHSSCell(sseq, cell_dim){
         sseq.addStructline(bx, b4).setProduct("a");
         sseq.xshift = 0;
     }
+    sseq.removeAllListeners("class-added");
     sseq.emit("update");
 };
 AHSS.setClassName = function setClassName(c, powers, cell){
