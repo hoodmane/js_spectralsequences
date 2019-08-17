@@ -238,7 +238,7 @@ class Display extends EventEmitter {
 
         this.clipContext(ctx);
 
-        let [nodes, edges] = this.sseq.getDrawnElements(this.pageRange, this.xmin, this.xmax, this.ymin, this.ymax);
+        let [nodes, edges] = this.sseq.getDrawnElements(this.pageRange, this.xmin - 1, this.xmax + 1, this.ymin - 1, this.ymax + 1);
 
         this._drawGrid(ctx);
         this._updateNodes(nodes);
@@ -362,6 +362,11 @@ class Display extends EventEmitter {
 
         this.xTickStep = Math.ceil(this.xTicks[1] - this.xTicks[0]);
         this.yTickStep = Math.ceil(this.yTicks[1] - this.yTicks[0]);
+        this.xTicks[0] -= this.xTickStep;
+        this.yTicks[0] -= this.yTickStep;
+        this.xTicks.push(this.xTicks[this.xTicks.length - 1] + this.xTickStep);
+        this.yTicks.push(this.yTicks[this.yTicks.length - 1] + this.yTickStep);
+
 
         this.xGridStep = (Math.floor(this.xTickStep / 5) === 0) ? 1 : Math.floor(this.xTickStep / 5);
         this.yGridStep = (Math.floor(this.yTickStep / 5) === 0) ? 1 : Math.floor(this.yTickStep / 5);
@@ -441,7 +446,8 @@ class Display extends EventEmitter {
         // This makes the white square in the bottom left corner which prevents axes labels from appearing to the left
         // or below the axes intercept.
         context.fillStyle = "#FFF";
-        context.rect(0, this.clipHeight, this.leftMargin - 5, this.bottomMargin);
+        context.rect(0, this.clipHeight, this.leftMargin, this.bottomMargin);
+        context.rect(0, 0, this.leftMargin, this.topMargin);
         context.fill();
         context.fillStyle = "#000";
 
