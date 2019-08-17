@@ -510,7 +510,6 @@ class Display extends EventEmitter {
             let sourceY = source_node.y + e.sourceOffset.y;
             let targetX = target_node.x + e.targetOffset.x;
             let targetY = target_node.y + e.targetOffset.y;
-            console.log([sourceX, sourceY], [targetX, targetY]);
 
             context.beginPath();
             if(e.bend ){//&& e.bend !== 0
