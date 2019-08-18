@@ -476,8 +476,7 @@ class Display extends EventEmitter {
     }
 
     _drawEdges(context, edges){        
-        for (let i = 0; i < edges.length; i++) {
-            let e = edges[i];
+        for (let e of edges) {
             if(!e || e.invalid || !e.visible){ // TODO: should probably log some of the cases where we skip an edge...
                 continue;
             }
@@ -506,10 +505,10 @@ class Display extends EventEmitter {
                 context.setLineDash(e.dash)
             }
 
-            let sourceX = source_node.x + e.sourceOffset.x;
-            let sourceY = source_node.y + e.sourceOffset.y;
-            let targetX = target_node.x + e.targetOffset.x;
-            let targetY = target_node.y + e.targetOffset.y;
+            let sourceX = source_node.canvas_x + e.sourceOffset.x;
+            let sourceY = source_node.canvas_y + e.sourceOffset.y;
+            let targetX = target_node.canvas_x + e.targetOffset.x;
+            let targetY = target_node.canvas_y + e.targetOffset.y;
 
             context.beginPath();
             if(e.bend ){//&& e.bend !== 0
