@@ -196,6 +196,17 @@ class Panel extends EventEmitter {
     }
 
     /**
+     * This adds a header.
+     * @param {String} header - The header text.
+     */
+    addHeader(header) {
+        let node = document.createElement("h5");
+        node.className = "card-title";
+        node.innerHTML = header;
+        this.addObject(node);
+    }
+
+    /**
      * This adds a linked input. A linked input is an entry that looks like
      *
      *       +-----+
@@ -270,12 +281,14 @@ class Panel extends EventEmitter {
             let new_val = e.target.value;
             t[prop] = new_val;
 
-            if (mementoObject) {
-                this.display.sseq.undo.startMutationTracking()
-                this.display.sseq.undo.addMutation(mementoObject, target_pre, mementoObject.getMemento())
-                this.display.sseq.undo.addMutationsToUndoStack();
-            } else {
-                this.display.sseq.undo.addValueChange(t, prop, old_val, new_val, () => this.display.sidebar.showPanel());
+            if (this.display.sseq.undo) {
+                if (mementoObject) {
+                    this.display.sseq.undo.startMutationTracking()
+                    this.display.sseq.undo.addMutation(mementoObject, target_pre, mementoObject.getMemento())
+                    this.display.sseq.undo.addMutationsToUndoStack();
+                } else {
+                    this.display.sseq.undo.addValueChange(t, prop, old_val, new_val, () => this.display.sidebar.showPanel());
+                }
             }
 
             this.display.sseq.emit("update");
