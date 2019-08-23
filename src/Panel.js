@@ -355,6 +355,18 @@ class TabbedPanel extends Panel {
         this.showTab(this.currentTab);
     }
 
+    nextTab() {
+        let n = this.tabs.findIndex(t => t[0] == this.currentTab);
+        n = (n + 1) % this.tabs.length;
+        this.showTab(this.tabs[n][0]);
+    }
+
+    prevTab() {
+        let n = this.tabs.findIndex(t => t[0] == this.currentTab);
+        n = (n + this.tabs.length - 1) % this.tabs.length;
+        this.showTab(this.tabs[n][0]);
+    }
+
     /**
      * Sets the corresponding tab to be the active tab and shows it (of course,
      * the tab will not be actually shown if the panel itself is hidden).
