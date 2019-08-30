@@ -8,7 +8,7 @@ let Mousetrap = require("mousetrap");
 class BasicDisplay extends Display {
     constructor(container, sseq) {
         super(container, sseq);
-
+        document.body.style.overflow = "hidden";
         this.page_indicator_div = this.container.append("div")
             .attr("id", "page_indicator")
             .style("position", "absolute")
