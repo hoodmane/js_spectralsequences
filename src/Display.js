@@ -13,7 +13,7 @@ class Display extends EventEmitter {
 
         this.leftMargin = 40;
         this.rightMargin = 5;
-        this.topMargin = 30;
+        this.topMargin = 45;
         this.bottomMargin = 60;
         this.domainOffset = 1 / 2;
 

@@ -10,9 +10,10 @@ class BasicDisplay extends Display {
         super(container, sseq);
 
         this.page_indicator_div = this.container.append("div")
+            .attr("id", "page_indicator")
             .style("position", "absolute")
             .style("left", "20px")
-            .style("top","0px")
+            .style("top","10px")
             .style("font-family","Arial")
             .style("font-size","15px");
 
