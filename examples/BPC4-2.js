@@ -117,7 +117,7 @@ IO.loadFromServer(getJSONFilename("BPC4-2-E13")).then(function(json){
     }
     addLoadingMessage(`Added classes in ${getTime()} seconds.`);
 
-    sseq.on("differntial-added", function (d) {
+    sseq.on("differential-added", function (d) {
         d.addInfoToSourceAndTarget();
         if (d.source.group === "Z/4") {
             d.source.group = "Z/2";
