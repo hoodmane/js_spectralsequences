@@ -68,7 +68,10 @@ IO.loadFromServer(getJSONFilename(sseq_filename)).then(function(json){
     }
 
     for(let sl of json.structlines){
-
+        sseq.addStructline(json.classes[sl.source].class, json.classes[sl.target].class)
     }
+    for(let sl of json.extensions){
+        sseq.addExtension(json.classes[sl.source].class, json.classes[sl.target].class)
+    }    
     new BasicDisplay("#main", sseq);
 });

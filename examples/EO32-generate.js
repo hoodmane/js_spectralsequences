@@ -113,9 +113,11 @@ window.saveSseq = function saveSseq(){
     result.classes = [];
     result.differentials = [];
     result.structlines = [];
-    let classes = new Set(sseq.getClasses().filter(c =>  min_x <= c.x && c.x <= max_x && c.y <= max_y));
-    let differentials = sseq.getDifferentials().filter(d => d.source.x >= min_x && d.source.x <= max_x + 1 && d.source.y <= max_y);
-    let structlines = sseq.getStructlines().filter(d => d.source.x >= min_x && d.target.x <= max_x && d.target.y <= max_y);
+    result.extensions = [];
+    let classes = new Set(sseq.getClasses().filter(c =>  min_x <= c.x && c.x <= max_x && c.y <= max_y && c.visible));
+    let differentials = sseq.getDifferentials().filter(d => d.source.x >= min_x && d.source.x <= max_x + 1 && d.source.y <= max_y && d.source.visible && d.target.visible);
+    let structlines = sseq.getStructlines().filter(d => d.source.x >= min_x && d.target.x <= max_x && d.target.y <= max_y&& d.source.visible && d.target.visible);
+    let extensions = sseq.getEdges().filter(e => e.type === "Extension").filter(d => d.source.x >= min_x && d.target.x <= max_x && d.target.y <= max_y&& d.source.visible && d.target.visible);    
     for(let d of differentials){
         classes.add(d.target);
         if(d.source.x === max_x + 1){
@@ -151,6 +153,13 @@ window.saveSseq = function saveSseq(){
         o.source = sl.source.json_idx;
         o.target = sl.target.json_idx;
         result.structlines.push(o);
+    }
+
+    for(let sl of extensions){
+        let o = {};
+        o.source = sl.source.json_idx;
+        o.target = sl.target.json_idx;
+        result.extensions.push(o);
     }
 
     return result;
