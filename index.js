@@ -49,23 +49,23 @@ function katexMathInDelims(string){
 
 IO.loadFromServer("spectralsequences_listing.json").then(example_list => {
     if(jsFile){
-        document.body.id = "sseq_display";
-        let mainDiv = document.createElement("div");
-        mainDiv.id = "main";
-        document.body.appendChild(mainDiv);
-        let jsFilePath;
-        for(let example of example_list){
-            if(example["js"] === jsFile){
-                jsFilePath = `js_spectralsequences/examples/${example["js-file"] || example["js"]}.js`;
-                break;
-            }
-        }
+        // document.body.id = "sseq_display";
+        // let mainDiv = document.createElement("div");
+        // mainDiv.id = "main";
+        // document.body.appendChild(mainDiv);
+        // let jsFilePath;
+        // for(let example of example_list){
+        //     if(example["js"] === jsFile){
+        //         jsFilePath = `js_spectralsequences/examples/${example["js-file"] || example["js"]}.js`;
+        //         break;
+        //     }
+        // }
         
         let script = document.createElement('script');
         // script.onload = function () {
         //     //do stuff with the script
         // };
-        script.src = jsFilePath;
+        script.src = jsFile;
         document.body.appendChild(script);
     } else {
         document.body.id = "spectral_sequences";
