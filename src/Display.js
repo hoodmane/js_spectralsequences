@@ -241,6 +241,7 @@ class Display extends EventEmitter {
         let [nodes, edges] = this.sseq.getDrawnElements(this.pageRange, this.xmin - 1, this.xmax + 1, this.ymin - 1, this.ymax + 1);
 
         this._drawGrid(ctx);
+        this.emit("draw_background");
         this._updateNodes(nodes);
         this._drawEdges(ctx, edges);
         this._drawNodes(ctx);
