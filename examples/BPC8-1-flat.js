@@ -128,6 +128,22 @@ IO.loadFromServer(getJSONFilename(sseq_filename)).then(function(json){
     });
 
     let display = new BasicDisplay("#main", sseq);
+    display.on("draw_background", function(){
+        let context = this.context;
+        context.save();
+        this.clipContext(context);
+        context.lineWidth = 0.3;
+        context.strokeStyle = "#818181";
+        let xScale = this.xScale;
+        let yScale = this.yScale;
+        // Truncation lines
+        for (let diag = 4; diag < 2*json.max_diagonal; diag += 4) {
+            context.moveTo(xScale(diag + 2), yScale(-2));
+            context.lineTo(xScale(-2), yScale(diag + 2));
+        }
+        context.stroke();
+        context.restore();
+    });
     display.on("click", (node) => {
         if(!node){
             return;
