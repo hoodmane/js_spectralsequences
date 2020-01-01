@@ -142,6 +142,11 @@ IO.loadFromServer(getJSONFilename(sseq_filename)).then(function(json){
             context.lineTo(xScale(-2), yScale(diag + 2));
         }
         context.stroke();
+        context.moveTo(xScale(-1), yScale(-1));
+        context.lineTo(xScale(max_diagonal), yScale(max_diagonal));
+        context.moveTo(xScale(-1), yScale(-3));
+        context.lineTo(xScale(max_diagonal / 3), yScale(max_diagonal));
+        context.stroke();
         context.restore();
     });
     display.on("click", (node) => {
