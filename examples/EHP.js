@@ -8,6 +8,37 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((sseq) 
     sseq._getYOffset = (n) => n.c.y_offset || 0;
     let display = new BasicDisplay("#main");
 
+    sseq.on("draw",function() {
+        let context = this.context;
+        context.save();
+        this.clipContext(context);
+        let xScale = this.xScale;
+        let yScale = this.yScale;
+        for(let diag = 1; diag <= 40; diag ++){
+            context.strokeStyle = diag % 2 ?  "#008181" : "#810000"; //"#818181" : "#810081";
+            context.beginPath();
+            context.moveTo(xScale(diag + 2), yScale(-2));
+            context.lineTo(xScale(-2), yScale(diag + 2));
+            context.stroke();
+        }
+        context.restore();
+    
+        context.save();
+        context.lineWidth = 0.3;
+        context.strokeStyle = "#818181";
+        let x = 0.5;
+        let y = -0.5;
+        context.moveTo(xScale(x),yScale(y));
+        for(let i = 0; i < 11; i++){
+            y += 2;
+            context.lineTo(xScale(x), yScale(y));
+            x += 1;
+            context.lineTo(xScale(x), yScale(y));
+        }
+        context.stroke();
+        context.restore();         
+    });
+
     if (on_public_website) {
         display.setSseq(sseq);
         return;
