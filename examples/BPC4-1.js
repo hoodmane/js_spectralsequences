@@ -140,6 +140,7 @@ function getSlice(d1pow, s1pow){
 
 
 let BPC4 = new Sseq();
+BPC4.name = "BPC4-1";
 BPC4.drop_out_of_range_classes = true;
 BPC4.addPageRangeToPageList([5,10000]);
 BPC4.min_page_idx = 1;
@@ -291,5 +292,10 @@ window.saveSseq = function saveTruncationSseq(sseq){
 
 let display = new BasicDisplay("#main");
 display.setSseq(BPC4);
+
+
+Mousetrap.bind("Q", function() {
+    display.downloadSVG();
+});
 
 Mousetrap.bind("p", () => display.downloadSVG("BPC4-1.svg"));
