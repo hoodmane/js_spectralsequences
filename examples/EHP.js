@@ -4,14 +4,15 @@
 let file_name = getJSONFilename("EHP");
 
 Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((sseq) => {
-
+    window.sseq = sseq;
     sseq._getYOffset = (n) => n.c.y_offset || 0;
-    let display = new BasicDisplay("#main");
+    window.display = new BasicDisplay("#main");
 
-    sseq.on("draw",function() {
+    display.on("draw_background",function() {
         let context = this.context;
         context.save();
         this.clipContext(context);
+        context.lineWidth = 0.3;
         let xScale = this.xScale;
         let yScale = this.yScale;
         for(let diag = 1; diag <= 40; diag ++){
@@ -25,7 +26,7 @@ Sseq.loadFromServer(file_name).catch((error) => console.log(error)).then((sseq) 
     
         context.save();
         context.lineWidth = 0.3;
-        context.strokeStyle = "#818181";
+        context.strokeStyle = "#000000";//"#818181";
         let x = 0.5;
         let y = -0.5;
         context.moveTo(xScale(x),yScale(y));
