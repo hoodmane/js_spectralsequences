@@ -67,7 +67,15 @@ IO.loadFromServer(getJSONFilename("BPC4-2-E13")).then(function(json){
     classes.surviving = new StringifyingMap();
     classes.truncation = new StringifyingMap();
     sseq = new Sseq();
+    sseq.name = "BPC4-2";
     display = new BasicDisplay("#main", sseq);
+
+
+
+    Mousetrap.bind("Q", function() {
+        display.downloadSVG();
+    });
+
 
     window.max_x = json.max_x;
     window.max_y = json.max_y;
