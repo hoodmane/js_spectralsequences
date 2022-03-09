@@ -714,7 +714,12 @@ class Sseq extends EventEmitter{
         }
 
         let display_nodes = display_classes.map(c => {
-            let node = this.getClassNode(c);
+            let node = this.getClassNode(c, page);
+            if(node === undefined) {
+                console.log(c);
+                console.log(page);
+                throw `Undefined node for class`;
+            }
             node.c = c;
             node.x = c.x;
             node.y = c.y;

@@ -727,7 +727,7 @@ IO.loadFromServer(getJSONFilename("BPC8-1-E13")).then(function(json){
     });
 
     // The function is bound to display
-    display.on("draw", function() {
+    display.on("draw_background", function() {
         let context = this.context;
         context.save();
         this.clipContext(context);

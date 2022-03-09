@@ -330,9 +330,7 @@ window.saveTruncationSseq = function saveTruncationSseq(){
     result.max_diagonal = max_diagonal;
     result.max_x = max_x;
     result.max_y = max_y;
-    result.truncation_classes = [];
-    result.induced_classes = [];
-    result.surviving_classes = [];
+    result.classes = []
     result.differentials = [];
     let class_map = new StringifyingMap();
     let classes = new Set(sseq.getClasses().filter(c =>  c.x <= max_x && c.y <= max_y));
@@ -355,12 +353,12 @@ window.saveTruncationSseq = function saveTruncationSseq(){
         o.slice = c.slice;
         o.extra_info = c.extra_info.split("\n").filter(l => !l.startsWith("\\(d") && l !== "\\(\\)").join("\n");
         if(c.getColor(0) === "pink"){
-            result.induced_classes.push(o);
+            result.classes.push(o);
             class_map.set(c, "induced");
         } else if(c.getColor(0) === "black"){
-            result.surviving_classes.push(o);
+            result.classes.push(o);
         } else {
-            result.truncation_classes.push(o);
+            result.classes.push(o);
             class_map.set(c, "truncation");
         }
     }
