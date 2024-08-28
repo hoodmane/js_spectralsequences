@@ -1,8 +1,8 @@
-let assert = require("assert");
+import * as assert from "assert";
 
-exports.infinity = 10000;
+export const infinity = 10000;
 
-exports.limited_logger = function limited_logger(max_msgs){
+export function limited_logger(max_msgs){
     let log_fn = function logger(msg){
         if(log_fn.msgs_so_far < log_fn.max_msgs){
             console.log(msg);
@@ -15,7 +15,7 @@ exports.limited_logger = function limited_logger(max_msgs){
 };
 
 
-exports.download = function download(filename, text) {
+export function download(filename, text) {
     let element = document.createElement('a');
     element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
     element.setAttribute('download', filename);
@@ -28,36 +28,36 @@ exports.download = function download(filename, text) {
     document.body.removeChild(element);
 };
 
-exports.getDummyConstantFunction = function getDummyConstantFunction(out) {
+export function getDummyConstantFunction(out) {
     return function () {
         return out;
     }
 };
 
-exports.getDummyInvalidOperation = function getDummyInvalidOperation(dummy, functionName) {
+export function getDummyInvalidOperation(dummy, functionName) {
     return function () {
         throw new ReferenceError(`Invalid operation: cannot use method ${functionName} on a dummy ${dummy.prototype.constructor.name}.`);
     }
 };
 
 
-exports.setDummyMethods = function setDummyMethods(dummy, predicate, property_name_to_method){
+export function setDummyMethods(dummy, predicate, property_name_to_method){
     Object.getOwnPropertyNames(dummy.prototype).filter(predicate).forEach(function(p){
         dummy[p] = property_name_to_method(p);
     });
 };
 
-exports.setRemainingMethods = function setRemainingMethods(dummy, predicate, property_name_to_method){
+export function setRemainingMethods(dummy, predicate, property_name_to_method){
     Object.getOwnPropertyNames(dummy.prototype).filter((p) => !dummy.hasOwnProperty(p)).filter(predicate).forEach(function(p){
         dummy[p] = property_name_to_method(p);
     });
 };
 
-exports.setPrivateMethodsToInvalidOperation = function setPrivateMethodsToInvalidOperation(dummy){
-    exports.setDummyMethods(dummy, p => p[0] === "_", p => exports.getDummyInvalidOperation(dummy, p));
+export function setPrivateMethodsToInvalidOperation(dummy){
+    setDummyMethods(dummy, p => p[0] === "_", p => getDummyInvalidOperation(dummy, p));
 };
 
-exports.checkAllCommandsDefined = function checkAllCommandsDefined(dummy){
+export function checkAllCommandsDefined(dummy){
     let undefinedFields = Object.getOwnPropertyNames(dummy.prototype).filter((p) => !dummy.hasOwnProperty(p));
     if(undefinedFields.length > 0){
         let className = dummy.prototype.constructor.name;
@@ -69,7 +69,7 @@ exports.checkAllCommandsDefined = function checkAllCommandsDefined(dummy){
 };
 
 
-exports.getArguments = function getArguments(func) {
+export function getArguments(func) {
     return (func + '')
         .replace(/[/][/].*$/mg,'') // strip single-line comments
         .replace(/\s+/g, '') // strip white space
@@ -79,17 +79,17 @@ exports.getArguments = function getArguments(func) {
         .split(',').filter(Boolean); // split & filter [""]
 };
 
-exports.checkArgumentsDefined = function checkArgumentsDefined(func, args){
+export function checkArgumentsDefined(func, args){
     for(let i = 0; i < args.length; i++){
         if(args[i] === undefined){
-            let argName = exports.getArguments(func)[i];
+            let argName = getArguments(func)[i];
             throw Error(`Argument ${argName} of ${func.name} is undefined`);
         }
     }
 };
 
 
-exports.getObjectWithFields = function getObjectWithFields(obj, fieldNames){
+export function getObjectWithFields(obj, fieldNames){
     let out = new Object();
     for(let field of fieldNames){
         out[field] = obj[field];
@@ -97,14 +97,14 @@ exports.getObjectWithFields = function getObjectWithFields(obj, fieldNames){
     return out;
 };
 
-exports.assignFields = function(dest, source, fieldNames){
+export function assignFields(dest, source, fieldNames){
     for(let field of fieldNames){
         dest[field] = source[field];
     }
     return dest;
 };
 
-exports.copyFields = function copyFields(dest, source){
+export function copyFields(dest, source){
     for(let kv of Object.entries(source)){
         let key = kv[0];
         let value = kv[1];

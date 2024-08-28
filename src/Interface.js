@@ -1,6 +1,6 @@
-let katex = require("katex");
+import * as katex from "katex";
 
-applyAttributesToElement = function applyAttributesToElement(element, attributes){
+function applyAttributesToElement(element, attributes){
     if(!element || !attributes){
         return;
     }
@@ -9,7 +9,7 @@ applyAttributesToElement = function applyAttributesToElement(element, attributes
     }
 };
 
-function ensureMath(str){
+export function ensureMath(str){
     if(str.startsWith("\\(") || str.startsWith("$")){
         return str;
     }
@@ -19,7 +19,7 @@ function ensureMath(str){
     return "$" + str + "$";
 }
 
-function renderLatex(html) {
+export function renderLatex(html) {
     html = html.replace(/\n/g, "\n<hr>\n")
     let html_list = html.split(/(?:\\\[)|(?:\\\()|(?:\\\))|(?:\\\])|(?:\$)/);
     for(let i = 1; i < html_list.length; i+=2){
@@ -27,10 +27,7 @@ function renderLatex(html) {
     }
     return html_list.join("\n")
 }
-exports.renderLatex = renderLatex;
-exports.renderLaTeX = renderLatex;
-exports.ensureMath = ensureMath;
-exports.renderMath = x => renderLatex(ensureMath(x));
+export const renderMath = x => renderLatex(ensureMath(x));
 
 fixFormHTML = {};
 fixFormHTML.radio = function(doc, field){
@@ -41,7 +38,7 @@ fixFormHTML.radio = function(doc, field){
     }
 };
 
-class PopupForm {
+export class PopupForm {
     // This copies form.record into form.save_record to avoid a race condition between:
     //    the onClose writes over form.record with form.original
     //    the success code writes over form.original with form.record.
@@ -169,10 +166,8 @@ PopupForm.default_popup_obj = {
     height  : 220
 };
 
-exports.PopupForm = PopupForm;
 
-
-class Undo {
+export class Undo {
     constructor(sseq){
         this.sseq = sseq;
         this.undoStack = [];
@@ -340,4 +335,3 @@ function lockFunction(obj){
 
 Undo.defaultLockMessage = "Undo events before loaded page?";
 
-exports.Undo = Undo;

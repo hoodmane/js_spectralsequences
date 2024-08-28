@@ -55,5 +55,8 @@ Shapes.square = {
 
 for(let k of Object.getOwnPropertyNames(Shapes)){
     Shapes[k].name = k;
-    exports[k] = Shapes[k];
 }
+
+export const circle = Shapes.circle;
+export const circlen = Shapes.circlen;
+export const square = Shapes.square;

@@ -1,7 +1,7 @@
 "use strict";
 
+import * as Util from "./Util.js";
 
-let Util = require("./Util.js");
 let infinity = Util.infinity;
 
 
@@ -19,7 +19,7 @@ let infinity = Util.infinity;
  *
  *  TODO: currently merge and copy ignore dummies. Is this the right behavior? Maybe they should throw errors?
  */
-class Node {
+export class Node {
     constructor(obj){
         this.opacity = 1;
         this.color = "black";
@@ -178,7 +178,7 @@ class Node {
  *  represented as `page_list = [5, 9]` and `node_list = [ Znode, pZnode ]`.
  */
 let unique_id = 0;
-class SseqClass {
+export class SseqClass {
     /**
      * @param sseq The parent spectral sequence.
      * @package
@@ -661,6 +661,3 @@ class SseqClass {
     }
 
 }
-
-exports.Node = Node;
-exports.SseqClass = SseqClass;

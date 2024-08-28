@@ -1,12 +1,15 @@
-"use strict";
+import { EventEmitter } from "events";
+import * as D3Selection from "d3-selection";
+import * as D3Zoom from "d3-zoom";
+import * as D3Scale from "d3-scale";
+import * as D3Timer from "d3-timer";
 
-let EventEmitter = require("events");
-let d3 = Object.assign({}, require("d3-selection"), require("d3-zoom"), require("d3-scale"), require("d3-timer"));
+let d3 = Object.assign({}, D3Selection, D3Zoom, D3Scale, D3Timer);
 
 const gridGo = "go";
 const gridChess = "chess";
 
-class Display extends EventEmitter {
+export class Display extends EventEmitter {
     // container is either an id (e.g. "#main") or a DOM object
     constructor(container, sseq) {
         super();
@@ -774,5 +777,3 @@ class Display extends EventEmitter {
     //    }
 
 }
-
-exports.Display = Display;

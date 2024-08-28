@@ -1,11 +1,10 @@
 "use strict"
+import { Display } from "./Display.js";
+import { Tooltip } from "./Tooltip.js";
+import * as Interface from "./Interface.js"
+import * as Mousetrap from "mousetrap"
 
-let Display = require("./Display.js").Display;
-let Tooltip = require("./Tooltip.js").Tooltip;
-let Interface = require("./Interface.js");
-let Mousetrap = require("mousetrap");
-
-class BasicDisplay extends Display {
+export class BasicDisplay extends Display {
     constructor(container, sseq) {
         super(container, sseq);
         document.body.style.overflow = "hidden";
@@ -105,5 +104,3 @@ class BasicDisplay extends Display {
         return false;
     }
 }
-
-exports.BasicDisplay = BasicDisplay;

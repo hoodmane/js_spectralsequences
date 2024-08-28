@@ -1,9 +1,8 @@
-"use strict";
+import * as Util from "./Util";
 
-let Util = require("./Util.js");
-let infinity = Util.infinity;
+const infinity = Util.infinity;
 
-class Edge {
+export class Edge {
     /**
      * Add edge to source and target.
      * @param {SseqClass} source
@@ -140,24 +139,22 @@ class Edge {
         return pageRange[0] <= this.page && this.page_min <= pageRange[0];
     }
 }
-exports.Edge = Edge;
 
 
 /**
  * The structline class is just a renamed version of Edge. So far no methods here...
  */
-class Structline extends Edge {
+export class Structline extends Edge {
     setProduct(variable){
         this.mult = variable;
         return this;
     }
 }
-exports.Structline = Structline;
 
 /**
  * Only difference between a vanilla edge and an Extension is that Extensions are only drawn on the Einfty page.
  */
-class Extension extends Edge {
+export class Extension extends Edge {
     _drawOnPageQ(pageRange){
         return pageRange[0] === infinity;
     }
@@ -167,13 +164,12 @@ class Extension extends Edge {
         return this;
     }
 }
-exports.Extension = Extension;
 
 
 /**
  * Differentials are a bit more complicated.
  */
-class Differential extends Edge {
+export class Differential extends Edge {
     constructor(sseq, source, target, page){
         super(sseq, source, target);
         this.page = page;
@@ -422,4 +418,3 @@ class Differential extends Edge {
         return pageRange[0] === 0 || (pageRange[0] <= this.page && this.page <= pageRange[1]);
     }
 }
-exports.Differential = Differential;

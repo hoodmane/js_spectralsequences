@@ -1,8 +1,8 @@
 "use strict"
 
-let EventEmitter = require("events");
-let Mousetrap = require("mousetrap");
-let Interface = require("./Interface.js");
+import { EventEmitter } from "events";
+import * as Mousetrap from "mousetrap";
+import * as Interface from "./Interface.js";
 
 const STATE_ADD_DIFFERENTIAL = 1;
 const STATE_RM_DIFFERENTIAL = 2;
@@ -38,7 +38,7 @@ const STATE_RM_EDGE = 5;
  * @fires Panel#show
  * @extends EventEmitter
  */
-class Panel extends EventEmitter {
+export class Panel extends EventEmitter {
     /**
      * Constructs a panel.
      *
@@ -310,7 +310,7 @@ class Panel extends EventEmitter {
  *
  * @property {Panel} currentTab - The current tab that is displayed.
  */
-class TabbedPanel extends Panel {
+export class TabbedPanel extends Panel {
     constructor (parentContainer, display) {
         super(parentContainer, display);
 
@@ -387,7 +387,7 @@ class TabbedPanel extends Panel {
     }
 }
 
-class DifferentialPanel extends Panel {
+export class DifferentialPanel extends Panel {
     constructor(parentContainer, display) {
         super(parentContainer, display);
 
@@ -428,7 +428,7 @@ class DifferentialPanel extends Panel {
     }
 }
 
-class StructlinePanel extends Panel {
+export class StructlinePanel extends Panel {
     constructor(parentContainer, display) {
         super(parentContainer, display);
 
@@ -469,8 +469,3 @@ class StructlinePanel extends Panel {
         this.structline_list.appendChild(node);
     }
 }
-
-exports.Panel = Panel;
-exports.TabbedPanel = TabbedPanel;
-exports.DifferentialPanel = DifferentialPanel;
-exports.StructlinePanel = StructlinePanel;

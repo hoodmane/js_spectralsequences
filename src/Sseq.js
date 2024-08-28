@@ -1,40 +1,36 @@
 "use strict";
 
-let Shapes = require("./Shape.js");
-let SseqClassjs = require("./SseqClass.js");
-let SseqClass = SseqClassjs.SseqClass;
-let Node = SseqClassjs.Node;
-let Edges = require("./Edges.js");
-let Edge = Edges.Edge;
-let Structline = Edges.Structline;
-let Extension = Edges.Extension;
-let Differential = Edges.Differential;
-let monomial_basisjs = require("./monomial_basis.js");
+import * as Shapes from "./Shape.js"
+import * as SseqClassjs from "./SseqClass.js"
+import * as Edges from "./Edges.js";
+import * as monomial_basisjs from "./monomial_basis.js";
+import * as Util from "./Util.js";
+import * as IO from "./SaveLoad.js";
+import EventEmitter from "events";
+import StringifyingMap from "./StringifyingMap.js"
+import * as Interface from "./Interface.js"
+
+
+export const SseqClass = SseqClassjs.SseqClass;
+export const Node = SseqClassjs.Node;
+export const Edge = Edges.Edge;
+export const Structline = Edges.Structline;
+export const Extension = Edges.Extension;
+export const Differential = Edges.Differential;
 let monomial_basis = monomial_basisjs.monomial_basis;
 let slice_basis = monomial_basisjs.slice_basis;
-let Util = require("./Util.js");
 let infinity = Util.infinity;
-let IO = require("./SaveLoad");
 let sseqDatabase = IO.sseqDatabase;
-let EventEmitter = require('events');
-let StringifyingMap = require("./StringifyingMap.js");
-let Interface = require("./Interface.js");
 
-exports.SseqClass = SseqClass;
-exports.Node = Node;
-exports.Edge = Edge;
-exports.Differential = Differential
-exports.Structline = Structline;
-exports.Extension = Extension;
-exports.monomialString = monomial_basisjs.monomialString;
-exports.range = monomial_basisjs.range;
-exports.product = monomial_basisjs.product;
-exports.vectorSum = monomial_basisjs.vectorSum;
-exports.vectorScale = monomial_basisjs.vectorScale;
-exports.vectorLinearCombination = monomial_basisjs.vectorLinearCombination;
-exports.dictionaryVectorSum = monomial_basisjs.dictionaryVectorSum;
-exports.dictionaryVectorScale = monomial_basisjs.dictionaryVectorScale;
-exports.dictionaryVectorLinearCombination = monomial_basisjs.dictionaryVectorLinearCombination;
+export const monomialString = monomial_basisjs.monomialString;
+export const range = monomial_basisjs.range;
+export const product = monomial_basisjs.product;
+export const vectorSum = monomial_basisjs.vectorSum;
+export const vectorScale = monomial_basisjs.vectorScale;
+export const vectorLinearCombination = monomial_basisjs.vectorLinearCombination;
+export const dictionaryVectorSum = monomial_basisjs.dictionaryVectorSum;
+export const dictionaryVectorScale = monomial_basisjs.dictionaryVectorScale;
+export const dictionaryVectorLinearCombination = monomial_basisjs.dictionaryVectorLinearCombination;
 
 
 
@@ -71,7 +67,7 @@ function addToDictionaryOfLists(dictionary, key,value){
 
 
 
-class Sseq extends EventEmitter{
+export class Sseq extends EventEmitter {
     /**
      * Make a spectral sequence object.
      * Key properties:
@@ -1076,4 +1072,3 @@ Sseq.serializeClassFields = ["x", "y", "name", "extra_info", "unique_id", "idx",
 Sseq.serializeEdgeFields = ["color", "bend", "dash", "lineWidth", "opacity", "page_min", "page", "type", "mult", "source_name", "target_name"]; // "source" and "target" are dealt with separately.
 Sseq.serializeNodeFields = ["opacity", "color", "fill", "stroke", "hcolor", "hfill", "hstroke", "shape", "scale"];
 
-exports.Sseq = Sseq;

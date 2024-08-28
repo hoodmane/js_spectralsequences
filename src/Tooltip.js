@@ -2,7 +2,7 @@
 
 const MARGIN = 10;
 
-class Tooltip {
+export class Tooltip {
     constructor(display) {
         this.display = display;
 
@@ -67,4 +67,3 @@ class Tooltip {
     }
 }
 
-exports.Tooltip = Tooltip;

@@ -1,4 +1,4 @@
-exports.download = function(filename, text, mime="text/plain") {
+export function download(filename, text, mime="text/plain") {
     if(text.constructor !== String){
         text = JSON.stringify(text);
     }
@@ -16,7 +16,7 @@ exports.download = function(filename, text, mime="text/plain") {
 
 //function
 
-exports.upload = function() {
+export function upload() {
     return new Promise((resolve,reject) => {
         let element = document.createElement('input');
         element.setAttribute('type', 'file');
@@ -49,7 +49,7 @@ exports.upload = function() {
 
 
 
-exports.saveToLocalStore = function(key, value, collection){
+export function saveToLocalStore(key, value, collection){
     if(value.constructor !== String){
         value = JSON.stringify(value);
     }
@@ -65,13 +65,13 @@ function nextString(str){
     return str.substring(0,str.length-1)+String.fromCharCode(str.charCodeAt(str.length-1)+1);
 }
 
-exports.loadKeysFromLocalStoreWithPrefix = async function(prefix){
+export async function loadKeysFromLocalStoreWithPrefix(prefix){
     let endStr = nextString(prefix);
     await sseqDatabase.open();
     return await sseqDatabase.fetchKeyRange(prefix, endStr);
 };
 
-exports.loadFromLocalStore = async function(key){
+export async function loadFromLocalStore(key){
     await sseqDatabase.open();
     let response = await sseqDatabase.fetchKey(key);
     if(!response || !response.value){
@@ -82,19 +82,19 @@ exports.loadFromLocalStore = async function(key){
     return obj;
 };
 
-exports.deleteFromLocalStore = async function(key){
+export async function deleteFromLocalStore(key){
     await sseqDatabase.open();
     await sseqDatabase.deleteKey(key);
     return;
 };
 
-exports.loadFromServer = async function(path){
+export async function loadFromServer(path){
     let response = await fetch(path);
     return await response.json();
 };
 
 
-const sseqDatabase = {};
+export const sseqDatabase = {};
 let datastore = null;
 
 sseqDatabase.open = function() {
@@ -300,5 +300,3 @@ sseqDatabase.deleteKey = function(id) {
         request.onerror = reject;
     });
 };
-
-exports.sseqDatabase = sseqDatabase;

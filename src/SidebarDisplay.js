@@ -1,9 +1,9 @@
 "use strict"
 
-let Display = require("./Display.js").Display;
-let Panel = require("./Panel.js");
+import { Display } from "./Display.js";
+import * as Panel from "./Panel.js"
 
-class Sidebar {
+export class Sidebar {
     constructor(parentContainer) {
         this.adjuster = document.createElement("div");
         this.adjuster.style.backgroundColor = "rgba(0,0,0,0.125)";
@@ -81,7 +81,7 @@ class Sidebar {
     }
 }
 
-class SidebarDisplay extends Display {
+export class SidebarDisplay extends Display {
     constructor(container, sseq) {
         if (typeof container == "string")
             container = document.querySelector(container);
@@ -106,5 +106,3 @@ class SidebarDisplay extends Display {
         this.sidebar.init(this);
     }
 }
-
-exports.SidebarDisplay = SidebarDisplay;

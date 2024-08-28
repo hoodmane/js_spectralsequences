@@ -75,5 +75,6 @@ var StringifyingMap = (function () {
     return StringifyingMap;
 }());
 
+console.log({StringifyingMap});
 
-module.exports = StringifyingMap;
+export default StringifyingMap;

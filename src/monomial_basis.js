@@ -1,6 +1,4 @@
-"use strict";
-
-let StringifyingMap = require("./StringifyingMap.js");
+import StringifyingMap from "./StringifyingMap.js";
 
 
 /**
@@ -10,7 +8,7 @@ let StringifyingMap = require("./StringifyingMap.js");
  * @param step
  * @returns {Array|int}
  */
-function range(start, stop, step = 1){
+export function range(start, stop, step = 1){
     if(arguments.length === 1){
         start = 1;
         stop = arguments[0];
@@ -18,9 +16,8 @@ function range(start, stop, step = 1){
     }
     return Array(Math.ceil((stop - start + step)/step)).fill(start).map((x, y) => x + y * step);
 }
-exports.range = range;
 
-function product() {
+export function product() {
     const args = Array.prototype.slice.call(arguments); // makes array from arguments
     return args.reduce(function tl (accumulator, value) {
         const tmp = [];
@@ -33,7 +30,6 @@ function product() {
     }, [[]]);
 }
 
-exports.product = product;
 
 function convert_exponent_map_to_vector(var_list, exponent_map){
     return var_list.map(v => {
@@ -52,7 +48,7 @@ function convert_exponent_map_to_vector(var_list, exponent_map){
  * @param {string} module_generator
  * @returns {string} The name of the monomial
  */
-function monomialString(vars, exponents, module_generator = ""){
+export function monomialString(vars, exponents, module_generator = ""){
     let out = [];
     out[0] = module_generator;
     // If exponents is a map var_names ==> power, convert it to a list.
@@ -75,8 +71,6 @@ function monomialString(vars, exponents, module_generator = ""){
     }
     return outStr;
 }
-exports.monomialString = monomialString;
-
 
 
 /**
@@ -84,7 +78,7 @@ exports.monomialString = monomialString;
  * @param {Array|int} k
  * @returns {Array|int} The sum k + l.
  */
-function vectorSum(k){
+export function vectorSum(k){
     let out = [];
     for(let i = 0; i < k.length; i++){
         let entry = 0;
@@ -95,9 +89,8 @@ function vectorSum(k){
     }
     return out;
 }
-exports.vectorSum = vectorSum;
 
-function dictionaryVectorSum(){
+export function dictionaryVectorSum(){
     let out = {};
     for(let l of arguments){
         for(let [k, v] of Object.entries(l)){
@@ -108,40 +101,35 @@ function dictionaryVectorSum(){
     }
     return out;
 }
-exports.dictionaryVectorSum = dictionaryVectorSum;
 
 
-function vectorScale(c, v){
+export function vectorScale(c, v){
     return v.map((x) => c*x);
 }
-exports.vectorScale = vectorScale;
 
-function dictionaryVectorScale(c, vector){
+export function dictionaryVectorScale(c, vector){
     let result = {};
     for(let [k, v] of Object.entries(vector)){
         result[k] = c*v;
     }
     return result;
 }
-exports.dictionaryVectorScale = dictionaryVectorScale;
 
-function vectorLinearCombination(vector_list, coefficient_list){
+export function vectorLinearCombination(vector_list, coefficient_list){
     let scaled_list = [];
     for(let i = 0; i < vector_list.length; i++){
         scaled_list.push(vectorScale(coefficient_list[i], vector_list[i]));
     }
     return vectorSum(...scaled_list);
 }
-exports.vectorLinearCombination = vectorLinearCombination;
 
-function dictionaryVectorLinearCombination(vector_list, coefficient_list){
+export function dictionaryVectorLinearCombination(vector_list, coefficient_list){
     let scaled_list = [];
     for(let i = 0; i < vector_list.length; i++){
         scaled_list.push(dictionaryVectorScale(coefficient_list[i], vector_list[i]));
     }
     return dictionaryVectorSum(...scaled_list);
 }
-exports.dictionaryVectorLinearCombination = dictionaryVectorLinearCombination;
 
 
 class monomial_ring {
@@ -266,7 +254,7 @@ class monomial_element {
 }
 
 
-class monomial_basis {
+export class monomial_basis {
     /**
      * Construct a monomial_basis.
      * @param sseq Parent spectral sequence.
@@ -564,9 +552,8 @@ monomial_basis.prototype[Symbol.iterator] = function*(){
     }
 };
 
-exports.monomial_basis = monomial_basis;
 
-class slice_basis {
+export class slice_basis {
     constructor(sseq, var_degree_dict, var_spec_list, make_slice){
         this.sseq = sseq;
         this._tuples_to_slices = new StringifyingMap();
@@ -727,7 +714,4 @@ slice_basis.prototype[Symbol.iterator] = function*(){
 };
 
 slice_basis.prototype._ensure_vect = monomial_basis.prototype._ensure_vect;
-
-exports.slice_basis = slice_basis;
-
 

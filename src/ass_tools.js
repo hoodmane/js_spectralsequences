@@ -1,8 +1,7 @@
-let Sseqjs = require("./Sseq.js");
-let Sseq = Sseqjs.Sseq;
-let Mousetrap = require("mousetrap");
+import {Sseq} from "./Sseq";
+import * as Mousetrap from "mousetrap";
 
-exports.getClassExpression = function(c){
+export function getClassExpression(c){
     let out = `(${c.x}, ${c.y})`;
     if(c.name){
         out += ` [${c.name}]`;
@@ -17,7 +16,7 @@ function variablePowerString(variable, power){
     return `${variable}^{${power}}`;
 }
 
-exports.multiply_monomial = function(variable, power, monomial){
+export function multiply_monomial(variable, power, monomial){
     let power_regex = new RegExp(`${variable}(\\^{?(.)}?)?`.replace("\\","\\\\").replace(/\{/g,"\\{").replace(/\}/g,"\\}"));
     let matcher = power_regex.exec(monomial);
     if(!power_regex.test(monomial)){
@@ -32,8 +31,8 @@ exports.multiply_monomial = function(variable, power, monomial){
 };
 
 
-exports.straightenTowers = function(sseq){
-    exports.markTowers(sseq);
+export function straightenTowers(sseq){
+    markTowers(sseq);
     for(let x = 1; x < xmax; x++) {
         if(!sseq.longest_tower_map.has(x)){
             continue;
@@ -50,7 +49,7 @@ exports.straightenTowers = function(sseq){
     }
 };
 
-exports.markTowers = function(sseq){
+export function markTowers(sseq){
     let column_maps = new Map();
     for(let c of sseq.classes){
         c.h0div = [];
@@ -131,7 +130,7 @@ exports.markTowers = function(sseq){
 };
 
 
-exports.minimizeCrossings = function(sseq){
+export function minimizeCrossings(sseq){
     let cell_class_list = new StringifyingMap();
     for(let stem of sseq.getOccupiedStems()){
         let classes = sseq.getStem(stem);
@@ -169,7 +168,7 @@ exports.minimizeCrossings = function(sseq){
 
 
 
-exports.fixed_tower_xOffset = function(node,page){
+export function fixed_tower_xOffset(node,page){
     let c = node.c;
     if(c.x_offset !== false){
         return c.x_offset * this.offset_size;
@@ -195,7 +194,7 @@ exports.fixed_tower_xOffset = function(node,page){
     return out * this.offset_size;
 };
 
-exports.install_edit_handlers = function(display, download_filename){
+export function install_edit_handlers(display, download_filename){
     Mousetrap.bind("q", () => {
         if(!display.mouseover_node){
             return;
@@ -231,7 +230,7 @@ exports.install_edit_handlers = function(display, download_filename){
                 return;
             }
             let length = t.y - s.y;
-            if(confirm(`Add d${length} differential from ${exports.getClassExpression(s)} to ${exports.getClassExpression(t)}`)){
+            if(confirm(`Add d${length} differential from ${getClassExpression(s)} to ${getClassExpression(t)}`)){
                 let d = display.sseq.addDifferential(s, t, length);
                 //d.color = differential_colors[d.page];
                 display.sseq.emit('update');
@@ -243,7 +242,7 @@ exports.install_edit_handlers = function(display, download_filename){
         if(display.mouseover_node && display.temp_source_class){
             let s = display.temp_source_class;
             let t = display.mouseover_node.c;
-            if(confirm(`Delete edges ${exports.getClassExpression(s)} to ${exports.getClassExpression(t)}`)){
+            if(confirm(`Delete edges ${getClassExpression(s)} to ${getClassExpression(t)}`)){
                 source.getEdges().filter((e) => e.otherClass(s) === t).forEach(e => e.delete());
                 display.sseq.emit('update');
             }
@@ -277,7 +276,7 @@ exports.install_edit_handlers = function(display, download_filename){
 }
 
 
-exports.addProductNames = function(sseq, variable){
+export function addProductNames(sseq, variable){
     let indecomposable_classes = sseq.classes.filter(c => !c.structlines.some( sl => otherClass(sl,c).y < c.y && sl.visible));
     for(let c of indecomposable_classes){
         let name = c.name;

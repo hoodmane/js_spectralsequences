@@ -1,6 +1,6 @@
-let IO = require("./SaveLoad.js");
+import * as IO from "./SaveLoad.js";
 
-function SpectralSequenceToTex(sseq, page, xmin, xmax, ymin, ymax){
+export function SpectralSequenceToTex(sseq, page, xmin, xmax, ymin, ymax){
     let [classes, edges] = sseq.getDrawnElements(page, xmin, xmax, ymin, ymax);
     let classStrings = [];
     let edgeStrings = [];
@@ -26,7 +26,7 @@ function SpectralSequenceToTex(sseq, page, xmin, xmax, ymin, ymax){
 }
 
 
-function DownloadSpectralSequenceTex(filename, sseq, page, xmin, xmax, ymin, ymax){
+export function DownloadSpectralSequenceTex(filename, sseq, page, xmin, xmax, ymin, ymax){
     IO.download(filename, SpectralSequenceToTex(sseq,page,xmin,xmax,ymin,ymax));
 }
 
@@ -89,5 +89,3 @@ function randomString(len) {
 
     return result;
 }
-exports.SpectralSequenceToTex = SpectralSequenceToTex;
-exports.DownloadSpectralSequenceTex = DownloadSpectralSequenceTex;

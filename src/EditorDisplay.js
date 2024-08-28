@@ -1,10 +1,10 @@
 "use strict"
 
-let SidebarDisplay = require("./SidebarDisplay.js").SidebarDisplay;
-let Panel = require("./Panel.js");
-let Tooltip = require("./Tooltip.js").Tooltip;
-let Interface = require("./Interface.js");
-let Mousetrap = require("mousetrap");
+import {SidebarDisplay} from "./SidebarDisplay.js";
+import * as Panel from "./Panel.js"
+import { Tooltip } from "./Tooltip.js";
+import * as Interface from "./Interface.js"
+import * as Mousetrap from "mousetrap"
 
 const STATE_ADD_DIFFERENTIAL = 1;
 const STATE_RM_DIFFERENTIAL = 2;
@@ -13,7 +13,7 @@ const STATE_RM_STRUCTLINE = 4;
 const STATE_RM_EDGE = 5;
 const STATE_ADD_CLASS = 6;
 
-class EditorDisplay extends SidebarDisplay {
+export class EditorDisplay extends SidebarDisplay {
     constructor(container, sseq) {
         super(container);
 
@@ -254,4 +254,3 @@ class EditorDisplay extends SidebarDisplay {
             d.color = this.differentialColors[d.page];
     }
 }
-exports.EditorDisplay = EditorDisplay;

@@ -7,22 +7,17 @@
   "repository": "github:hoodmane/js_spectralsequences",
   "main": "bundle.js",
   "devDependencies": {
-    "browserify": "^16.2.2",
-    "budo": "^11.2.2",
-    "uglifyify": "^5.0.0"
-  },
-  "dependencies": {
+    "esbuild": "^0.23.1",
+    "canvas2svg": "^1.0.16",
     "d3-scale": "^3.0.0",
     "d3-selection": "^1.4.0",
     "d3-timer": "^1.0.9",
     "d3-zoom": "^1.7.3",
     "katex": "^0.10.2",
-    "canvas2svg": "^1.0.16",
     "mousetrap": "^1.6.2"
   },
   "scripts": {
-    "start": "budo src/main.js:bundle.js --live -- --debug --standalone sseq_display",
-    "debug": "browserify --debug src/main.js > bundle.js",
-    "build": "browserify -g uglifyify src/main.js > bundle.js"
+    "debug": "esbuild src/main.js --bundle --outdir=dist",
+    "build": "esbuild src/main.js --bundle --outdir=dist --minify"
   }
 }
