@@ -333,27 +333,27 @@ class monomial_basis {
             let filtration = degree[1];
             let name = elt.getName();
             // TODO: make some attempt to limit out of range class generation? Probably a bad choice?
-            if(sseq.xRange && sseq.drop_out_of_range_classes){
-                // console.log(sseq.drop_out_of_range_classes);
-                if((stem < sseq.xRange[0] -10 || stem > sseq.xRange[1] + 10)){
+            if(this.sseq.xRange && this.sseq.drop_out_of_range_classes){
+                // console.log(this.sseq.drop_out_of_range_classes);
+                if((stem < this.sseq.xRange[0] -10 || stem > this.sseq.xRange[1] + 10)){
                     console.log("dropped");
                     continue;
                 }
             }
-            if(sseq.yRange && sseq.drop_out_of_range_classes){
-                if((stem < sseq.yRange[0] -10 || stem > sseq.yRange[1] + 10)){
+            if(this.sseq.yRange && this.sseq.drop_out_of_range_classes){
+                if((stem < this.sseq.yRange[0] -10 || stem > this.sseq.yRange[1] + 10)){
                     continue;
                 }
             }
             // if(cond && cond()){
             //
             // }
-            if(sseq.yRange && sseq.max_differential_length){
-                if(filtration > sseq.yRange[1] + sseq.max_differential_length || filtration < sseq.yRange[0]){
+            if(this.sseq.yRange && this.sseq.max_differential_length){
+                if(filtration > this.sseq.yRange[1] + this.sseq.max_differential_length || filtration < this.sseq.yRange[0]){
                     continue;
                 }
             }
-            let c = sseq.addClass(stem, filtration).setName(name);
+            let c = this.sseq.addClass(stem, filtration).setName(name);
             this._add_class(elt, c);
             c.module_generator = gen_name;
             if(callback){
