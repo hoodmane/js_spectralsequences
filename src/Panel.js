@@ -1,5 +1,3 @@
-"use strict"
-
 import { EventEmitter } from "events";
 import * as Mousetrap from "mousetrap";
 import * as Interface from "./Interface";

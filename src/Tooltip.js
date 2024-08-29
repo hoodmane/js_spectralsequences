@@ -1,5 +1,3 @@
-"use strict"
-
 const MARGIN = 10;
 
 export class Tooltip {

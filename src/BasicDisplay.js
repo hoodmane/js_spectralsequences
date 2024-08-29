@@ -1,4 +1,3 @@
-"use strict"
 import { Display } from "./Display";
 import { Tooltip } from "./Tooltip";
 import * as Interface from "./Interface"

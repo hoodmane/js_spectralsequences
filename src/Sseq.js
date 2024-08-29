@@ -1,5 +1,3 @@
-"use strict";
-
 import * as Shapes from "./Shape"
 import * as SseqClassjs from "./SseqClass"
 import * as Edges from "./Edges";

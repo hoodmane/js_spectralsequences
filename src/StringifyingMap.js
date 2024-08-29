@@ -1,5 +1,3 @@
-"use strict";
-
 function stdCatToString(x){
     if(x === undefined){
         return undefined;

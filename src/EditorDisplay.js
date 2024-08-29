@@ -1,5 +1,3 @@
-"use strict"
-
 import {SidebarDisplay} from "./SidebarDisplay";
 import * as Panel from "./Panel"
 import { Tooltip } from "./Tooltip";
