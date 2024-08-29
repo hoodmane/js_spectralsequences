@@ -29,7 +29,7 @@ export function renderLatex(html) {
 }
 export const renderMath = (x) => renderLatex(ensureMath(x));
 
-fixFormHTML = {};
+const fixFormHTML = {};
 fixFormHTML.radio = function (doc, field) {
   let elts = doc.getElementsByName(field.name);
   let items = field.options.items;
