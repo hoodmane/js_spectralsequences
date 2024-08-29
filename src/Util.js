@@ -1,5 +1,3 @@
-import * as assert from "assert";
-
 export const infinity = 10000;
 
 export function limited_logger(max_msgs) {
