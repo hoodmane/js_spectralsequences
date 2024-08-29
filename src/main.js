@@ -38,15 +38,15 @@ import * as Mousetrap from "mousetrap";
 import StringifyingMap from "./StringifyingMap";
 import * as C2S from "canvas2svg";
 
-window.infinity = 10000;
+const infinity = 10000;
 
-window.mod = function (n, d) {
+function mod(n, d) {
   return ((n % d) + d) % d;
-};
+}
 
 const sseqDatabase = IO.sseqDatabase;
 
-Object.assign(window, {
+export {
   Util,
   IO,
   Interface,
@@ -81,7 +81,9 @@ Object.assign(window, {
   dictionaryVectorLinearCombination,
   dictionaryVectorScale,
   dictionaryVectorSum,
-});
+  infinity,
+  mod,
+};
 
 window.on_public_website =
   new URL(document.location).hostname === "math.mit.edu";

@@ -18,7 +18,7 @@
     "mousetrap": "^1.6.2"
   },
   "scripts": {
-    "debug": "esbuild src/main.js --bundle --outdir=dist",
-    "build": "esbuild src/main.js --bundle --outdir=dist --minify"
+    "debug": "esbuild src/main.js --bundle --format=esm --outdir=dist",
+    "build": "esbuild src/main.js --bundle --format=esm --outdir=dist --minify"
   }
 }
