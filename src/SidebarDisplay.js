@@ -1,7 +1,5 @@
-"use strict"
-
-import { Display } from "./Display.js";
-import * as Panel from "./Panel.js"
+import { Display } from "./Display";
+import * as Panel from "./Panel"
 
 export class Sidebar {
     constructor(parentContainer) {

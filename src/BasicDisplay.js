@@ -1,7 +1,7 @@
 "use strict"
-import { Display } from "./Display.js";
-import { Tooltip } from "./Tooltip.js";
-import * as Interface from "./Interface.js"
+import { Display } from "./Display";
+import { Tooltip } from "./Tooltip";
+import * as Interface from "./Interface"
 import * as Mousetrap from "mousetrap"
 
 export class BasicDisplay extends Display {

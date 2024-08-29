@@ -1,9 +1,9 @@
 "use strict"
 
-import {SidebarDisplay} from "./SidebarDisplay.js";
-import * as Panel from "./Panel.js"
-import { Tooltip } from "./Tooltip.js";
-import * as Interface from "./Interface.js"
+import {SidebarDisplay} from "./SidebarDisplay";
+import * as Panel from "./Panel"
+import { Tooltip } from "./Tooltip";
+import { renderLatex, ensureMath } from "./Interface";
 import * as Mousetrap from "mousetrap"
 
 const STATE_ADD_DIFFERENTIAL = 1;
@@ -93,7 +93,7 @@ export class EditorDisplay extends SidebarDisplay {
             this.title_edit_link.innerHTML = "Edit";
             let c = this.selected.c;
             if (c.name) {
-                this.title_text.innerHTML = Interface.renderLaTeX(Interface.ensureMath(c.name)) + ` - (${c.x}, ${c.y})`;
+                this.title_text.innerHTML = renderLaTeX(ensureMath(c.name)) + ` - (${c.x}, ${c.y})`;
             } else {
                 this.title_text.innerHTML = `<span style='color: gray'>unnamed</span> - (${c.x}, ${c.y})`;
             }

@@ -2,7 +2,7 @@
 
 import { EventEmitter } from "events";
 import * as Mousetrap from "mousetrap";
-import * as Interface from "./Interface.js";
+import * as Interface from "./Interface";
 
 const STATE_ADD_DIFFERENTIAL = 1;
 const STATE_RM_DIFFERENTIAL = 2;

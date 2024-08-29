@@ -1,6 +1,4 @@
-"use strict";
-
-import * as Util from "./Util.js";
+import * as Util from "./Util";
 
 let infinity = Util.infinity;
 

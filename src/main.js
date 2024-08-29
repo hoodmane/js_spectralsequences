@@ -1,7 +1,6 @@
 // This MathJax file comes from the MathJax-single-file git archive folder dist/TeXSVGTeX
 // It isn't designed to work with node / browserify -- it just installs itself as a global variable.
 // because of this, require just "returns" an empty object, so there's no use in saving the output.
-//require("./mathjax.min.js");
 
 import * as Util from "./Util";
 import * as IO from "./SaveLoad";
@@ -11,7 +10,7 @@ import {Display} from "./Display";
 import {BasicDisplay} from "./BasicDisplay";
 import {SidebarDisplay} from "./SidebarDisplay";
 import {EditorDisplay} from "./EditorDisplay";
-import { Tooltip } from "./Tooltip.js";
+import { Tooltip } from "./Tooltip";
 import * as Panel from "./Panel";
 import * as ExportToTex from "./ExportToTex";
 import {EventEmitter} from "events";

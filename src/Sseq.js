@@ -1,14 +1,14 @@
 "use strict";
 
-import * as Shapes from "./Shape.js"
-import * as SseqClassjs from "./SseqClass.js"
-import * as Edges from "./Edges.js";
-import * as monomial_basisjs from "./monomial_basis.js";
-import * as Util from "./Util.js";
-import * as IO from "./SaveLoad.js";
+import * as Shapes from "./Shape"
+import * as SseqClassjs from "./SseqClass"
+import * as Edges from "./Edges";
+import * as monomial_basisjs from "./monomial_basis";
+import * as Util from "./Util";
+import * as IO from "./SaveLoad";
 import EventEmitter from "events";
-import StringifyingMap from "./StringifyingMap.js"
-import * as Interface from "./Interface.js"
+import StringifyingMap from "./StringifyingMap"
+import * as Interface from "./Interface"
 
 
 export const SseqClass = SseqClassjs.SseqClass;

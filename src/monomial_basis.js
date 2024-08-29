@@ -1,4 +1,4 @@
-import StringifyingMap from "./StringifyingMap.js";
+import StringifyingMap from "./StringifyingMap";
 
 
 /**

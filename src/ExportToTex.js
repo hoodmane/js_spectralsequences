@@ -1,4 +1,4 @@
-import * as IO from "./SaveLoad.js";
+import * as IO from "./SaveLoad";
 
 export function SpectralSequenceToTex(sseq, page, xmin, xmax, ymin, ymax){
     let [classes, edges] = sseq.getDrawnElements(page, xmin, xmax, ymin, ymax);
