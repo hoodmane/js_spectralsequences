@@ -19,11 +19,17 @@ export function ensureMath(str) {
   return "$" + str + "$";
 }
 
+let macros = {};
+
+export function setLatexMacros(newMacros) {
+  macros = newMacros;
+}
+
 export function renderLatex(html) {
   html = html.replace(/\n/g, "\n<hr>\n");
   let html_list = html.split(/(?:\\\[)|(?:\\\()|(?:\\\))|(?:\\\])|(?:\$)/);
   for (let i = 1; i < html_list.length; i += 2) {
-    html_list[i] = katex.renderToString(html_list[i]);
+    html_list[i] = katex.renderToString(html_list[i], { macros });
   }
   return html_list.join("\n");
 }

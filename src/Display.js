@@ -3,6 +3,7 @@ import * as D3Selection from "d3-selection";
 import * as D3Zoom from "d3-zoom";
 import * as D3Scale from "d3-scale";
 import * as D3Timer from "d3-timer";
+import { infinity } from "./Util";
 
 let d3 = Object.assign({}, D3Selection, D3Zoom, D3Scale, D3Timer);
 

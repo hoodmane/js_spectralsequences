@@ -39,6 +39,7 @@ export * as C2S from "canvas2svg";
 export { infinity } from "./Util";
 export { sseqDatabase } from "./SaveLoad";
 import StringifyingMap from "./StringifyingMap";
+export { setLatexMacros } from "./Interface";
 export { StringifyingMap };
 
 export function mod(n, d) {
