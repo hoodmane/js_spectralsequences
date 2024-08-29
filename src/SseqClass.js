@@ -2,7 +2,6 @@ import * as Util from "./Util";
 
 let infinity = Util.infinity;
 
-
 /**
  * The Node class controls the display of SseqClass's.
  * The fields are:
@@ -18,136 +17,137 @@ let infinity = Util.infinity;
  *  TODO: currently merge and copy ignore dummies. Is this the right behavior? Maybe they should throw errors?
  */
 export class Node {
-    constructor(obj){
-        this.opacity = 1;
-        this.color = "black";
-        this.scale = 1;
-        if(obj){
-            Object.assign(this, obj);
-        }
+  constructor(obj) {
+    this.opacity = 1;
+    this.color = "black";
+    this.scale = 1;
+    if (obj) {
+      Object.assign(this, obj);
     }
+  }
 
-    copy(){
-        if(this.isDummy()){
-            return new Node();
-        }
-        return Object.assign(new Node(), this);
+  copy() {
+    if (this.isDummy()) {
+      return new Node();
     }
+    return Object.assign(new Node(), this);
+  }
 
-    getShape(){
-        return this.shape;
+  getShape() {
+    return this.shape;
+  }
+
+  setShape(shape) {
+    this.shape = shape;
+    return this;
+  }
+
+  getColor() {
+    return this.color;
+  }
+
+  setColor(color) {
+    this.color = color;
+    return this;
+  }
+
+  setFill(color) {
+    this.fill = color;
+    return this;
+  }
+
+  setStroke(color) {
+    this.stroke = color;
+    return this;
+  }
+
+  setOpacity(op) {
+    this.opacity = op;
+    return this;
+  }
+
+  isDummy() {
+    return false;
+  }
+
+  setPosition(x, y, size) {
+    this.canvas_x = x;
+    this.canvas_y = y;
+    this.size = size;
+  }
+
+  draw(context) {
+    context.save();
+
+    if (this.opacity) {
+      context.opacity = this.opacity;
     }
-
-    setShape(shape){
-        this.shape = shape;
-        return this;
+    if (this.color) {
+      context.fillStyle = this.color;
+      context.strokeStyle = this.color;
     }
-
-
-    getColor(){
-        return this.color;
+    if (this.stroke && this.stroke !== true) {
+      context.strokeStyle = this.stroke;
     }
-
-    setColor(color){
-        this.color = color;
-        return this;
+    if (this.fill && this.fill !== true) {
+      context.fillStyle = this.fill;
     }
-
-    setFill(color){
-        this.fill = color;
-        return this;
+    if (this.highlight) {
+      if (this.hcolor) {
+        context.fillStyle = this.hcolor;
+        context.strokeStyle = this.hcolor;
+      }
+      if (this.hstroke) {
+        context.strokeStyle = this.hstroke;
+      }
+      if (this.hfill) {
+        context.fillStyle = this.hfill;
+      }
     }
+    context.lineWidth = Math.min(3, (this.size * this.scale) / 20); // Magic number
 
-    setStroke(color){
-        this.stroke = color;
-        return this;
+    this.path = this.shape.draw(
+      context,
+      this.canvas_x,
+      this.canvas_y,
+      this.size * this.scale,
+      this,
+    );
+
+    context.restore();
+  }
+
+  static getDummy() {
+    if (Node._dummy) {
+      return Node._dummy;
     }
+    let dummy = new Node();
+    let chainableNoOp = Util.getDummyConstantFunction(dummy);
+    dummy.isDummy = function () {
+      return true;
+    };
+    dummy.setShape = chainableNoOp;
+    dummy.setColor = chainableNoOp;
+  }
 
-    setOpacity(op){
-        this.opacity = op;
-        return this;
+  /**
+   * @param {...Node} nodes -- a list of nodes to merge. Merges them into a new object.
+   * @returns {Node} -- a new node formed by merging the list of nodes passed as arguments. Later arguments have
+   *    priority over earlier ones.
+   */
+  static merge(...nodes) {
+    let root = new Node();
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].isDummy && nodes[i].isDummy()) {
+        continue;
+      }
+      for (var key in nodes[i]) {
+        root[key] = nodes[i][key];
+      }
     }
-
-    isDummy(){
-        return false;
-    }
-
-    setPosition(x, y, size) {
-        this.canvas_x = x;
-        this.canvas_y = y;
-        this.size = size;
-    }
-
-    draw(context) {
-        context.save();
-
-        if (this.opacity) {
-            context.opacity = this.opacity;
-        }
-        if (this.color) {
-            context.fillStyle = this.color;
-            context.strokeStyle = this.color;
-        }
-        if (this.stroke && this.stroke !== true) {
-            context.strokeStyle = this.stroke;
-        }
-        if (this.fill && this.fill !== true) {
-            context.fillStyle = this.fill;
-        }
-        if (this.highlight) {
-            if (this.hcolor) {
-                context.fillStyle = this.hcolor;
-                context.strokeStyle = this.hcolor;
-            }
-            if (this.hstroke) {
-                context.strokeStyle = this.hstroke;
-            }
-            if (this.hfill) {
-                context.fillStyle = this.hfill;
-            }
-        }
-        context.lineWidth = Math.min(3, this.size * this.scale / 20); // Magic number
-
-        
-        this.path = this.shape.draw(context, this.canvas_x, this.canvas_y, this.size * this.scale, this);
-
-        context.restore();
-    }
-
-    static getDummy(){
-        if(Node._dummy){
-            return Node._dummy;
-        }
-        let dummy = new Node();
-        let chainableNoOp = Util.getDummyConstantFunction(dummy);
-        dummy.isDummy = function(){ return true; };
-        dummy.setShape = chainableNoOp;
-        dummy.setColor = chainableNoOp;
-    }
-
-    /**
-     * @param {...Node} nodes -- a list of nodes to merge. Merges them into a new object.
-     * @returns {Node} -- a new node formed by merging the list of nodes passed as arguments. Later arguments have
-     *    priority over earlier ones.
-     */
-    static merge(...nodes){
-        let root = new Node();
-        for ( var i = 0; i < nodes.length; i++ ) {
-            if(nodes[i].isDummy && nodes[i].isDummy()){
-                continue;
-            }
-            for (var key in nodes[i]) {
-                root[key] = nodes[i][key];
-            }
-        }
-        return root;
-    }
+    return root;
+  }
 }
-
-
-
-
-
 
 /**
  *  A SseqClass represents a particular subgroup of some bidegree in the E2 page of the spectral sequence, and should
@@ -177,485 +177,505 @@ export class Node {
  */
 let unique_id = 0;
 export class SseqClass {
-    /**
-     * @param sseq The parent spectral sequence.
-     * @package
-     */
-    constructor(sseq, degree){
-        this.sseq = sseq;
-        this.degree = degree;
-        this.projection = sseq.projection(this); // Needed by display
-        this.x = this.projection[0];
-        this.y = this.projection[1];
-        this.x_offset = false;
-        this.y_offset = false;
-        this.idx = 0; // Set by addClass.
-        this.unique_id = unique_id ++;
+  /**
+   * @param sseq The parent spectral sequence.
+   * @package
+   */
+  constructor(sseq, degree) {
+    this.sseq = sseq;
+    this.degree = degree;
+    this.projection = sseq.projection(this); // Needed by display
+    this.x = this.projection[0];
+    this.y = this.projection[1];
+    this.x_offset = false;
+    this.y_offset = false;
+    this.idx = 0; // Set by addClass.
+    this.unique_id = unique_id++;
 
-        this.edges = [];
-        this.name = "";
-        this.last_page_name = "";
-        this.extra_info = "";
-        this.differential_strings = [];
-        this.page_list = [infinity];
-        this.node_list = [sseq.default_node.copy()];
-        this.visible = true;
+    this.edges = [];
+    this.name = "";
+    this.last_page_name = "";
+    this.extra_info = "";
+    this.differential_strings = [];
+    this.page_list = [infinity];
+    this.node_list = [sseq.default_node.copy()];
+    this.visible = true;
 
+    // internal fields only.
+    this._last_page = 0;
+    this._last_page_idx = 0;
+  }
 
-        // internal fields only.
-        this._last_page = 0;
-        this._last_page_idx = 0;
+  getMemento() {
+    let res = Util.copyFields({}, this);
+    res.node_list = res.node_list.map((n) => new Node(n));
+    res.node_list.forEach((n) => (n.highlight = false)); // Don't highlight the restored node;
+    return res;
+  }
+
+  restoreFromMemento(memento) {
+    if (memento.delete) {
+      if (this.invalid) {
+        return;
+      }
+      this.delete();
+      return;
+    }
+    if (this.invalid) {
+      this.revive();
+    }
+    let res = Util.copyFields(this, memento);
+    this.node_list = this.node_list.map((n) => n.copy());
+    return this;
+  }
+
+  delete() {
+    this.invalid = true;
+    let idx = this.sseq.num_classes_by_degree.get([this.x, this.y]);
+    this.sseq.num_classes_by_degree.set([this.x, this.y], idx - 1);
+    this.sseq.total_classes--;
+  }
+
+  revive() {
+    this.invalid = false;
+    let idx = this.sseq.num_classes_by_degree.get([this.x, this.y]);
+    this.sseq.num_classes_by_degree.set([this.x, this.y], idx + 1);
+    this.sseq.total_classes++;
+
+    // When we delete a class, we delete the edges as well. This adds the
+    // edge deletions to the mutation list. When we restore a class, we do
+    // not have to explicitly restore the edges, since this is taken care
+    // of by the Redo function.
+  }
+
+  static getDummy() {
+    if (SseqClass._dummy) {
+      return SseqClass._dummy;
+    }
+    let dummy = Object.create(SseqClass);
+    SseqClass._dummy = dummy;
+
+    let chainableNoOp = Util.getDummyConstantFunction(dummy);
+
+    dummy.isDummy = Util.getDummyConstantFunction(true);
+    dummy.getName = Util.getDummyConstantFunction("dummy");
+    dummy.getColor = Util.getDummyConstantFunction("black");
+    dummy.getShape = Util.getDummyConstantFunction(null);
+    dummy.getTooltip = Util.getDummyConstantFunction("");
+    dummy.getPage = Util.getDummyConstantFunction(-1);
+    dummy.getNode = Util.getDummyConstantFunction(Node.getDummy());
+    dummy.toString = dummy.getName;
+    dummy.constructor = SseqClass.constructor;
+
+    dummy.replace = chainableNoOp;
+    dummy.addExtraInfo = chainableNoOp;
+    dummy.isAlive = Util.getDummyConstantFunction(false);
+
+    for (let field of [
+      "getEdges",
+      "getDifferentials",
+      "getIncomingDifferentials",
+      "getOutgoingDifferentials",
+      "getStructlines",
+      "getIncomingStructlines",
+      "getOutgoingStructlines",
+      "getProducts",
+      "getDivisors",
+      "getExtensions",
+    ]) {
+      dummy[field] = Util.getDummyConstantFunction([]);
     }
 
-    getMemento(){
-        let res = Util.copyFields({}, this);
-        res.node_list = res.node_list.map( n => new Node(n));
-        res.node_list.forEach(n => n.highlight = false); // Don't highlight the restored node;
-        return res;
+    dummy.getProductIfPresent = Util.getDummyConstantFunction(dummy);
+    dummy.getDivisorIfPresent = Util.getDummyConstantFunction(dummy);
+
+    dummy.getStringifyingMapKey = Util.getDummyInvalidOperation(
+      dummy,
+      "getStringifyingMapKey",
+    );
+    Util.setPrivateMethodsToInvalidOperation(dummy);
+    Util.setDummyMethods(
+      dummy,
+      (p) => p.startsWith("set"),
+      () => chainableNoOp,
+    );
+
+    Util.checkAllCommandsDefined(dummy, SseqClass);
+    return dummy;
+  }
+
+  isDummy() {
+    return false;
+  }
+
+  /* Public methods: */
+
+  getName() {
+    return this.name;
+  }
+
+  setName(name) {
+    this.name = name;
+    this.last_page_name = name;
+    return this;
+  }
+
+  getNameCoord() {
+    let tooltip = "";
+    if (this.name !== "") {
+      tooltip = `\\(\\large ${this.name}\\)&nbsp;&mdash;&nbsp;`;
     }
+    tooltip += `(${this.x}, ${this.y})`;
+    return tooltip;
+  }
 
-    restoreFromMemento(memento){
-        if(memento.delete){
-            if(this.invalid){
-                return;
-            }
-            this.delete();
-            return;
-        }
-        if(this.invalid){
-            this.revive();
-        }
-        let res = Util.copyFields(this, memento);
-        this.node_list = this.node_list.map( n => n.copy());
-        return this;
+  getNameCoordHTML() {
+    return Interface.renderLatex(this.getNameCoord());
+  }
+
+  /**
+   * @returns {int} The page this class dies on (or infinity if it lives forever).
+   */
+  getPage() {
+    return this.page_list[this.page_list.length - 1];
+  }
+
+  setPage(page) {
+    this.page_list[this.page_list.length - 1] = page;
+    return this;
+  }
+
+  isAlive(page) {
+    if (!page) {
+      page = infinity - 1;
     }
+    return this.getPage() > page;
+  }
 
-    delete() {
-        this.invalid = true;
-        let idx = this.sseq.num_classes_by_degree.get([this.x, this.y]);
-        this.sseq.num_classes_by_degree.set([this.x, this.y], idx - 1);
-        this.sseq.total_classes --;
+  /**
+   * Get the node that controls the display of the class on the given page.
+   * @param page
+   * @returns {Node} The node that controls the display of this class on page `page`.
+   */
+  getNode(page) {
+    const idx = this._getPageIndex(page);
+    return this.node_list[idx];
+  }
+
+  /**
+   * Sets the node that controls the display on the given page.
+   * Properties that are missing from the given node are left unchanged.
+   * @param {Node} node
+   * @param {int} page
+   * @returns {SseqClass} Chainable
+   */
+  setNode(node, page) {
+    if (node === undefined) {
+      node = {};
     }
+    let pre = this.getMemento();
+    const idx = this._getPageIndex(page);
+    this.node_list[idx] = Node.merge(this.node_list[idx], node);
+    let post = this.getMemento();
+    this.sseq.addMutation(this, pre, post);
+    return this;
+  }
 
-    revive() {
-        this.invalid = false;
-        let idx = this.sseq.num_classes_by_degree.get([this.x, this.y]);
-        this.sseq.num_classes_by_degree.set([this.x, this.y], idx + 1);
-        this.sseq.total_classes ++;
+  getColor(page) {
+    return this.getNode(page).getColor();
+  }
 
-        // When we delete a class, we delete the edges as well. This adds the
-        // edge deletions to the mutation list. When we restore a class, we do
-        // not have to explicitly restore the edges, since this is taken care
-        // of by the Redo function.
+  setColor(color, page) {
+    let pre = this.getMemento();
+    this.getNode(page).setColor(color);
+    let post = this.getMemento();
+    this.sseq.addMutation(this, pre, post);
+    return this;
+  }
+
+  getShape(page) {
+    return this.getNode(page).getShape();
+  }
+
+  setShape(shape, page) {
+    let pre = this.getMemento();
+    this.getNode(page).setShape(shape);
+    let post = this.getMemento();
+    this.sseq.addMutation(this, pre, post);
+    return this;
+  }
+
+  /**
+   * Set the page of every structline incident to this class. Structlines are not displayed on pages later than their
+   * page.
+   * @param page
+   * @returns {SseqClass}
+   */
+  setStructlinePages(page) {
+    let structlines = this.getStructlines();
+    for (let i = 0; i < structlines.length; i++) {
+      let sl = structlines[i];
+      if (sl.page > page) {
+        let pre = sl.getMemento();
+        sl.page = page;
+        let post = sl.getMemento();
+        this.sseq.addMutation(sl, pre, post);
+      }
     }
+    return this;
+  }
 
-    static getDummy(){
-        if(SseqClass._dummy){
-            return SseqClass._dummy;
-        }
-        let dummy = Object.create(SseqClass);
-        SseqClass._dummy = dummy;
-
-        let chainableNoOp = Util.getDummyConstantFunction(dummy);
-
-        dummy.isDummy = Util.getDummyConstantFunction(true);
-        dummy.getName = Util.getDummyConstantFunction("dummy");
-        dummy.getColor = Util.getDummyConstantFunction("black");
-        dummy.getShape = Util.getDummyConstantFunction(null);
-        dummy.getTooltip = Util.getDummyConstantFunction("");
-        dummy.getPage = Util.getDummyConstantFunction(-1);
-        dummy.getNode = Util.getDummyConstantFunction(Node.getDummy());
-        dummy.toString = dummy.getName;
-        dummy.constructor = SseqClass.constructor;
-
-        dummy.replace = chainableNoOp;
-        dummy.addExtraInfo = chainableNoOp;
-        dummy.isAlive = Util.getDummyConstantFunction(false);
-
-        for(let field of ["getEdges", "getDifferentials", "getIncomingDifferentials", "getOutgoingDifferentials",
-            "getStructlines", "getIncomingStructlines", "getOutgoingStructlines", "getProducts", "getDivisors",
-            "getExtensions" ]){
-            dummy[field] = Util.getDummyConstantFunction([])
-        }
-
-        dummy.getProductIfPresent = Util.getDummyConstantFunction(dummy);
-        dummy.getDivisorIfPresent = Util.getDummyConstantFunction(dummy);
-
-        dummy.getStringifyingMapKey = Util.getDummyInvalidOperation(dummy, "getStringifyingMapKey");
-        Util.setPrivateMethodsToInvalidOperation(dummy);
-        Util.setDummyMethods(dummy, p => p.startsWith("set"), () => chainableNoOp );
-
-        Util.checkAllCommandsDefined(dummy, SseqClass);
-        return dummy;
+  /**
+   * Replace a "dead" class.
+   * @param node Control the way the display of the "replaced" class changes. If the node is undefined, no change
+   *   in appearance will occur.
+   * @returns {SseqClass}
+   */
+  replace(node, lastPageName) {
+    let pre = this.getMemento();
+    if (lastPageName) {
+      if (typeof lastPageName === "string") {
+        this.last_page_name = lastPageName;
+      } else {
+        this.last_page_name = lastPageName(this.name);
+      }
     }
+    this._appendPage(infinity);
+    this.setNode(node);
+    let post = this.getMemento();
+    this.sseq.addMutation(this, pre, post);
+    return this;
+  }
 
-    isDummy(){
-        return false;
+  /**
+   * Adds a string to extra_info (in practice, this controls the tooltip for the class).
+   * @param str
+   * @returns {SseqClass} Chainable
+   */
+  addExtraInfo(str) {
+    let pre = this.getMemento();
+    this.extra_info += "\n" + str;
+    let post = this.getMemento();
+    this.sseq.addMutation(this, pre, post);
+    return this;
+  }
+
+  setPermanentCycleInfo(str) {
+    let pre = this.getMemento();
+    this.permanent_cycle_info = str;
+    this.addExtraInfo(this.permanent_cycle_info);
+    let post = this.getMemento();
+    this.sseq.addMutation(this, pre, post);
+    return this;
+  }
+
+  getEdges() {
+    return this.edges;
+  }
+
+  getDifferentials() {
+    return this.edges.filter((e) => e.type === "Differential");
+  }
+
+  getOutgoingDifferentials() {
+    return this.edges.filter(
+      (e) => e.type === "Differential" && this === e.source,
+    );
+  }
+
+  getIncomingDifferentials() {
+    return this.edges.filter(
+      (e) => e.type === "Differential" && this === e.target,
+    );
+  }
+
+  getStructlines() {
+    return this.edges.filter((e) => e.type === "Structline");
+  }
+
+  getOutgoingStructlines() {
+    return this.edges.filter(
+      (e) => e.type === "Structline" && this === e.source,
+    );
+  }
+
+  getIncomingStructlines() {
+    return this.edges.filter(
+      (e) => e.type === "Structline" && this === e.target,
+    );
+  }
+
+  getExtensions() {
+    return this.edges.filter((e) => e.type === "Extension");
+  }
+
+  getProducts(variable) {
+    let multiplications = this.edges.filter(
+      (sl) => sl.type === "Structline" && sl.otherClass(this).y > this.y,
+    );
+    if (variable) {
+      multiplications = multiplications.filter((sl) => sl.mult === variable);
     }
+    return multiplications;
+  }
 
-    /* Public methods: */
-
-    getName(){
-        return this.name;
+  getDivisors(variable) {
+    let divisors = this.edges.filter(
+      (sl) => sl.type === "Structline" && sl.otherClass(this).y < this.y,
+    );
+    if (variable) {
+      divisors = divisors.filter((sl) => sl.mult === variable);
     }
+    return divisors;
+  }
 
-    setName(name){
-        this.name = name;
-        this.last_page_name = name;
-        return this;
+  getProductIfPresent(variable) {
+    let products = this.getProducts(variable);
+    if (products.length === 1) {
+      return products[0].otherClass(this);
+    } else {
+      return SseqClass.getDummy();
     }
+  }
 
-    getNameCoord(){
-        let tooltip = "";
-        if (this.name !== "") {
-            tooltip = `\\(\\large ${this.name}\\)&nbsp;&mdash;&nbsp;`;
-        }
-        tooltip += `(${this.x}, ${this.y})`;
-        return tooltip;
+  getDivisorIfPresent(variable) {
+    let products = this.getDivisors(variable);
+    if (products.length === 1) {
+      return products[0].otherClass(this);
+    } else {
+      return SseqClass.getDummy();
     }
+  }
 
-    getNameCoordHTML(){
-        return Interface.renderLatex(this.getNameCoord());
+  toString() {
+    return this.name;
+  }
+
+  getStringifyingMapKey() {
+    return this.x + "," + this.y + "," + this.idx;
+  }
+
+  /* Package / private methods: */
+
+  /**
+   * This gets the index of a specified page in the page list. What this means is that if the page list is of the
+   * form [5, 9, infinity], this divides the pages into three intervals, [0,5], [6,9], and [10, infinity].
+   * If page is in the range from 0 to 5, the pageIndex is zero, if it is in the range 6 to 9, the index is 1,
+   * and in the range 10 to infinity, it is 2.
+   *
+   * If the page_list does not end in infinity and page is larger than the largest entry in page_list then this throws
+   * an error.
+   * @param {int} page
+   * @returns {int} the index
+   * @private
+   */
+  _getPageIndex(page) {
+    if (page === undefined) {
+      return this.page_list.length - 1;
+    } else if (page === this._last_page) {
+      return this._last_page_idx;
     }
-
-    /**
-     * @returns {int} The page this class dies on (or infinity if it lives forever).
-     */
-    getPage(){
-        return this.page_list[this.page_list.length - 1];
+    let page_idx;
+    for (let i = 0; i < this.page_list.length; i++) {
+      if (this.page_list[i] >= page) {
+        page_idx = i;
+        break;
+      }
     }
-
-    setPage(page){
-        this.page_list[this.page_list.length - 1] = page;
-        return this;
+    if (page_idx === undefined) {
+      console.log(new Error("Page too large. This probably shouldn't happen."));
     }
+    this._last_page = page;
+    this._last_page_idx = page_idx;
+    return page_idx;
+  }
 
-    isAlive(page){
-        if(!page){
-            page = infinity - 1;
-        }
-        return this.getPage() > page;
+  /* Used by Sseq: */
+
+  /**
+   * Appends a page to the list of pages and sets the corresponding node to be the previous node.
+   * @param {int} page The page to append. Really should always be infinity...
+   * @returns {SseqClass} Chainable
+   * @private
+   */
+  _appendPage(page) {
+    this.page_list.push(page);
+    this.node_list.push(this.node_list[this.node_list.length - 1].copy());
+    return this;
+  }
+
+  /**
+   * Add a structline to this class. Called by sseq.addStructline.
+   * @param sl The
+   * @package
+   */
+  _addStructline(sl) {
+    this.edges.push(sl);
+  }
+
+  _addExtension(ext) {
+    this.edges.push(ext);
+  }
+
+  /**
+   * Adds an outgoing differential. Called by the sseq.addDifferential.
+   * @param differential
+   * @package
+   */
+  _addOutgoingDifferential(differential, set_page) {
+    if (this.getPage() < differential.page) {
+      //this.handleDoubledDifferential("supporting another" + differential.supportedMessage());
     }
-
-
-
-    /**
-     * Get the node that controls the display of the class on the given page.
-     * @param page
-     * @returns {Node} The node that controls the display of this class on page `page`.
-     */
-    getNode(page){
-        const idx = this._getPageIndex(page);
-        return this.node_list[idx];
+    if (set_page) {
+      this.setPage(differential.page);
     }
+    this.edges.push(differential);
+    this._updateDifferentialStrings();
+  }
 
-    /**
-     * Sets the node that controls the display on the given page.
-     * Properties that are missing from the given node are left unchanged.
-     * @param {Node} node
-     * @param {int} page
-     * @returns {SseqClass} Chainable
-     */
-    setNode(node, page){
-        if(node === undefined){
-            node = {};
-        }
-        let pre = this.getMemento();
-        const idx = this._getPageIndex(page);
-        this.node_list[idx] = Node.merge(this.node_list[idx], node);
-        let post = this.getMemento();
-        this.sseq.addMutation(this, pre, post);
-        return this;
+  /**
+   * Adds an incoming differential. Called by the sseq.addDifferential.
+   * @param differential
+   * @package
+   */
+  _addIncomingDifferential(differential, set_page) {
+    if (this.getPage() < differential.page) {
+      //this.handleDoubledDifferential("receiving another" + differential.hitMessage());
     }
-
-    getColor(page){
-        return this.getNode(page).getColor();
+    if (set_page) {
+      this.setPage(differential.page);
     }
+    this.edges.push(differential);
+    this._updateDifferentialStrings();
+  }
 
-    setColor(color, page){
-        let pre = this.getMemento();
-        this.getNode(page).setColor(color);
-        let post = this.getMemento();
-        this.sseq.addMutation(this, pre, post);
-        return this;
-    }
+  _updateDifferentialStrings() {
+    let differentials = this.getDifferentials().sort((a, b) => a.page > b.page);
+    this.differential_strings = differentials.map((d) =>
+      d.toString(d.source === this, d.target === this),
+    );
+  }
 
-    getShape(page){
-        return this.getNode(page).getShape();
-    }
+  /**
+   * Determines whether this class is drawn on the given page.
+   * @param page
+   * @returns {boolean}
+   * @package
+   */
+  _drawOnPageQ(page) {
+    return this.page_list[this.page_list.length - 1] >= page && this.visible;
+  }
 
-    setShape(shape, page){
-        let pre = this.getMemento();
-        this.getNode(page).setShape(shape);
-        let post = this.getMemento();
-        this.sseq.addMutation(this, pre, post);
-        return this;
-    }
-
-    /**
-     * Set the page of every structline incident to this class. Structlines are not displayed on pages later than their
-     * page.
-     * @param page
-     * @returns {SseqClass}
-     */
-    setStructlinePages(page){
-        let structlines = this.getStructlines();
-        for(let i = 0; i < structlines.length; i++){
-            let sl = structlines[i];
-            if(sl.page > page){
-                let pre = sl.getMemento();
-                sl.page = page;
-                let post = sl.getMemento();
-                this.sseq.addMutation(sl, pre, post);
-            }
-        }
-        return this;
-    }
-
-
-    /**
-     * Replace a "dead" class.
-     * @param node Control the way the display of the "replaced" class changes. If the node is undefined, no change
-     *   in appearance will occur.
-     * @returns {SseqClass}
-     */
-    replace(node, lastPageName){
-        let pre = this.getMemento();
-        if(lastPageName){
-            if(typeof lastPageName === "string"){
-                this.last_page_name = lastPageName;
-            } else {
-                this.last_page_name = lastPageName(this.name);
-            }
-
-        }
-        this._appendPage(infinity);
-        this.setNode(node);
-        let post = this.getMemento();
-        this.sseq.addMutation(this, pre, post);
-        return this;
-    }
-
-    /**
-     * Adds a string to extra_info (in practice, this controls the tooltip for the class).
-     * @param str
-     * @returns {SseqClass} Chainable
-     */
-    addExtraInfo(str){
-        let pre = this.getMemento();
-        this.extra_info += "\n" + str;
-        let post = this.getMemento();
-        this.sseq.addMutation(this, pre, post);
-        return this;
-    }
-
-    setPermanentCycleInfo(str){
-        let pre = this.getMemento();
-        this.permanent_cycle_info = str;
-        this.addExtraInfo(this.permanent_cycle_info);
-        let post = this.getMemento();
-        this.sseq.addMutation(this, pre, post);
-        return this;
-    }
-
-    getEdges(){
-        return this.edges;
-    }
-
-    getDifferentials(){
-        return this.edges.filter(e => e.type === "Differential");
-    }
-
-    getOutgoingDifferentials(){
-        return this.edges.filter(e => e.type === "Differential" && this === e.source);
-    }
-
-    getIncomingDifferentials(){
-        return this.edges.filter(e => e.type === "Differential" && this === e.target);
-    }
-
-
-    getStructlines(){
-        return this.edges.filter(e => e.type === "Structline");
-    }
-
-    getOutgoingStructlines(){
-        return this.edges.filter(e => e.type === "Structline" && this === e.source);
-    }
-
-    getIncomingStructlines(){
-        return this.edges.filter(e => e.type === "Structline" && this === e.target);
-    }
-
-    getExtensions(){
-        return this.edges.filter(e => e.type === "Extension");
-    }
-
-    getProducts(variable){
-        let multiplications  = this.edges.filter(sl => sl.type === "Structline" && sl.otherClass(this).y > this.y);
-        if(variable){
-            multiplications = multiplications.filter(sl => sl.mult === variable);
-        }
-        return multiplications;
-    }
-
-    getDivisors(variable){
-        let divisors  = this.edges.filter(sl => sl.type === "Structline" && sl.otherClass(this).y < this.y);
-        if(variable){
-            divisors = divisors.filter(sl => sl.mult === variable);
-        }
-        return divisors;
-    }
-
-    getProductIfPresent(variable){
-        let products = this.getProducts(variable);
-        if(products.length === 1){
-            return products[0].otherClass(this);
-        } else {
-            return SseqClass.getDummy();
-        }
-    }
-
-    getDivisorIfPresent(variable){
-        let products = this.getDivisors(variable);
-        if(products.length === 1){
-            return products[0].otherClass(this);
-        } else {
-            return SseqClass.getDummy();
-        }
-    }
-
-    toString(){
-        return this.name;
-    }
-
-    getStringifyingMapKey(){
-        return this.x + "," + this.y + "," + this.idx;
-    }
-
-    /* Package / private methods: */
-
-    /**
-     * This gets the index of a specified page in the page list. What this means is that if the page list is of the
-     * form [5, 9, infinity], this divides the pages into three intervals, [0,5], [6,9], and [10, infinity].
-     * If page is in the range from 0 to 5, the pageIndex is zero, if it is in the range 6 to 9, the index is 1,
-     * and in the range 10 to infinity, it is 2.
-     *
-     * If the page_list does not end in infinity and page is larger than the largest entry in page_list then this throws
-     * an error.
-     * @param {int} page
-     * @returns {int} the index
-     * @private
-     */
-    _getPageIndex(page){
-        if( page === undefined ) {
-            return this.page_list.length - 1;
-        } else if( page === this._last_page ) {
-            return this._last_page_idx;
-        }
-        let page_idx;
-        for(let i = 0; i < this.page_list.length; i++){
-            if(this.page_list[i] >= page){
-                page_idx = i;
-                break;
-            }
-        }
-        if(page_idx === undefined){
-            console.log(new Error("Page too large. This probably shouldn't happen."));
-        }
-        this._last_page = page;
-        this._last_page_idx = page_idx;
-        return page_idx;
-    }
-
-    /* Used by Sseq: */
-
-    /**
-     * Appends a page to the list of pages and sets the corresponding node to be the previous node.
-     * @param {int} page The page to append. Really should always be infinity...
-     * @returns {SseqClass} Chainable
-     * @private
-     */
-    _appendPage(page){
-        this.page_list.push(page);
-        this.node_list.push(this.node_list[this.node_list.length - 1].copy());
-        return this;
-    }
-
-
-    /**
-     * Add a structline to this class. Called by sseq.addStructline.
-     * @param sl The
-     * @package
-     */
-    _addStructline(sl){
-        this.edges.push(sl);
-    }
-
-    _addExtension(ext){
-        this.edges.push(ext);
-    }
-
-    /**
-     * Adds an outgoing differential. Called by the sseq.addDifferential.
-     * @param differential
-     * @package
-     */
-    _addOutgoingDifferential(differential, set_page){
-        if(this.getPage() < differential.page){
-            //this.handleDoubledDifferential("supporting another" + differential.supportedMessage());
-        }
-        if(set_page){
-            this.setPage(differential.page);
-        }
-        this.edges.push(differential);
-        this._updateDifferentialStrings();
-    }
-
-    /**
-     * Adds an incoming differential. Called by the sseq.addDifferential.
-     * @param differential
-     * @package
-     */
-    _addIncomingDifferential(differential, set_page){
-        if(this.getPage() < differential.page){
-            //this.handleDoubledDifferential("receiving another" + differential.hitMessage());
-        }
-        if(set_page){
-            this.setPage(differential.page);
-        }
-        this.edges.push(differential);
-        this._updateDifferentialStrings();
-    }
-
-    _updateDifferentialStrings(){
-        let differentials = this.getDifferentials().sort((a,b) => a.page > b.page);
-        this.differential_strings = differentials.map( d => d.toString(d.source === this, d.target === this));
-    }
-
-
-    /**
-     * Determines whether this class is drawn on the given page.
-     * @param page
-     * @returns {boolean}
-     * @package
-     */
-    _drawOnPageQ(page){
-        return this.page_list[this.page_list.length -1] >= page && this.visible;
-    }
-
-    /**
-     * Determines wither the class is in the given range.
-     * @param xmin
-     * @param xmax
-     * @param ymin
-     * @param ymax
-     * @returns {boolean}
-     * @package
-     */
-    _inRangeQ(xmin, xmax, ymin, ymax){
-        return xmin <= this.x && this.x <= xmax
-            && ymin <= this.y && this.y <= ymax;
-    }
-
+  /**
+   * Determines wither the class is in the given range.
+   * @param xmin
+   * @param xmax
+   * @param ymin
+   * @param ymax
+   * @returns {boolean}
+   * @package
+   */
+  _inRangeQ(xmin, xmax, ymin, ymax) {
+    return xmin <= this.x && this.x <= xmax && ymin <= this.y && this.y <= ymax;
+  }
 }
