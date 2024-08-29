@@ -2,19 +2,19 @@
 // It isn't designed to work with node / browserify -- it just installs itself as a global variable.
 // because of this, require just "returns" an empty object, so there's no use in saving the output.
 
-import * as Util from "./Util";
-import * as IO from "./SaveLoad";
-import * as Interface from "./Interface";
-import * as Shapes from "./Shape";
-import { Display } from "./Display";
-import { BasicDisplay } from "./BasicDisplay";
-import { SidebarDisplay } from "./SidebarDisplay";
-import { EditorDisplay } from "./EditorDisplay";
-import { Tooltip } from "./Tooltip";
-import * as Panel from "./Panel";
-import * as ExportToTex from "./ExportToTex";
-import { EventEmitter } from "events";
-import {
+export * as Util from "./Util";
+export * as IO from "./SaveLoad";
+export * as Interface from "./Interface";
+export * as Shapes from "./Shape";
+export { Display } from "./Display";
+export { BasicDisplay } from "./BasicDisplay";
+export { SidebarDisplay } from "./SidebarDisplay";
+export { EditorDisplay } from "./EditorDisplay";
+export { Tooltip } from "./Tooltip";
+export * as Panel from "./Panel";
+export * as ExportToTex from "./ExportToTex";
+export { EventEmitter } from "events";
+export {
   Sseq,
   SseqClass,
   Edge,
@@ -32,58 +32,18 @@ import {
   dictionaryVectorSum,
   dictionaryVectorLinearCombination,
 } from "./Sseq";
-import * as tools from "./ass_tools";
-import * as d3 from "d3-selection";
-import * as Mousetrap from "mousetrap";
+export * as tools from "./ass_tools";
+export * as d3 from "d3-selection";
+export * as Mousetrap from "mousetrap";
+export * as C2S from "canvas2svg";
+export { infinity } from "./Util";
+export { sseqDatabase } from "./SaveLoad";
 import StringifyingMap from "./StringifyingMap";
-import * as C2S from "canvas2svg";
+export { StringifyingMap };
 
-const infinity = 10000;
-
-function mod(n, d) {
+export function mod(n, d) {
   return ((n % d) + d) % d;
 }
-
-const sseqDatabase = IO.sseqDatabase;
-
-export {
-  Util,
-  IO,
-  Interface,
-  sseqDatabase,
-  Shapes,
-  Display,
-  BasicDisplay,
-  SidebarDisplay,
-  EditorDisplay,
-  Tooltip,
-  Panel,
-  C2S,
-  ExportToTex,
-  EventEmitter,
-  Sseq,
-  SseqClass,
-  Node,
-  Edge,
-  Differential,
-  Structline,
-  Extension,
-  tools,
-  d3,
-  Mousetrap,
-  StringifyingMap,
-  range,
-  monomialString,
-  product,
-  vectorScale,
-  vectorSum,
-  vectorLinearCombination,
-  dictionaryVectorLinearCombination,
-  dictionaryVectorScale,
-  dictionaryVectorSum,
-  infinity,
-  mod,
-};
 
 window.on_public_website =
   new URL(document.location).hostname === "math.mit.edu";
