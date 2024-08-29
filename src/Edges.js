@@ -1,4 +1,5 @@
 import * as Util from "./Util";
+import { SseqClass } from "./SseqClass";
 
 const infinity = Util.infinity;
 
